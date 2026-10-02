@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "57296769818",
+    "project_id": "reservitta-dev",
+    "storage_bucket": "reservitta-dev.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:57296769818:android:2a81866bc0caa4185712a3",
+        "android_client_info": {
+          "package_name": "com.reservitta.reservitta"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAhmSndinWI8r035eH1bEUjTj_4IpEP6p0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
