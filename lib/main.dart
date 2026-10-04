@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 
 import 'firebase_options.dart';
 import 'services/auth_service.dart';
-import 'views/home_view.dart';
-import 'views/login_view.dart';
+import 'views/authenticated_user_gate.dart';
+import 'views/landing_view.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,7 +35,12 @@ class MyApp extends StatelessWidget {
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return snap.hasData ? const HomeView() : const LoginView();
+          return snap.hasData
+              ? AuthenticatedUserGate(
+                  key: ValueKey(snap.data!.uid),
+                  user: snap.data!,
+                )
+              : const LandingView();
         },
       ),
     );
