@@ -39,8 +39,10 @@ Para los miembros del equipo acostumbrados a separar el trabajo entre **Frontend
   - Solo construye layouts, botones, formularios e inputs.
   - Escucha cambios de los `ViewModels` (usando `ListenableBuilder` o `StreamBuilder`) para redibujar la UI.
 - **Archivos actuales**:
-  - `login_view.dart`: Formulario e interfaz de inicio de sesión.
-  - `home_view.dart`: Pantalla principal con la lista de restaurantes.
+  - `landing_view.dart`: Entrada pública de la aplicación.
+  - `auth_modal_dialog.dart`: Formularios de inicio de sesión, registro y recuperación.
+  - `authenticated_user_gate.dart`: Selecciona la pantalla según perfil y rol.
+  - `home_view.dart`: Pantalla de administración del restaurante.
 
 ---
 
@@ -52,8 +54,8 @@ Para los miembros del equipo acostumbrados a separar el trabajo entre **Frontend
   - Gestionan controladores de formularios (`TextEditingController`), estados de carga (`isLoading`) y mensajes de error.
   - Invocan los métodos de la capa `services` para obtener o enviar datos al backend.
 - **Archivos actuales**:
-  - `login_viewmodel.dart`: Controla el flujo de autenticación de usuario.
-  - `home_viewmodel.dart`: Controla la transmisión de datos y el cierre de sesión.
+  - `auth_modal_viewmodel.dart`: Estado del flujo de autenticación público.
+  - `home_viewmodel.dart`: Carga el perfil del administrador y datos del restaurante.
 
 ---
 
@@ -65,6 +67,7 @@ Para los miembros del equipo acostumbrados a separar el trabajo entre **Frontend
   - Incluye métodos de serialización (`fromFirestore`, `toMap`, `fromJson`, `toJson`) para transformar las respuestas del backend en objetos fuertemente tipados.
 - **Archivos actuales**:
   - `restaurant_model.dart`: Modelo que representa a un restaurante (`id`, `name`).
+  - `user_model.dart`: Perfil de usuario de Reservitta y rol de la aplicación.
 
 ---
 
@@ -76,8 +79,9 @@ Para los miembros del equipo acostumbrados a separar el trabajo entre **Frontend
   - Retorna `Streams`, `Futures` o datos mapeados a `Models`.
   - Aisla la aplicación de cambios en el proveedor de backend (si en el futuro cambia Firebase por un servidor propio REST/GraphQL, solo se modifica esta carpeta).
 - **Archivos actuales**:
-  - `auth_service.dart`: Métodos de inicio de sesión, cierre de sesión y stream del estado de autenticación.
+  - `auth_service.dart`: Registro, validación de perfil, inicio y cierre de sesión.
   - `restaurant_service.dart`: Consultas a la colección de restaurantes en Firestore.
+  - `database_init_service.dart`: Datos de demostración, inicializados bajo acción explícita.
 
 ---
 
@@ -85,7 +89,13 @@ Para los miembros del equipo acostumbrados a separar el trabajo entre **Frontend
 - **Responsabilidad**:
   - Inicializa las configuraciones globales (Firebase bindings, temas de color).
   - Define el `MaterialApp` de la aplicación.
-  - Determina la vista inicial según el estado del usuario (ej: Si está autenticado redirige a `HomeView`, de lo contrario a `LoginView`).
+  - Escucha el estado de Authentication y entrega el usuario autenticado al control de acceso por perfil.
+
+### Organización y pruebas
+- El proyecto usa organización por capas: vistas en `lib/views/`, estado/UI en `lib/viewmodels/`, acceso a datos en `lib/services/`, modelos en `lib/models/` y validaciones compartidas en `lib/utils/`.
+- Mantén cada archivo en su capa correspondiente y usa nombres específicos de dominio para que los archivos relacionados queden juntos sin introducir carpetas por feature duplicadas.
+- Las pruebas reflejan esa estructura bajo `test/`; por ejemplo, las validaciones de `lib/utils/` van en `test/utils/`.
+- `LoginView` y `RegisterAdminView` son pantallas heredadas sin conexión con el flujo de entrada actual. El flujo activo parte de `LandingView` y usa `AuthModalDialog`/`AuthModalViewModel`; evita agregar nuevas funciones a ambas rutas en paralelo.
 
 ---
 
@@ -109,3 +119,12 @@ Para los miembros del equipo acostumbrados a separar el trabajo entre **Frontend
 2. **Backend**: Crear el servicio `ReservationService` en `lib/services/reservation_service.dart` con los métodos CRUD.
 3. **Front/Lógica**: Crear el ViewModel `ReservationViewModel` en `lib/viewmodels/reservation_viewmodel.dart` para manejar el estado del formulario de reserva.
 4. **Frontend**: Crear la pantalla `ReservationView` en `lib/views/reservation_view.dart` usando los campos del ViewModel.
+
+---
+
+## Registro de cuentas y Firebase
+
+- Firebase Authentication guarda las credenciales de acceso de las cuentas de la aplicación. Que una cuenta aparezca en **Authentication → Users** no la convierte en miembro ni administrador del proyecto Firebase; esos permisos se gestionan por separado en IAM y Firebase Console.
+- El perfil de cada cuenta de Reservitta se guarda en Firestore en `users/{UID}`, con `rol: 'admin'` o `rol: 'visitante'`.
+- El registro de administrador también crea el documento borrador del restaurante. El perfil y el borrador se escriben en un único batch de Firestore; si Firestore rechaza la operación, la app intenta eliminar la cuenta de acceso recién creada e informa si no pudo hacerlo.
+- El registro depende de las reglas de Firestore desplegadas en Firebase Console. Publica y verifica las reglas de `firestore.rules` antes de probar registros; los cambios en el archivo local no se publican automáticamente.
