@@ -124,6 +124,8 @@ class AuthService {
       batch.set(restaurantRef, {
         'adminId': userRef,
         'nombre': restName,
+        'correo': correo.trim(),
+        'telefono': telefono.trim(),
         'estado': 'inactivo',
         'perfilCompleto': false,
         'creadoEn': FieldValue.serverTimestamp(),

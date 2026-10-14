@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 
 class AuthModalDialog extends StatefulWidget {
@@ -450,9 +451,14 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         const SizedBox(height: 12),
         TextField(
           controller: _viewModel.telefonoController,
-          keyboardType: TextInputType.phone,
+          keyboardType: TextInputType.number,
+          inputFormatters: [
+            FilteringTextInputFormatter.digitsOnly,
+            LengthLimitingTextInputFormatter(10),
+          ],
           decoration: InputDecoration(
-            labelText: 'Teléfono *',
+            labelText: 'Teléfono (10 dígitos numéricos) *',
+            hintText: '5512345678',
             prefixIcon: const Icon(Icons.phone_outlined),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: fe['telefono'],
@@ -489,7 +495,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
               labelText: 'Nombre de tu Restaurante (Opcional)',
               prefixIcon: const Icon(Icons.storefront_outlined),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-              helperText: 'Se creará en borrador para configurar después',
+              helperText: 'Completarás los datos y horarios en el siguiente paso',
               errorText: fe['restaurante'],
             ),
           ),
@@ -527,7 +533,10 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                   width: 20,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                 )
-              : const Text('Completar Registro', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+              : Text(
+                  isAdmin ? 'Continuar: Configurar Restaurante' : 'Crear Cuenta',
+                  style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                ),
         ),
       ],
     );

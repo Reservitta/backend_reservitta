@@ -1,9 +1,11 @@
+import 'package:flutter/material.dart';
+
 class AppValidators {
   /// RegEx estándar para validación estricta de correo electrónico
   static final RegExp _emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,}$');
 
-  /// RegEx para números de teléfono (admite formato internacional con +, espacios, guiones)
-  static final RegExp _phoneRegExp = RegExp(r'^\+?[0-9\s\-]{8,18}$');
+  /// RegEx estricto para teléfono mexicano / estándar: exactamente 10 dígitos numéricos
+  static final RegExp _digitsOnlyRegExp = RegExp(r'^[0-9]{10}$');
 
   /// Valida campo obligatorio genérico
   static String? validateRequired(String? value, String fieldName) {
@@ -46,13 +48,77 @@ class AppValidators {
     return errors;
   }
 
+  /// Validación de formulario de perfil de restaurante (HU23)
+  static Map<String, String?> validateRestaurantProfile({
+    required String nombre,
+    required String telefono,
+    required String direccion,
+    String? correo,
+  }) {
+    final errors = <String, String?>{
+      'nombre': validateRestaurantName(nombre, isRequired: true),
+      'telefono': validatePhone(telefono),
+      'direccion': validateAddress(direccion),
+    };
+
+    if (correo != null && correo.trim().isNotEmpty) {
+      errors['correo'] = validateEmail(correo);
+    }
+
+    return errors;
+  }
+
+  /// Valida Dirección del Restaurante
+  static String? validateAddress(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Por favor ingresa la dirección del restaurante.';
+    }
+    final trimmed = value.trim();
+    if (trimmed.length < 5) {
+      return 'La dirección debe tener al menos 5 caracteres.';
+    }
+    return null;
+  }
+
+  /// Valida Coordenadas Geográficas (Latitud y Longitud)
+  static String? validateCoordinates({
+    required double latitude,
+    required double longitude,
+  }) {
+    if (latitude < -90.0 || latitude > 90.0) {
+      return 'La latitud debe estar entre -90.0 y 90.0 grados.';
+    }
+    if (longitude < -180.0 || longitude > 180.0) {
+      return 'La longitud debe estar entre -180.0 y 180.0 grados.';
+    }
+    return null;
+  }
+
+  /// Valida que la hora de cierre sea posterior a la de apertura (HU23-RF03 / RF04)
+  static String? validateScheduleHours({
+    required TimeOfDay apertura,
+    required TimeOfDay cierre,
+  }) {
+    final aperturaMinutes = apertura.hour * 60 + apertura.minute;
+    final cierreMinutes = cierre.hour * 60 + cierre.minute;
+
+    if (cierreMinutes <= aperturaMinutes) {
+      return 'La hora de cierre debe ser posterior a la hora de apertura.';
+    }
+    return null;
+  }
+
   /// Valida Nombre Completo
   static String? validateName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Por favor ingresa tu nombre completo.';
     }
-    if (value.trim().length < 2) {
+    final trimmed = value.trim();
+    if (trimmed.length < 2) {
       return 'El nombre debe tener al menos 2 caracteres.';
+    }
+    if (RegExp(r'[0-9]').hasMatch(trimmed)) {
+      return 'El nombre no debe contener números.';
     }
     return null;
   }
@@ -63,21 +129,32 @@ class AppValidators {
       return 'Por favor ingresa un correo electrónico.';
     }
     final trimmed = value.trim();
+    if (trimmed.contains(' ')) {
+      return 'El correo no debe contener espacios.';
+    }
     if (!_emailRegExp.hasMatch(trimmed)) {
-      return 'Por favor ingresa un correo electrónico válido (ej. usuario@dominio.com).';
+      return 'Ingresa un correo electrónico válido (ej. contacto@restaurante.com).';
     }
     return null;
   }
 
-  /// Valida Número de Teléfono
+  /// Valida Número de Teléfono estricto: solo números, sin espacios, exactamente 10 dígitos
   static String? validatePhone(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Por favor ingresa un número de teléfono.';
     }
     final cleanPhone = value.trim();
-    final digitCount = cleanPhone.replaceAll(RegExp(r'\D'), '').length;
-    if (!_phoneRegExp.hasMatch(cleanPhone) || digitCount < 8) {
-      return 'Por favor ingresa un número de teléfono válido (mínimo 8 dígitos).';
+    if (cleanPhone.contains(' ')) {
+      return 'El teléfono no debe contener espacios.';
+    }
+    if (RegExp(r'[^\d]').hasMatch(cleanPhone)) {
+      return 'El teléfono solo debe contener dígitos numéricos, sin letras ni símbolos.';
+    }
+    if (cleanPhone.length != 10) {
+      return 'El teléfono debe tener exactamente 10 dígitos (tienes ${cleanPhone.length}).';
+    }
+    if (!_digitsOnlyRegExp.hasMatch(cleanPhone)) {
+      return 'Ingresa un teléfono válido de 10 dígitos.';
     }
     return null;
   }
@@ -115,8 +192,11 @@ class AppValidators {
     if (isRequired && (value == null || value.trim().isEmpty)) {
       return 'Por favor ingresa el nombre de tu restaurante.';
     }
-    if (value != null && value.trim().isNotEmpty && value.trim().length < 3) {
-      return 'El nombre del restaurante debe tener al menos 3 caracteres.';
+    if (value != null && value.trim().isNotEmpty) {
+      final trimmed = value.trim();
+      if (trimmed.length < 2) {
+        return 'El nombre del restaurante debe tener al menos 2 caracteres.';
+      }
     }
     return null;
   }
