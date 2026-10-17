@@ -236,8 +236,9 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
               : const Text('Iniciar Sesión', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
         ),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
             const Text(
               '¿No tienes cuenta? ',

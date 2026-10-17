@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import 'home_view.dart';
+import 'landing_view.dart';
 
 class AuthenticatedUserGate extends StatefulWidget {
   final User user;
@@ -73,7 +74,7 @@ class _AuthenticatedUserGateState extends State<AuthenticatedUserGate> {
         }
 
         if (profile.rol == 'visitante') {
-          return _VisitorHomeView(nombre: profile.nombre);
+          return const LandingView();
         }
 
         return _ProfileAccessMessage(
@@ -163,32 +164,6 @@ class _ProfileAccessMessageState extends State<_ProfileAccessMessage> {
             ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _VisitorHomeView extends StatelessWidget {
-  final String nombre;
-
-  const _VisitorHomeView({required this.nombre});
-
-  @override
-  Widget build(BuildContext context) {
-    final authService = AuthService();
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Reservitta'),
-        actions: [
-          IconButton(
-            onPressed: () => authService.signOut(),
-            tooltip: 'Cerrar sesión',
-            icon: const Icon(Icons.logout),
-          ),
-        ],
-      ),
-      body: Center(
-        child: Text('Bienvenido${nombre.isEmpty ? '' : ', $nombre'}'),
       ),
     );
   }
