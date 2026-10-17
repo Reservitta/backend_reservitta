@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reservitta/models/branch_model.dart';
 import 'package:reservitta/models/restaurant_model.dart';
@@ -83,6 +84,54 @@ void main() {
       expect(restaurant.diasAbiertos.length, 3);
       expect(restaurant.serviciosIds.contains('wifi'), isTrue);
       expect(restaurant.serviciosPersonalizados.contains('Área infantil'), isTrue);
+    });
+
+    test('HU01-RF01 Criterio 1: RestaurantModel contains all public fields (nombre, logo, imagenPrincipal, direccion, coordenadas, estado)', () {
+      final rawData = {
+        'nombre': 'Restaurante El Gourmet',
+        'logo': 'https://firebasestorage.com/v0/b/reservitta/logo.png',
+        'imagenPrincipal': 'https://firebasestorage.com/v0/b/reservitta/portada.jpg',
+        'direccion': 'Calle Principal 100, CDMX',
+        'coordenadas': const GeoPoint(19.4326, -99.1332),
+        'estado': 'activo',
+      };
+
+      final restaurant = RestaurantModel.fromMap('rest_pub_1', rawData);
+
+      // Criterio 1: Verificación de campos públicos
+      expect(restaurant.nombre, 'Restaurante El Gourmet');
+      expect(restaurant.logo, 'https://firebasestorage.com/v0/b/reservitta/logo.png');
+      expect(restaurant.logoUrl, 'https://firebasestorage.com/v0/b/reservitta/logo.png');
+      expect(restaurant.imagenPrincipal, 'https://firebasestorage.com/v0/b/reservitta/portada.jpg');
+      expect(restaurant.imagenPrincipalUrl, 'https://firebasestorage.com/v0/b/reservitta/portada.jpg');
+      expect(restaurant.direccion, 'Calle Principal 100, CDMX');
+      expect(restaurant.coordenadas, isNotNull);
+      expect(restaurant.coordenadas!.latitude, 19.4326);
+      expect(restaurant.coordenadas!.longitude, -99.1332);
+      expect(restaurant.estado, 'activo');
+      expect(restaurant.isActivo, isTrue);
+
+      // Verificación de toMap incluye logo e imagenPrincipal
+      final map = restaurant.toMap();
+      expect(map['logo'], 'https://firebasestorage.com/v0/b/reservitta/logo.png');
+      expect(map['logoUrl'], 'https://firebasestorage.com/v0/b/reservitta/logo.png');
+      expect(map['imagenPrincipal'], 'https://firebasestorage.com/v0/b/reservitta/portada.jpg');
+      expect(map['imagenPrincipalUrl'], 'https://firebasestorage.com/v0/b/reservitta/portada.jpg');
+      expect(map['estado'], 'activo');
+    });
+
+    test('HU01-RF01 Criterio 1: coordinates parses from both GeoPoint and Map representation', () {
+      final mapCoords = {
+        'nombre': 'Restaurante Mapa',
+        'coordenadas': {'latitude': 20.6736, 'longitude': -103.344},
+        'estado': 'inactivo',
+      };
+
+      final rest = RestaurantModel.fromMap('rest_map_1', mapCoords);
+      expect(rest.coordenadas, isNotNull);
+      expect(rest.coordenadas!.latitude, 20.6736);
+      expect(rest.coordenadas!.longitude, -103.344);
+      expect(rest.isActivo, isFalse);
     });
   });
 }

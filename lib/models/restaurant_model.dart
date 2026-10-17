@@ -74,14 +74,19 @@ class RestaurantModel {
     this.serviciosPersonalizados = const [],
   });
 
-  // Getter de compatibilidad con código anterior que usaba .name
+  // Getters de compatibilidad y campos públicos (HU01-RF01 Criterios 1 y 2)
   String get name => nombre;
+  String get logo => logoUrl;
+  String get imagenPrincipal => imagenPrincipalUrl;
+  bool get isActivo => estado.trim().toLowerCase() == 'activo';
 
   factory RestaurantModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
   ) {
-    final data = doc.data() ?? {};
+    return RestaurantModel.fromMap(doc.id, doc.data() ?? {});
+  }
 
+  factory RestaurantModel.fromMap(String id, Map<String, dynamic> data) {
     // Mapeo seguro de horarios
     final rawHorarios = data['horarios'] as Map<String, dynamic>? ?? {};
     final mappedHorarios = <String, DaySchedule>{};
@@ -102,17 +107,30 @@ class RestaurantModel {
       }
     }
 
+    // Coordenadas con soporte para GeoPoint o Map de lat/lng
+    GeoPoint? coords;
+    if (data['coordenadas'] is GeoPoint) {
+      coords = data['coordenadas'] as GeoPoint;
+    } else if (data['coordenadas'] is Map<String, dynamic>) {
+      final mapCoords = data['coordenadas'] as Map<String, dynamic>;
+      final lat = (mapCoords['latitude'] ?? mapCoords['lat'] ?? 0.0) as num;
+      final lng = (mapCoords['longitude'] ?? mapCoords['lng'] ?? 0.0) as num;
+      coords = GeoPoint(lat.toDouble(), lng.toDouble());
+    }
+
     return RestaurantModel(
-      id: doc.id,
+      id: id,
       nombre: (data['nombre'] ?? data['name']) as String? ?? 'Sin nombre',
       adminId: data['adminId'] as DocumentReference?,
       telefono: data['telefono'] as String? ?? '',
       correo: data['correo'] as String? ?? '',
       direccion: data['direccion'] as String? ?? '',
       descripcion: data['descripcion'] as String? ?? '',
-      coordenadas: data['coordenadas'] as GeoPoint?,
-      logoUrl: data['logoUrl'] as String? ?? '',
-      imagenPrincipalUrl: data['imagenPrincipalUrl'] as String? ?? '',
+      coordenadas: coords,
+      logoUrl: (data['logoUrl'] ?? data['logo']) as String? ?? '',
+      imagenPrincipalUrl:
+          (data['imagenPrincipalUrl'] ?? data['imagenPrincipal']) as String? ??
+          '',
       estado: data['estado'] as String? ?? 'inactivo',
       perfilCompleto: data['perfilCompleto'] as bool? ?? false,
       diasAbiertos: List<String>.from(data['diasAbiertos'] as List<dynamic>? ?? []),
@@ -141,7 +159,9 @@ class RestaurantModel {
       'descripcion': descripcion,
       'coordenadas': coordenadas,
       'logoUrl': logoUrl,
+      'logo': logoUrl,
       'imagenPrincipalUrl': imagenPrincipalUrl,
+      'imagenPrincipal': imagenPrincipalUrl,
       'estado': estado,
       'perfilCompleto': perfilCompleto,
       'diasAbiertos': diasAbiertos,

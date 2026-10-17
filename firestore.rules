@@ -41,12 +41,14 @@ service cloud.firestore {
     }
 
     match /serviciosCatalogo/{servicioId} {
-      allow read: if isSignedIn();
+      // HU01-RF01: Catálogo de servicios público accesible sin autenticación
+      allow read: if true;
       allow write: if isReservittaAdmin();
     }
 
     match /restaurants/{restaurantId} {
-      allow read: if hasReservittaProfile();
+      // HU01-RF01 Criterio 3: Las reglas de Firestore permiten leer los campos públicos sin autenticación.
+      allow read: if true;
       allow create: if isAdminAfterRegistration()
                     && request.resource.data.adminId == userPath(request.auth.uid);
       allow update: if isReservittaAdmin()
@@ -54,7 +56,8 @@ service cloud.firestore {
       allow delete: if false;
 
       match /sucursales/{sucursalId} {
-        allow read: if hasReservittaProfile();
+        // HU01-RF01: Sucursales de restaurantes accesibles públicamente
+        allow read: if true;
         allow create, update, delete: if isReservittaAdmin();
       }
     }
