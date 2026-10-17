@@ -200,4 +200,43 @@ class AppValidators {
     }
     return null;
   }
+
+  /// Valida Nombre de Categoría 
+  static String? validateCategoryName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Por favor ingresa el nombre de la categoría.';
+    }
+    final trimmed = value.trim();
+    if (trimmed.length < 2) {
+      return 'El nombre de la categoría debe tener al menos 2 caracteres.';
+    }
+    return null;
+  }
+
+  /// Valida Nombre de Platillo
+  static String? validateDishName(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Por favor ingresa el nombre del platillo.';
+    }
+    final trimmed = value.trim();
+    if (trimmed.length < 2) {
+      return 'El nombre del platillo debe tener al menos 2 caracteres.';
+    }
+    return null;
+  }
+
+  /// Valida que el precio sea numérico y mayor a cero
+  static String? validatePrice(String? value) {
+    if (value == null || value.trim().isEmpty) {
+      return 'Por favor ingresa el precio del platillo.';
+    }
+    final parsed = double.tryParse(value.trim());
+    if (parsed == null) {
+      return 'Ingresa un precio numérico válido (ej. 120.50).';
+    }
+    if (parsed <= 0) {
+      return 'El precio debe ser mayor a cero.';
+    }
+    return null;
+  }
 }
