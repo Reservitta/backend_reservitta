@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/branch_model.dart';
 import '../models/restaurant_model.dart';
+import '../models/restaurant_with_distance.dart';
 import '../models/service_catalog_model.dart';
+import '../utils/geo_utils.dart';
 
 /// Excepción controlada para errores en consultas de restaurantes (HU01-RF01 Criterio 4)
 class ControlledRestaurantQueryException implements Exception {
@@ -32,12 +34,12 @@ class RestaurantQueryResult {
         hasError = true;
 }
 
-/// Contrato del Repositorio de Restaurantes (HU01-RF01)
+/// Contrato del Repositorio de Restaurantes (HU01-RF01, HU02-RF02)
 abstract class RestaurantRepository {
-  /// Consulta de restaurantes asociados con estado 'activo' (Criterio 2)
+  /// Consulta de restaurantes asociados con estado 'activo' (HU01-RF01 Criterio 2)
   Future<List<RestaurantModel>> getActiveRestaurants({int? limit});
 
-  /// Consulta de restaurantes asociados activos retornando un resultado seguro (Criterio 4)
+  /// Consulta de restaurantes asociados activos retornando un resultado seguro (HU01-RF01 Criterio 4)
   Future<RestaurantQueryResult> getActiveRestaurantsResult({int? limit});
 
   /// Stream en tiempo real de restaurantes asociados activos
@@ -45,6 +47,36 @@ abstract class RestaurantRepository {
 
   /// Obtiene los datos de un restaurante por su ID
   Future<RestaurantModel?> getRestaurantById(String restaurantId);
+
+  /// HU02-RF02: Consulta y filtra restaurantes activos dentro de un radio en km
+  /// respecto a la ubicación del usuario, ordenados del más cercano al más lejano.
+  /// Excluye aquellos sin coordenadas válidas.
+  Future<List<RestaurantModel>> getActiveRestaurantsByRadius({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  });
+
+  /// HU02-RF02: Versión segura que devuelve RestaurantQueryResult sin lanzar excepciones
+  Future<RestaurantQueryResult> getActiveRestaurantsByRadiusResult({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  });
+
+  /// HU02-RF02: Stream en tiempo real de restaurantes filtrados por radio y ordenados por distancia
+  Stream<List<RestaurantModel>> getActiveRestaurantsByRadiusStream({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  });
+
+  /// HU02-RF02: Retorna lista de pares RestaurantWithDistance
+  Future<List<RestaurantWithDistance>> getRestaurantsWithDistanceByRadius({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  });
 }
 
 class RestaurantService implements RestaurantRepository {
@@ -143,6 +175,111 @@ class RestaurantService implements RestaurantRepository {
       // HU01-RF01 Criterio 4: Error controlado en el stream sin cerrar la app
       return <RestaurantModel>[];
     });
+  }
+
+  /// HU02-RF02: Consulta y filtra restaurantes activos dentro de un radio en km.
+  /// - Calcula distancia por Haversine (Criterio 1).
+  /// - Filtra por radio (Criterio 2).
+  /// - Ordena del más cercano al más lejano (Criterio 3).
+  /// - Excluye restaurantes sin coordenadas válidas (Criterio 4).
+  @override
+  Future<List<RestaurantModel>> getActiveRestaurantsByRadius({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) async {
+    try {
+      if (radiusKm <= 0) {
+        throw ArgumentError('El radio de búsqueda debe ser mayor a 0 km.');
+      }
+      if (!GeoUtils.isValidCoordinate(userLatitude, userLongitude)) {
+        throw ArgumentError(
+          'Coordenadas de usuario inválidas: ($userLatitude, $userLongitude)',
+        );
+      }
+
+      final activeList = await getActiveRestaurants();
+
+      return GeoUtils.filterAndSortByDistance(
+        restaurants: activeList,
+        userLatitude: userLatitude,
+        userLongitude: userLongitude,
+        radiusKm: radiusKm,
+      );
+    } catch (e) {
+      if (e is ControlledRestaurantQueryException) rethrow;
+      throw ControlledRestaurantQueryException(
+        'Error controlado al consultar restaurantes por radio: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  /// HU02-RF02: Consulta segura por radio retornando RestaurantQueryResult
+  @override
+  Future<RestaurantQueryResult> getActiveRestaurantsByRadiusResult({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) async {
+    try {
+      final list = await getActiveRestaurantsByRadius(
+        userLatitude: userLatitude,
+        userLongitude: userLongitude,
+        radiusKm: radiusKm,
+      );
+      return RestaurantQueryResult.success(list);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantQueryResult.failure(e.message);
+    } catch (e) {
+      return RestaurantQueryResult.failure(
+        'Error inesperado al filtrar restaurantes por radio: $e',
+      );
+    }
+  }
+
+  /// HU02-RF02: Stream en tiempo real de restaurantes filtrados por radio
+  @override
+  Stream<List<RestaurantModel>> getActiveRestaurantsByRadiusStream({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) {
+    return getActiveRestaurantsStream().map((restaurants) {
+      if (!GeoUtils.isValidCoordinate(userLatitude, userLongitude) ||
+          radiusKm <= 0) {
+        return <RestaurantModel>[];
+      }
+      return GeoUtils.filterAndSortByDistance(
+        restaurants: restaurants,
+        userLatitude: userLatitude,
+        userLongitude: userLongitude,
+        radiusKm: radiusKm,
+      );
+    }).handleError((_) {
+      return <RestaurantModel>[];
+    });
+  }
+
+  /// HU02-RF02: Retorna lista de pares RestaurantWithDistance
+  @override
+  Future<List<RestaurantWithDistance>> getRestaurantsWithDistanceByRadius({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) async {
+    final list = await getActiveRestaurantsByRadius(
+      userLatitude: userLatitude,
+      userLongitude: userLongitude,
+      radiusKm: radiusKm,
+    );
+
+    return list
+        .map((r) => RestaurantWithDistance(
+              restaurant: r,
+              distanceKm: r.distanciaKm ?? 0.0,
+            ))
+        .toList();
   }
 
   /// Stream de todos los restaurantes (para dashboard de administrador)
