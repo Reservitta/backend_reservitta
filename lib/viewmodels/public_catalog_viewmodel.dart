@@ -4,22 +4,27 @@ import 'package:flutter/material.dart';
 import '../models/restaurant_model.dart';
 import '../models/service_catalog_model.dart';
 import '../services/auth_service.dart';
+import '../services/location_service.dart';
 import '../services/restaurant_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import '../views/auth_modal_dialog.dart';
 
-/// ViewModel para la navegación pública sin sesión y catálogo de restaurantes (HU01-RF03)
+/// ViewModel para la navegación pública sin sesión, catálogo de restaurantes y filtros (HU01-RF03, HU02-RF03)
 class PublicCatalogViewModel extends ChangeNotifier {
   final RestaurantService _restaurantService;
   final AuthService _authService;
+  final LocationService _locationService;
 
   PublicCatalogViewModel({
     RestaurantService? restaurantService,
     AuthService? authService,
+    LocationService? locationService,
   })  : _restaurantService = restaurantService ?? RestaurantService(),
-        _authService = authService ?? AuthService();
+        _authService = authService ?? AuthService(),
+        _locationService = locationService ?? LocationService();
 
   // Estados de datos
+  List<RestaurantModel> _rawRestaurants = [];
   List<RestaurantModel> _restaurants = [];
   List<ServiceCatalogModel> _availableServices = [];
   DocumentSnapshot<Map<String, dynamic>>? _lastDocument;
@@ -34,6 +39,10 @@ class PublicCatalogViewModel extends ChangeNotifier {
   String _searchQuery = '';
   String? _selectedServiceId;
 
+  // Filtro de ubicación (HU02-RF01, HU02-RF02, HU02-RF03)
+  UserLocation? _selectedLocation;
+  double? _selectedRadiusKm;
+
   // Getters
   List<RestaurantModel> get restaurants => _restaurants;
   List<ServiceCatalogModel> get availableServices => _availableServices;
@@ -43,13 +52,23 @@ class PublicCatalogViewModel extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String get searchQuery => _searchQuery;
   String? get selectedServiceId => _selectedServiceId;
-  bool get hasActiveFilters => _searchQuery.isNotEmpty || _selectedServiceId != null;
+  UserLocation? get selectedLocation => _selectedLocation;
+  double? get selectedRadiusKm => _selectedRadiusKm;
+  LocationService get locationService => _locationService;
+
+  /// Indica si el filtro de ubicación por radio está actualmente activo
+  bool get isLocationFilterActive => _selectedLocation != null && _selectedRadiusKm != null;
+
+  /// Indica si hay algún filtro activo (texto, servicio o ubicación)
+  bool get hasActiveFilters =>
+      _searchQuery.isNotEmpty || _selectedServiceId != null || isLocationFilterActive;
 
   /// Indica si el usuario actual cuenta con una sesión iniciada
   bool get isUserAuthenticated => _authService.currentUser != null;
 
   /// Nombre del usuario autenticado si existe sesión
-  String? get currentUserName => _authService.currentUser?.displayName ?? _authService.currentUser?.email;
+  String? get currentUserName =>
+      _authService.currentUser?.displayName ?? _authService.currentUser?.email;
 
   /// Carga inicial del catálogo y servicios
   Future<void> init() async {
@@ -75,18 +94,20 @@ class PublicCatalogViewModel extends ChangeNotifier {
 
     try {
       final result = await _restaurantService.getActiveRestaurants(
-        limit: 10,
+        limit: 15,
         startAfterDocument: null,
         searchQuery: _searchQuery,
         servicioId: _selectedServiceId,
       );
 
-      _restaurants = result.restaurants;
+      _rawRestaurants = result.restaurants;
       _lastDocument = result.lastDocument;
       _hasMore = result.hasMore;
+      _applyFiltersAndSorting();
     } catch (e) {
       // HU01-RF01 Criterio 5: Error controlado sin cerrar la app
       _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _rawRestaurants = [];
       _restaurants = [];
     } finally {
       _isLoading = false;
@@ -103,21 +124,125 @@ class PublicCatalogViewModel extends ChangeNotifier {
 
     try {
       final result = await _restaurantService.getActiveRestaurants(
-        limit: 10,
+        limit: 15,
         startAfterDocument: _lastDocument,
         searchQuery: _searchQuery,
         servicioId: _selectedServiceId,
       );
 
-      _restaurants.addAll(result.restaurants);
+      _rawRestaurants.addAll(result.restaurants);
       _lastDocument = result.lastDocument;
       _hasMore = result.hasMore;
+      _applyFiltersAndSorting();
     } catch (e) {
       // Si falla la página siguiente, mantenemos lo ya cargado sin romper la app
     } finally {
       _isLoadingMore = false;
       notifyListeners();
     }
+  }
+
+  /// Aplica los filtros locales (ubicación y ordenamiento por cercanía)
+  void _applyFiltersAndSorting() {
+    List<RestaurantModel> list = List.from(_rawRestaurants);
+
+    // 1. Filtrar por servicio
+    if (_selectedServiceId != null && _selectedServiceId!.isNotEmpty) {
+      list = list.where((r) => r.serviciosIds.contains(_selectedServiceId)).toList();
+    }
+
+    // 2. Filtrar por búsqueda
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      list = list.where((r) =>
+          r.nombre.toLowerCase().contains(q) ||
+          r.direccion.toLowerCase().contains(q) ||
+          r.descripcion.toLowerCase().contains(q)).toList();
+    }
+
+    // 3. Filtrar por ubicación y radio (HU02-RF02 Criterios 1, 2, 3, 4)
+    if (isLocationFilterActive) {
+      final double maxMeters = _selectedRadiusKm! * 1000.0;
+
+      // Criterio 4: Los restaurantes sin coordenadas válidas se excluyen del filtro
+      list = list.where((r) {
+        if (r.coordenadas == null) return false;
+        final dist = getDistanceInMeters(r);
+        return dist != null && dist <= maxMeters;
+      }).toList();
+
+      // Criterio 3: Los resultados se ordenan del más cercano al más lejano
+      list.sort((a, b) {
+        final distA = getDistanceInMeters(a) ?? double.infinity;
+        final distB = getDistanceInMeters(b) ?? double.infinity;
+        return distA.compareTo(distB);
+      });
+    }
+
+    _restaurants = list;
+  }
+
+  /// Calcula la distancia en metros hacia un restaurante según la ubicación seleccionada
+  /// HU02-RF02 Criterio 1
+  double? getDistanceInMeters(RestaurantModel restaurant) {
+    if (!isLocationFilterActive || restaurant.coordenadas == null) return null;
+    return LocationService.calculateDistanceInMeters(
+      lat1: _selectedLocation!.latitude,
+      lon1: _selectedLocation!.longitude,
+      lat2: restaurant.coordenadas!.latitude,
+      lon2: restaurant.coordenadas!.longitude,
+    );
+  }
+
+  /// Obtiene la distancia formateada legible (ej. "450 m", "1.2 km")
+  /// HU02-RF03 Criterio 2
+  String? getFormattedDistance(RestaurantModel restaurant) {
+    final dist = getDistanceInMeters(restaurant);
+    if (dist == null) return null;
+    return LocationService.formatDistance(dist);
+  }
+
+  /// Activa o actualiza el filtro de ubicación con una zona/coordenada y radio en km
+  /// HU02-RF01 Criterios 2 y 3, HU02-RF02 Criterio 2
+  void setLocationFilter({
+    required UserLocation location,
+    double radiusKm = 5.0,
+  }) {
+    _selectedLocation = location;
+    _selectedRadiusKm = radiusKm;
+    _applyFiltersAndSorting();
+    notifyListeners();
+  }
+
+  /// Actualiza únicamente el radio del filtro de ubicación
+  void updateRadius(double newRadiusKm) {
+    if (!isLocationFilterActive) return;
+    _selectedRadiusKm = newRadiusKm;
+    _applyFiltersAndSorting();
+    notifyListeners();
+  }
+
+  /// Amplía el radio al siguiente nivel disponible si no hay resultados (HU02-RF03 Criterio 4)
+  void expandRadius() {
+    if (!isLocationFilterActive) return;
+    final current = _selectedRadiusKm ?? 5.0;
+    final next = LocationService.availableRadiiKm.firstWhere(
+      (r) => r > current,
+      orElse: () => current,
+    );
+    if (next > current) {
+      _selectedRadiusKm = next;
+      _applyFiltersAndSorting();
+      notifyListeners();
+    }
+  }
+
+  /// Quita el filtro de ubicación y restablece el listado completo (HU02-RF03 Criterio 3)
+  void clearLocationFilter() {
+    _selectedLocation = null;
+    _selectedRadiusKm = null;
+    _applyFiltersAndSorting();
+    notifyListeners();
   }
 
   /// Refresca los restaurantes activos con pull-to-refresh (HU01-RF02 Criterio 7)
@@ -139,13 +264,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
     } else {
       _selectedServiceId = serviceId;
     }
-    _fetchFirstPage();
+    _applyFiltersAndSorting();
+    notifyListeners();
   }
 
-  /// Restablece todos los filtros activos
+  /// Restablece todos los filtros activos (incluyendo texto, servicios y ubicación)
   void clearFilters() {
     _searchQuery = '';
     _selectedServiceId = null;
+    _selectedLocation = null;
+    _selectedRadiusKm = null;
     _fetchFirstPage();
   }
 

@@ -4,11 +4,12 @@ import '../models/restaurant_model.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
 import 'auth_modal_dialog.dart';
+import 'location_filter_sheet.dart';
 import 'restaurant_detail_view.dart';
 
-/// Pantalla Principal Pública de Reservitta (HU01-RF03)
-/// Permite navegación libre del catálogo, listado de restaurantes, filtros
-/// y vistas de detalle sin necesidad de registrarse ni iniciar sesión.
+/// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
+/// Permite navegación libre del catálogo, filtros de ubicación por radio (HU02),
+/// servicios y vistas de detalle sin necesidad de registrarse ni iniciar sesión.
 class LandingView extends StatefulWidget {
   final PublicCatalogViewModel? viewModel;
 
@@ -129,11 +130,10 @@ class _LandingViewState extends State<LandingView> {
                   child: _buildHeroSection(theme),
                 ),
 
-                // 2. Chips de Filtros de Servicios
-                if (_viewModel.availableServices.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: _buildServiceFilters(theme),
-                  ),
+                // 2. Filtros de Ubicación y Servicios
+                SliverToBoxAdapter(
+                  child: _buildFiltersBar(theme),
+                ),
 
                 // 3. Barra de Filtros Activos
                 if (_viewModel.hasActiveFilters)
@@ -225,26 +225,58 @@ class _LandingViewState extends State<LandingView> {
     );
   }
 
-  Widget _buildServiceFilters(ThemeData theme) {
+  /// Barra horizontal que combina el control de Ubicación (HU02-RF03 Criterio 1)
+  /// y los filtros por servicios de restaurantes
+  Widget _buildFiltersBar(ThemeData theme) {
+    final isLocationActive = _viewModel.isLocationFilterActive;
+
     return Container(
       height: 52,
       margin: const EdgeInsets.only(top: 12),
-      child: ListView.separated(
+      child: ListView(
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
-        itemCount: _viewModel.availableServices.length,
-        separatorBuilder: (context, index) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final s = _viewModel.availableServices[index];
-          final isSelected = _viewModel.selectedServiceId == s.id;
+        children: [
+          // Control principal de filtro de ubicación (HU02-RF03 Criterio 1)
+          ActionChip(
+            key: const ValueKey('boton_filtro_ubicacion'),
+            avatar: Icon(
+              isLocationActive ? Icons.my_location : Icons.location_on_outlined,
+              size: 18,
+              color: isLocationActive
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.primary,
+            ),
+            backgroundColor: isLocationActive ? theme.colorScheme.primary : null,
+            label: Text(
+              isLocationActive
+                  ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
+                  : 'Cerca de mí / Ubicación',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                color: isLocationActive ? theme.colorScheme.onPrimary : null,
+              ),
+            ),
+            onPressed: () {
+              LocationFilterSheet.show(context, _viewModel);
+            },
+          ),
+          const SizedBox(width: 8),
 
-          return FilterChip(
-            key: ValueKey('filtro_servicio_${s.id}'),
-            selected: isSelected,
-            label: Text(s.nombre),
-            onSelected: (_) => _viewModel.toggleServiceFilter(s.id),
-          );
-        },
+          // Chips de servicios disponibles
+          ..._viewModel.availableServices.map((s) {
+            final isSelected = _viewModel.selectedServiceId == s.id;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                key: ValueKey('filtro_servicio_${s.id}'),
+                selected: isSelected,
+                label: Text(s.nombre),
+                onSelected: (_) => _viewModel.toggleServiceFilter(s.id),
+              ),
+            );
+          }),
+        ],
       ),
     );
   }
@@ -252,37 +284,50 @@ class _LandingViewState extends State<LandingView> {
   Widget _buildActiveFiltersBar(ThemeData theme) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 4),
-      child: Row(
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 6,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           const Text(
-            'Filtros aplicados:',
+            'Filtros activos:',
             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
           ),
-          const SizedBox(width: 8),
-          if (_viewModel.searchQuery.isNotEmpty)
-            Padding(
-              padding: const EdgeInsets.only(right: 6),
-              child: Chip(
-                label: Text('"${_viewModel.searchQuery}"'),
-                onDeleted: () {
-                  _searchController.clear();
-                  _viewModel.setSearchQuery('');
-                },
+
+          // Chip de Ubicación activa con opción para quitar (HU02-RF03 Criterio 3)
+          if (_viewModel.isLocationFilterActive)
+            Chip(
+              key: const ValueKey('chip_filtro_ubicacion_activo'),
+              avatar: const Icon(Icons.near_me, size: 16),
+              deleteButtonTooltipMessage: 'Quitar filtro de ubicación',
+              label: Text(
+                '${_viewModel.selectedLocation!.label} (≤ ${_viewModel.selectedRadiusKm!.toInt()} km)',
               ),
+              onDeleted: () => _viewModel.clearLocationFilter(),
             ),
+
+          if (_viewModel.searchQuery.isNotEmpty)
+            Chip(
+              label: Text('"${_viewModel.searchQuery}"'),
+              onDeleted: () {
+                _searchController.clear();
+                _viewModel.setSearchQuery('');
+              },
+            ),
+
           if (_viewModel.selectedServiceId != null)
             Chip(
               label: Text(_obtenerNombreServicio(_viewModel.selectedServiceId!)),
               onDeleted: () => _viewModel.toggleServiceFilter(_viewModel.selectedServiceId!),
             ),
-          const Spacer(),
+
           TextButton(
             key: const ValueKey('boton_limpiar_filtros'),
             onPressed: () {
               _searchController.clear();
               _viewModel.clearFilters();
             },
-            child: const Text('Limpiar filtros'),
+            child: const Text('Limpiar todos'),
           ),
         ],
       ),
@@ -336,6 +381,7 @@ class _LandingViewState extends State<LandingView> {
       );
     }
 
+    // Estado vacío (HU02-RF03 Criterio 4: Si no hay resultados en el radio elegido, se muestra mensaje y opción de ampliar radio)
     if (_viewModel.restaurants.isEmpty) {
       return SliverFillRemaining(
         hasScrollBody: false,
@@ -345,23 +391,48 @@ class _LandingViewState extends State<LandingView> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.storefront_outlined, size: 64, color: theme.colorScheme.outline),
+                Icon(
+                  _viewModel.isLocationFilterActive
+                      ? Icons.location_off_outlined
+                      : Icons.storefront_outlined,
+                  size: 64,
+                  color: theme.colorScheme.outline,
+                ),
                 const SizedBox(height: 16),
-                const Text(
-                  'No se encontraron restaurantes asociados.',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                Text(
+                  _viewModel.isLocationFilterActive
+                      ? 'Sin restaurantes en el radio elegido'
+                      : 'No se encontraron restaurantes asociados.',
+                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  _viewModel.hasActiveFilters
-                      ? 'Prueba modificando tus términos de búsqueda o filtros.'
-                      : 'Próximamente habrá opciones disponibles en tu zona.',
+                  _viewModel.isLocationFilterActive
+                      ? 'No hay restaurantes activos en un radio de ${_viewModel.selectedRadiusKm!.toInt()} km alrededor de ${_viewModel.selectedLocation!.label}.'
+                      : _viewModel.hasActiveFilters
+                          ? 'Prueba modificando tus términos de búsqueda o filtros.'
+                          : 'Próximamente habrá opciones disponibles en tu zona.',
                   textAlign: TextAlign.center,
                   style: TextStyle(color: theme.colorScheme.onSurfaceVariant),
                 ),
-                if (_viewModel.hasActiveFilters) ...[
-                  const SizedBox(height: 16),
+                const SizedBox(height: 20),
+
+                // HU02-RF03 Criterio 4: Opción directa de ampliar el radio
+                if (_viewModel.isLocationFilterActive) ...[
+                  FilledButton.icon(
+                    key: const ValueKey('boton_ampliar_radio'),
+                    icon: const Icon(Icons.zoom_out_map),
+                    label: const Text('Ampliar radio de búsqueda'),
+                    onPressed: () => _viewModel.expandRadius(),
+                  ),
+                  const SizedBox(height: 10),
+                  OutlinedButton(
+                    key: const ValueKey('boton_quitar_filtro_ubicacion_vacio'),
+                    onPressed: () => _viewModel.clearLocationFilter(),
+                    child: const Text('Quitar filtro de ubicación'),
+                  ),
+                ] else if (_viewModel.hasActiveFilters) ...[
                   OutlinedButton(
                     onPressed: () {
                       _searchController.clear();
@@ -386,15 +457,19 @@ class _LandingViewState extends State<LandingView> {
           return SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: isWide ? 2 : 1,
-              mainAxisExtent: 310,
+              mainAxisExtent: 320,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
             ),
             delegate: SliverChildBuilderDelegate(
               (context, index) {
                 final restaurant = _viewModel.restaurants[index];
+                // Distancia aproximada calculada si el filtro está activo (HU02-RF03 Criterio 2)
+                final distanceFormatted = _viewModel.getFormattedDistance(restaurant);
+
                 return _RestaurantCard(
                   restaurant: restaurant,
+                  distanceFormatted: distanceFormatted,
                   onTap: () {
                     Navigator.push(
                       context,
@@ -437,14 +512,16 @@ class _LandingViewState extends State<LandingView> {
   }
 }
 
-/// Tarjeta visual del restaurante según HU01-RF02
+/// Tarjeta visual del restaurante según HU01-RF02 y HU02-RF03
 class _RestaurantCard extends StatelessWidget {
   final RestaurantModel restaurant;
+  final String? distanceFormatted;
   final VoidCallback onTap;
   final VoidCallback onReservar;
 
   const _RestaurantCard({
     required this.restaurant,
+    this.distanceFormatted,
     required this.onTap,
     required this.onReservar,
   });
@@ -464,7 +541,7 @@ class _RestaurantCard extends StatelessWidget {
           children: [
             // Imagen o Portada
             SizedBox(
-              height: 140,
+              height: 135,
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
@@ -475,7 +552,8 @@ class _RestaurantCard extends StatelessWidget {
                         ? Image.network(
                             restaurant.imagenPrincipalUrl,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => _buildFallbackCover(theme),
+                            errorBuilder: (context, error, stackTrace) =>
+                                _buildFallbackCover(theme),
                           )
                         : _buildFallbackCover(theme),
                   ),
@@ -498,13 +576,42 @@ class _RestaurantCard extends StatelessWidget {
                       ),
                     ),
                   ),
+
+                  // Distancia destacada sobre la imagen si el filtro está activo (HU02-RF03 Criterio 2)
+                  if (distanceFormatted != null)
+                    Positioned(
+                      top: 10,
+                      left: 10,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withAlpha(180),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.near_me, size: 12, color: Colors.white),
+                            const SizedBox(width: 4),
+                            Text(
+                              distanceFormatted!,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ),
 
             // Contenido
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -515,6 +622,8 @@ class _RestaurantCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
+
+                  // Dirección y distancia
                   Row(
                     children: [
                       Icon(Icons.location_on, size: 16, color: theme.colorScheme.primary),
@@ -532,9 +641,23 @@ class _RestaurantCard extends StatelessWidget {
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      if (distanceFormatted != null) ...[
+                        const SizedBox(width: 6),
+                        Text(
+                          '($distanceFormatted)',
+                          key: ValueKey('distancia_${restaurant.id}'),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 10),
+
+                  // Botones de acción
                   Row(
                     children: [
                       Expanded(
