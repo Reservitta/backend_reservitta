@@ -53,6 +53,7 @@ class RestaurantModel {
   final List<String> cierresEspeciales;
   final List<String> serviciosIds;
   final List<String> serviciosPersonalizados;
+  final double? distanciaKm;
 
   const RestaurantModel({
     required this.id,
@@ -72,6 +73,7 @@ class RestaurantModel {
     this.cierresEspeciales = const [],
     this.serviciosIds = const [],
     this.serviciosPersonalizados = const [],
+    this.distanciaKm,
   });
 
   // Getters de compatibilidad y campos públicos (HU01-RF01 Criterios 1 y 2)
@@ -79,6 +81,27 @@ class RestaurantModel {
   String get logo => logoUrl;
   String get imagenPrincipal => imagenPrincipalUrl;
   bool get isActivo => estado.trim().toLowerCase() == 'activo';
+
+  // Helpers de coordenadas y distancia (HU02-RF02 Criterios 1 y 4)
+  bool get hasValidCoordinates {
+    if (coordenadas == null) return false;
+    final lat = coordenadas!.latitude;
+    final lng = coordenadas!.longitude;
+    if (lat.isNaN || lng.isNaN) return false;
+    if (lat < -90.0 || lat > 90.0) return false;
+    if (lng < -180.0 || lng > 180.0) return false;
+    if (lat == 0.0 && lng == 0.0) return false;
+    return true;
+  }
+
+  String get distanciaFormateada {
+    if (distanciaKm == null) return '';
+    if (distanciaKm! < 1.0) {
+      final meters = (distanciaKm! * 1000).round();
+      return '$meters m';
+    }
+    return '${distanciaKm!.toStringAsFixed(1)} km';
+  }
 
   factory RestaurantModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
@@ -142,6 +165,7 @@ class RestaurantModel {
       serviciosPersonalizados: List<String>.from(
         data['serviciosPersonalizados'] as List<dynamic>? ?? [],
       ),
+      distanciaKm: (data['distanciaKm'] as num?)?.toDouble(),
     );
   }
 
@@ -174,6 +198,10 @@ class RestaurantModel {
       'actualizadoEn': FieldValue.serverTimestamp(),
     };
 
+    if (distanciaKm != null) {
+      map['distanciaKm'] = distanciaKm;
+    }
+
     if (adminId != null) {
       map['adminId'] = adminId;
     }
@@ -199,6 +227,7 @@ class RestaurantModel {
     List<String>? cierresEspeciales,
     List<String>? serviciosIds,
     List<String>? serviciosPersonalizados,
+    double? distanciaKm,
   }) {
     return RestaurantModel(
       id: id ?? this.id,
@@ -219,6 +248,7 @@ class RestaurantModel {
       serviciosIds: serviciosIds ?? this.serviciosIds,
       serviciosPersonalizados:
           serviciosPersonalizados ?? this.serviciosPersonalizados,
+      distanciaKm: distanciaKm ?? this.distanciaKm,
     );
   }
 }
