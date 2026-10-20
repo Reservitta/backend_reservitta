@@ -4,7 +4,7 @@ import 'package:latlong2/latlong.dart' as latlng;
 import '../services/location_service.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
 
-/// Modal / BottomSheet para configurar el filtro de ubicación y radio (HU02-RF01, HU02-RF03)
+/// Modal / BottomSheet para configurar el filtro de ubicación (HU02-RF01, HU02-RF03)
 class LocationFilterSheet extends StatefulWidget {
   final PublicCatalogViewModel viewModel;
 
