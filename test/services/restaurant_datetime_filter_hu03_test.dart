@@ -165,7 +165,7 @@ class MemoryRestaurantRepository implements RestaurantRepository {
           occupied += res.personas;
         }
       }
-      final remaining = rest.capacidadMaxima - occupied;
+      final remaining = rest.capacidadTotal - occupied;
       if (remaining >= reqSeats) {
         available.add(rest);
       }
@@ -228,7 +228,7 @@ class MemoryRestaurantRepository implements RestaurantRepository {
             occupied += res.personas;
           }
         }
-        final remaining = rest.capacidadMaxima - occupied;
+        final remaining = rest.capacidadTotal - occupied;
         if (remaining >= reqSeats) {
           result.add(rest);
         }
@@ -275,8 +275,91 @@ class MemoryRestaurantRepository implements RestaurantRepository {
     for (final res in overlapping) {
       occupied += res.personas;
     }
-    final remaining = r.capacidadMaxima - occupied;
+    final remaining = r.capacidadTotal - occupied;
     return remaining > 0 ? remaining : 0;
+  }
+
+  @override
+  Future<List<RestaurantModel>> getRestaurantsByCapacity({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    if (shouldFail) {
+      throw const ControlledRestaurantQueryException(
+        'Error simulado de red en Firestore al consultar restaurantes por capacidad.',
+      );
+    }
+    if (partySize <= 0) return <RestaurantModel>[];
+
+    final withCapacity =
+        restaurants.where((r) => r.isActivo && r.tieneCapacidadRegistrada).toList();
+    if (withCapacity.isEmpty) return <RestaurantModel>[];
+
+    if (dateTime == null) {
+      return withCapacity.where((r) => r.capacidadTotal >= partySize).toList();
+    }
+
+    final open = withCapacity
+        .where((r) => ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime))
+        .toList();
+    final dateString = ScheduleUtils.formatDateLocal(dateTime);
+
+    final matching = <RestaurantModel>[];
+    for (final rest in open) {
+      final overlapping = reservations.where((res) =>
+          res.restauranteId == rest.id &&
+          res.fechaLocal == dateString &&
+          res.isActiva &&
+          res.overlapsWith(dateTime, durationMin: durationMin));
+
+      int occupied = 0;
+      for (final res in overlapping) {
+        occupied += res.personas;
+      }
+      final remaining = rest.capacidadTotal - occupied;
+      if (remaining >= partySize) {
+        matching.add(rest);
+      }
+    }
+    return matching;
+  }
+
+  @override
+  Future<RestaurantQueryResult> getRestaurantsByCapacityResult({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    try {
+      final list = await getRestaurantsByCapacity(
+        partySize: partySize,
+        dateTime: dateTime,
+        durationMin: durationMin,
+      );
+      return RestaurantQueryResult.success(list);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantQueryResult.failure(e.message);
+    } catch (e) {
+      return RestaurantQueryResult.failure('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Stream<List<RestaurantModel>> getRestaurantsByCapacityStream({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async* {
+    if (shouldFail) {
+      yield <RestaurantModel>[];
+      return;
+    }
+    yield await getRestaurantsByCapacity(
+      partySize: partySize,
+      dateTime: dateTime,
+      durationMin: durationMin,
+    );
   }
 }
 

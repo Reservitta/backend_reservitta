@@ -221,7 +221,65 @@ class FakeRestaurantRepositoryHU02 implements RestaurantRepository {
         !ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime)) {
       return 0;
     }
-    return r.capacidadMaxima;
+    return r.capacidadTotal;
+  }
+
+  @override
+  Future<List<RestaurantModel>> getRestaurantsByCapacity({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    if (shouldFail) {
+      throw const ControlledRestaurantQueryException(
+        'Error simulado de red en Firestore al consultar restaurantes por capacidad.',
+      );
+    }
+    if (partySize <= 0) return <RestaurantModel>[];
+    return restaurantsEnMemoria.where((r) {
+      if (!r.isActivo || !r.tieneCapacidadRegistrada) return false;
+      if (dateTime != null && !ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime)) {
+        return false;
+      }
+      return r.capacidadTotal >= partySize;
+    }).toList();
+  }
+
+  @override
+  Future<RestaurantQueryResult> getRestaurantsByCapacityResult({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    try {
+      final list = await getRestaurantsByCapacity(
+        partySize: partySize,
+        dateTime: dateTime,
+        durationMin: durationMin,
+      );
+      return RestaurantQueryResult.success(list);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantQueryResult.failure(e.message);
+    } catch (e) {
+      return RestaurantQueryResult.failure('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Stream<List<RestaurantModel>> getRestaurantsByCapacityStream({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async* {
+    if (shouldFail) {
+      yield <RestaurantModel>[];
+      return;
+    }
+    yield await getRestaurantsByCapacity(
+      partySize: partySize,
+      dateTime: dateTime,
+      durationMin: durationMin,
+    );
   }
 }
 

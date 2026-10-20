@@ -132,6 +132,31 @@ abstract class RestaurantRepository {
     required DateTime dateTime,
     int durationMin = 90,
   });
+
+  /// HU04-RF01: Consulta de restaurantes por capacidad (Criterios 1, 2, 3 y 4)
+  /// - Criterio 1: Cada restaurante tiene registrada su capacidad máxima (o mesas y su capacidad).
+  /// - Criterio 2: Dada una cantidad de personas, se devuelven solo los restaurantes que pueden atender a ese grupo.
+  /// - Criterio 3: Si también hay fecha y hora seleccionadas, se considera la capacidad restante en ese horario.
+  /// - Criterio 4: Un restaurante sin capacidad registrada no aparece en este filtro.
+  Future<List<RestaurantModel>> getRestaurantsByCapacity({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  });
+
+  /// HU04-RF01: Consulta segura de restaurantes por capacidad retornando RestaurantQueryResult
+  Future<RestaurantQueryResult> getRestaurantsByCapacityResult({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  });
+
+  /// HU04-RF01: Stream reactivo de restaurantes filtrados por capacidad
+  Stream<List<RestaurantModel>> getRestaurantsByCapacityStream({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  });
 }
 
 /// Servicio y Repositorio de Restaurantes (HU01-RF01, HU01-RF02, HU02-RF02, HU03-RF01)
@@ -405,7 +430,7 @@ class RestaurantService implements RestaurantRepository {
           }
         }
 
-        final maxCap = rest.capacidadMaxima > 0 ? rest.capacidadMaxima : 50;
+        final maxCap = rest.capacidadTotal;
         final remainingSeats = maxCap - occupiedSeats;
 
         if (remainingSeats >= requiredSeats) {
@@ -491,7 +516,7 @@ class RestaurantService implements RestaurantRepository {
               occupied += res.personas;
             }
           }
-          final maxCap = rest.capacidadMaxima > 0 ? rest.capacidadMaxima : 50;
+          final maxCap = rest.capacidadTotal;
           final remaining = maxCap - occupied;
           if (remaining >= req) {
             result.add(rest);
@@ -532,6 +557,7 @@ class RestaurantService implements RestaurantRepository {
     try {
       final restaurant = await getRestaurantById(restaurantId);
       if (restaurant == null || !restaurant.isActivo) return 0;
+      if (!restaurant.tieneCapacidadRegistrada) return 0;
 
       // Si no está abierto en esa fecha/hora, capacidad es 0
       if (!ScheduleUtils.isRestaurantOpenAt(
@@ -559,14 +585,194 @@ class RestaurantService implements RestaurantRepository {
         occupiedSeats += r.personas;
       }
 
-      final maxCap = restaurant.capacidadMaxima > 0
-          ? restaurant.capacidadMaxima
-          : 50;
+      final maxCap = restaurant.capacidadTotal;
       final remaining = maxCap - occupiedSeats;
       return remaining > 0 ? remaining : 0;
     } catch (_) {
       return 0;
     }
+  }
+
+  /// HU04-RF01: Consulta de restaurantes por capacidad (Criterios 1, 2, 3 y 4)
+  /// - Criterio 1: Cada restaurante tiene registrada su capacidad máxima (o mesas y su capacidad).
+  /// - Criterio 2: Dada una cantidad de personas, se devuelven solo los restaurantes que pueden atender a ese grupo.
+  /// - Criterio 3: Si también hay fecha y hora seleccionadas, se considera la capacidad restante en ese horario.
+  /// - Criterio 4: Un restaurante sin capacidad registrada no aparece en este filtro.
+  @override
+  Future<List<RestaurantModel>> getRestaurantsByCapacity({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    try {
+      if (partySize <= 0) return <RestaurantModel>[];
+
+      // 1. Obtener restaurantes activos
+      final activeList = await getActiveRestaurants();
+
+      // Criterio 4: Un restaurante sin capacidad registrada no aparece en este filtro.
+      final withCapacity = activeList
+          .where((restaurant) => restaurant.tieneCapacidadRegistrada)
+          .toList();
+
+      if (withCapacity.isEmpty) return <RestaurantModel>[];
+
+      // Caso 1: Si no hay fecha ni hora seleccionadas (Criterios 2 y 4)
+      if (dateTime == null) {
+        return withCapacity
+            .where((restaurant) => restaurant.capacidadTotal >= partySize)
+            .toList();
+      }
+
+      // Caso 2: Si también hay fecha y hora seleccionadas (Criterio 3)
+      // a) Filtrar restaurantes abiertos en esa fecha y horario
+      final openRestaurants = withCapacity.where((restaurant) {
+        return ScheduleUtils.isRestaurantOpenAt(
+          restaurant: restaurant,
+          dateTime: dateTime,
+        );
+      }).toList();
+
+      if (openRestaurants.isEmpty) return <RestaurantModel>[];
+
+      // b) Consultar reservaciones activas para esa fecha local
+      final dateString = ScheduleUtils.formatDateLocal(dateTime);
+      final reservationsSnap = await _firestore
+          .collection('reservations')
+          .where('fechaLocal', isEqualTo: dateString)
+          .get();
+
+      final activeReservations = reservationsSnap.docs
+          .map((doc) => ReservationModel.fromFirestore(doc))
+          .where((res) => res.bloqueaMesas)
+          .toList();
+
+      final reservationsByRest = <String, List<ReservationModel>>{};
+      for (final res in activeReservations) {
+        reservationsByRest.putIfAbsent(res.restauranteId, () => []).add(res);
+      }
+
+      // c) Evaluar capacidad restante en ese horario específico
+      final matchingRestaurants = <RestaurantModel>[];
+      for (final rest in openRestaurants) {
+        final restReservations = reservationsByRest[rest.id] ?? [];
+        int occupiedSeats = 0;
+        for (final res in restReservations) {
+          if (res.overlapsWith(dateTime, durationMin: durationMin)) {
+            occupiedSeats += res.personas;
+          }
+        }
+
+        final remainingSeats = rest.capacidadTotal - occupiedSeats;
+        if (remainingSeats >= partySize) {
+          matchingRestaurants.add(rest);
+        }
+      }
+
+      return matchingRestaurants;
+    } catch (e) {
+      if (e is ControlledRestaurantQueryException) rethrow;
+      throw ControlledRestaurantQueryException(
+        'Error controlado al consultar restaurantes por capacidad: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  /// HU04-RF01: Consulta segura por capacidad retornando RestaurantQueryResult
+  @override
+  Future<RestaurantQueryResult> getRestaurantsByCapacityResult({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    try {
+      final list = await getRestaurantsByCapacity(
+        partySize: partySize,
+        dateTime: dateTime,
+        durationMin: durationMin,
+      );
+      return RestaurantQueryResult.success(list);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantQueryResult.failure(e.message);
+    } catch (e) {
+      return RestaurantQueryResult.failure(
+        'Error inesperado al consultar restaurantes por capacidad: $e',
+      );
+    }
+  }
+
+  /// HU04-RF01: Stream reactivo de consulta por capacidad
+  @override
+  Stream<List<RestaurantModel>> getRestaurantsByCapacityStream({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) {
+    return getActiveRestaurantsStream().asyncMap((activeList) async {
+      try {
+        if (partySize <= 0) return <RestaurantModel>[];
+
+        final withCapacity = activeList
+            .where((restaurant) => restaurant.tieneCapacidadRegistrada)
+            .toList();
+
+        if (withCapacity.isEmpty) return <RestaurantModel>[];
+
+        if (dateTime == null) {
+          return withCapacity
+              .where((restaurant) => restaurant.capacidadTotal >= partySize)
+              .toList();
+        }
+
+        final openRestaurants = withCapacity.where((restaurant) {
+          return ScheduleUtils.isRestaurantOpenAt(
+            restaurant: restaurant,
+            dateTime: dateTime,
+          );
+        }).toList();
+
+        if (openRestaurants.isEmpty) return <RestaurantModel>[];
+
+        final dateString = ScheduleUtils.formatDateLocal(dateTime);
+        final reservationsSnap = await _firestore
+            .collection('reservations')
+            .where('fechaLocal', isEqualTo: dateString)
+            .get();
+
+        final activeReservations = reservationsSnap.docs
+            .map((doc) => ReservationModel.fromFirestore(doc))
+            .where((res) => res.bloqueaMesas)
+            .toList();
+
+        final reservationsByRest = <String, List<ReservationModel>>{};
+        for (final res in activeReservations) {
+          reservationsByRest.putIfAbsent(res.restauranteId, () => []).add(res);
+        }
+
+        final matchingRestaurants = <RestaurantModel>[];
+        for (final rest in openRestaurants) {
+          final restReservations = reservationsByRest[rest.id] ?? [];
+          int occupiedSeats = 0;
+          for (final res in restReservations) {
+            if (res.overlapsWith(dateTime, durationMin: durationMin)) {
+              occupiedSeats += res.personas;
+            }
+          }
+
+          final remainingSeats = rest.capacidadTotal - occupiedSeats;
+          if (remainingSeats >= partySize) {
+            matchingRestaurants.add(rest);
+          }
+        }
+
+        return matchingRestaurants;
+      } catch (_) {
+        return <RestaurantModel>[];
+      }
+    }).handleError((_) {
+      return <RestaurantModel>[];
+    });
   }
 
   /// Stream de todos los restaurantes (para dashboard de administrador)

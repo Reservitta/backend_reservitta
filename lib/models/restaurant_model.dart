@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/schedule_utils.dart';
+import 'mesa_model.dart';
 
 class DaySchedule {
   final bool abierto;
@@ -55,7 +56,8 @@ class RestaurantModel {
   final List<String> serviciosIds;
   final List<String> serviciosPersonalizados;
   final double? distanciaKm;
-  final int capacidadMaxima;
+  final int? capacidadMaxima;
+  final List<MesaModel> mesas;
 
   const RestaurantModel({
     required this.id,
@@ -76,7 +78,8 @@ class RestaurantModel {
     this.serviciosIds = const [],
     this.serviciosPersonalizados = const [],
     this.distanciaKm,
-    this.capacidadMaxima = 50,
+    this.capacidadMaxima,
+    this.mesas = const [],
   });
 
   // Getters de compatibilidad y campos públicos (HU01-RF01 Criterios 1 y 2)
@@ -84,6 +87,20 @@ class RestaurantModel {
   String get logo => logoUrl;
   String get imagenPrincipal => imagenPrincipalUrl;
   bool get isActivo => estado.trim().toLowerCase() == 'activo';
+
+  // Capacidad registrada y cálculo total (HU04-RF01 Criterios 1 y 4)
+  int get capacidadTotal {
+    if (capacidadMaxima != null && capacidadMaxima! > 0) {
+      return capacidadMaxima!;
+    }
+    if (mesas.isNotEmpty) {
+      return mesas.fold<int>(0, (acc, m) => acc + m.capacidad);
+    }
+    return 0;
+  }
+
+  /// Criterio 4: Un restaurante sin capacidad registrada no aparece en este filtro.
+  bool get tieneCapacidadRegistrada => capacidadTotal > 0;
 
   // Helpers de horarios y apertura (HU03-RF01 Criterios 1, 2 y 4)
   bool isOpenAt(DateTime dateTime) =>
@@ -179,7 +196,11 @@ class RestaurantModel {
         data['serviciosPersonalizados'] as List<dynamic>? ?? [],
       ),
       distanciaKm: (data['distanciaKm'] as num?)?.toDouble(),
-      capacidadMaxima: (data['capacidadMaxima'] as num?)?.toInt() ?? 50,
+      capacidadMaxima: (data['capacidadMaxima'] as num?)?.toInt(),
+      mesas: (data['mesas'] as List<dynamic>? ?? [])
+          .whereType<Map<String, dynamic>>()
+          .map((m) => MesaModel.fromMap((m['id'] as String?) ?? '', m))
+          .toList(),
     );
   }
 
@@ -205,7 +226,8 @@ class RestaurantModel {
       'diasAbiertos': diasAbiertos,
       'horarios': horariosMap,
       'cierresEspeciales': cierresEspeciales,
-      'capacidadMaxima': capacidadMaxima,
+      if (capacidadMaxima != null) 'capacidadMaxima': capacidadMaxima,
+      if (mesas.isNotEmpty) 'mesas': mesas.map((m) => m.toMap()).toList(),
       'servicios': serviciosIds.map((id) =>
         FirebaseFirestore.instance.collection('serviciosCatalogo').doc(id)
       ).toList(),
@@ -244,6 +266,7 @@ class RestaurantModel {
     List<String>? serviciosPersonalizados,
     double? distanciaKm,
     int? capacidadMaxima,
+    List<MesaModel>? mesas,
   }) {
     return RestaurantModel(
       id: id ?? this.id,
@@ -266,6 +289,7 @@ class RestaurantModel {
           serviciosPersonalizados ?? this.serviciosPersonalizados,
       distanciaKm: distanciaKm ?? this.distanciaKm,
       capacidadMaxima: capacidadMaxima ?? this.capacidadMaxima,
+      mesas: mesas ?? this.mesas,
     );
   }
 }
