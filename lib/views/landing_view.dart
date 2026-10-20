@@ -240,22 +240,50 @@ class _LandingViewState extends State<LandingView> {
           // Control principal de filtro de ubicación (HU02-RF03 Criterio 1)
           ActionChip(
             key: const ValueKey('boton_filtro_ubicacion'),
+            elevation: isLocationActive ? 2 : 0,
+            shadowColor: theme.colorScheme.primary.withAlpha(90),
             avatar: Icon(
-              isLocationActive ? Icons.my_location : Icons.location_on_outlined,
+              isLocationActive ? Icons.my_location : Icons.location_on,
               size: 18,
               color: isLocationActive
                   ? theme.colorScheme.onPrimary
                   : theme.colorScheme.primary,
             ),
-            backgroundColor: isLocationActive ? theme.colorScheme.primary : null,
-            label: Text(
-              isLocationActive
-                  ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
-                  : 'Cerca de mí / Ubicación',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: isLocationActive ? theme.colorScheme.onPrimary : null,
-              ),
+            side: BorderSide(
+              color: isLocationActive
+                  ? Colors.transparent
+                  : theme.colorScheme.primary.withAlpha(120),
+              width: 1.2,
+            ),
+            backgroundColor: isLocationActive
+                ? theme.colorScheme.primary
+                : theme.colorScheme.primaryContainer.withAlpha(70),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isLocationActive
+                      ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
+                      : 'Cerca de mí / Ubicación',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: isLocationActive
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                if (isLocationActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Colors.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
             ),
             onPressed: () {
               LocationFilterSheet.show(context, _viewModel);

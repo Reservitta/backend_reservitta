@@ -240,32 +240,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
               ],
 
               if (_temporaryLocation != null) ...[
-                const SizedBox(height: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primaryContainer.withAlpha(80),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(
-                        _temporaryLocation!.isGps ? Icons.gps_fixed : Icons.place,
-                        size: 20,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Text(
-                          _temporaryLocation!.label,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                _buildMinimapPreview(theme),
               ],
 
               const SizedBox(height: 20),
@@ -416,18 +391,65 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
 
               const SizedBox(height: 28),
 
-              // Botón Aplicar
+              // Botón Aplicar Rediseñado (Premium)
               FilledButton(
                 key: const ValueKey('boton_aplicar_filtro_ubicacion'),
                 style: FilledButton.styleFrom(
-                  minimumSize: const Size.fromHeight(50),
+                  minimumSize: const Size.fromHeight(56),
+                  backgroundColor: _temporaryLocation != null
+                      ? theme.colorScheme.primary
+                      : theme.colorScheme.surfaceContainerHighest,
+                  foregroundColor: _temporaryLocation != null
+                      ? theme.colorScheme.onPrimary
+                      : theme.colorScheme.onSurfaceVariant,
+                  elevation: _temporaryLocation != null ? 3 : 0,
+                  shadowColor: theme.colorScheme.primary.withAlpha(120),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
                 onPressed: _temporaryLocation != null ? _applyFilter : null,
-                child: Text(
-                  _temporaryLocation != null
-                      ? 'Filtrar restaurantes en radio de ${_selectedRadius.toInt()} km'
-                      : 'Selecciona una ubicación o usa tu GPS',
-                  style: const TextStyle(fontWeight: FontWeight.bold),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      _temporaryLocation != null
+                          ? Icons.travel_explore_rounded
+                          : Icons.location_searching_rounded,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 12),
+                    Flexible(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Text(
+                            _temporaryLocation != null
+                                ? 'Filtrar restaurantes en radio de ${_selectedRadius.toInt()} km'
+                                : 'Selecciona una ubicación o usa tu GPS',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            textAlign: TextAlign.center,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (_temporaryLocation != null)
+                            Text(
+                              'Alrededor de ${_temporaryLocation!.label}',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: theme.colorScheme.onPrimary.withAlpha(200),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -436,4 +458,264 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
       ),
     );
   }
+
+  /// Minimapa visual interactivo / radar de cobertura (HU02-RF01, HU02-RF02)
+  Widget _buildMinimapPreview(ThemeData theme) {
+    if (_temporaryLocation == null) return const SizedBox.shrink();
+
+    final lat = _temporaryLocation!.latitude;
+    final lon = _temporaryLocation!.longitude;
+    final isGps = _temporaryLocation!.isGps;
+
+    int zoom = 14;
+    if (_selectedRadius >= 20) {
+      zoom = 11;
+    } else if (_selectedRadius >= 10) {
+      zoom = 12;
+    } else if (_selectedRadius >= 5) {
+      zoom = 13;
+    }
+
+    final osmStaticUrl =
+        'https://staticmap.openstreetmap.de/staticmap.php?center=$lat,$lon&zoom=$zoom&size=600x260&markers=$lat,$lon,ol-marker';
+
+    return Container(
+      margin: const EdgeInsets.only(top: 14),
+      height: 160,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: theme.colorScheme.primary.withAlpha(100),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withAlpha(25),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.network(
+            osmStaticUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) =>
+                CustomPaint(
+                  painter: _RadarGridPainter(
+                    primaryColor: theme.colorScheme.primary,
+                    radiusKm: _selectedRadius,
+                  ),
+                ),
+            loadingBuilder: (context, child, progress) {
+              if (progress == null) return child;
+              return CustomPaint(
+                painter: _RadarGridPainter(
+                  primaryColor: theme.colorScheme.primary,
+                  radiusKm: _selectedRadius,
+                ),
+              );
+            },
+          ),
+
+          // Círculo sombreado del radio de cobertura
+          Center(
+            child: Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: theme.colorScheme.primary.withAlpha(45),
+                border: Border.all(
+                  color: theme.colorScheme.primary.withAlpha(180),
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+
+          // Pin central
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: isGps ? Colors.green.shade600 : theme.colorScheme.primary,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withAlpha(90),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    isGps ? Icons.my_location : Icons.location_on,
+                    size: 16,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: const BoxDecoration(
+                    color: Colors.black45,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Badge superior izquierdo (Tipo de señal)
+          Positioned(
+            top: 10,
+            left: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.black.withAlpha(180),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isGps ? Icons.sensors : Icons.pin_drop,
+                    size: 13,
+                    color: isGps ? Colors.greenAccent : Colors.orangeAccent,
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    isGps ? 'GPS Activo' : 'Zona Manual',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Badge superior derecho (Radio seleccionado)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: theme.colorScheme.primary.withAlpha(100),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Text(
+                'Radio: ${_selectedRadius.toInt()} km',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+
+          // Barra inferior con coordenadas y ubicación
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              color: Colors.black.withAlpha(190),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      _temporaryLocation!.label,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '${lat.toStringAsFixed(3)}, ${lon.toStringAsFixed(3)}',
+                    style: TextStyle(
+                      color: Colors.white.withAlpha(180),
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// CustomPainter para el radar topográfico de respaldo en caso de que tarde el mapa por red
+class _RadarGridPainter extends CustomPainter {
+  final Color primaryColor;
+  final double radiusKm;
+
+  _RadarGridPainter({required this.primaryColor, required this.radiusKm});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final bgPaint = Paint()..color = const Color(0xFF1E222D);
+    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
+
+    final gridPaint = Paint()
+      ..color = Colors.white.withAlpha(20)
+      ..strokeWidth = 1;
+
+    for (double x = 0; x < size.width; x += 30) {
+      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
+    }
+    for (double y = 0; y < size.height; y += 30) {
+      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
+    }
+
+    final center = Offset(size.width / 2, size.height / 2);
+
+    final radarPaint = Paint()
+      ..color = primaryColor.withAlpha(60)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5;
+
+    canvas.drawCircle(center, 30, radarPaint);
+    canvas.drawCircle(center, 55, radarPaint);
+    canvas.drawCircle(center, 80, radarPaint);
+
+    final axisPaint = Paint()
+      ..color = primaryColor.withAlpha(80)
+      ..strokeWidth = 1;
+    canvas.drawLine(Offset(center.dx - 85, center.dy), Offset(center.dx + 85, center.dy), axisPaint);
+    canvas.drawLine(Offset(center.dx, center.dy - 65), Offset(center.dx, center.dy + 65), axisPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _RadarGridPainter oldDelegate) =>
+      oldDelegate.radiusKm != radiusKm || oldDelegate.primaryColor != primaryColor;
 }
