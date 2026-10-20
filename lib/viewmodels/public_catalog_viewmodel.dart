@@ -6,6 +6,7 @@ import '../models/service_catalog_model.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
 import '../services/restaurant_service.dart';
+import '../utils/geo_utils.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import '../views/auth_modal_dialog.dart';
 
@@ -93,7 +94,7 @@ class PublicCatalogViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _restaurantService.getActiveRestaurants(
+      final result = await _restaurantService.getPaginatedActiveRestaurants(
         limit: 15,
         startAfterDocument: null,
         searchQuery: _searchQuery,
@@ -123,7 +124,7 @@ class PublicCatalogViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final result = await _restaurantService.getActiveRestaurants(
+      final result = await _restaurantService.getPaginatedActiveRestaurants(
         limit: 15,
         startAfterDocument: _lastDocument,
         searchQuery: _searchQuery,
@@ -160,23 +161,14 @@ class PublicCatalogViewModel extends ChangeNotifier {
           r.descripcion.toLowerCase().contains(q)).toList();
     }
 
-    // 3. Filtrar por ubicación y radio (HU02-RF02 Criterios 1, 2, 3, 4)
+    // 3. Filtrar por ubicación y radio utilizando la lógica del backend (HU02-RF02)
     if (isLocationFilterActive) {
-      final double maxMeters = _selectedRadiusKm! * 1000.0;
-
-      // Criterio 4: Los restaurantes sin coordenadas válidas se excluyen del filtro
-      list = list.where((r) {
-        if (r.coordenadas == null) return false;
-        final dist = getDistanceInMeters(r);
-        return dist != null && dist <= maxMeters;
-      }).toList();
-
-      // Criterio 3: Los resultados se ordenan del más cercano al más lejano
-      list.sort((a, b) {
-        final distA = getDistanceInMeters(a) ?? double.infinity;
-        final distB = getDistanceInMeters(b) ?? double.infinity;
-        return distA.compareTo(distB);
-      });
+      list = GeoUtils.filterAndSortByDistance(
+        restaurants: list,
+        userLatitude: _selectedLocation!.latitude,
+        userLongitude: _selectedLocation!.longitude,
+        radiusKm: _selectedRadiusKm!,
+      );
     }
 
     _restaurants = list;
@@ -185,18 +177,25 @@ class PublicCatalogViewModel extends ChangeNotifier {
   /// Calcula la distancia en metros hacia un restaurante según la ubicación seleccionada
   /// HU02-RF02 Criterio 1
   double? getDistanceInMeters(RestaurantModel restaurant) {
-    if (!isLocationFilterActive || restaurant.coordenadas == null) return null;
-    return LocationService.calculateDistanceInMeters(
-      lat1: _selectedLocation!.latitude,
-      lon1: _selectedLocation!.longitude,
-      lat2: restaurant.coordenadas!.latitude,
-      lon2: restaurant.coordenadas!.longitude,
+    if (!isLocationFilterActive || !restaurant.hasValidCoordinates) return null;
+    if (restaurant.distanciaKm != null) {
+      return restaurant.distanciaKm! * 1000.0;
+    }
+    return GeoUtils.calculateDistanceMeters(
+      startLatitude: _selectedLocation!.latitude,
+      startLongitude: _selectedLocation!.longitude,
+      endLatitude: restaurant.coordenadas!.latitude,
+      endLongitude: restaurant.coordenadas!.longitude,
     );
   }
 
   /// Obtiene la distancia formateada legible (ej. "450 m", "1.2 km")
   /// HU02-RF03 Criterio 2
   String? getFormattedDistance(RestaurantModel restaurant) {
+    if (!isLocationFilterActive) return null;
+    if (restaurant.distanciaFormateada.isNotEmpty) {
+      return restaurant.distanciaFormateada;
+    }
     final dist = getDistanceInMeters(restaurant);
     if (dist == null) return null;
     return LocationService.formatDistance(dist);

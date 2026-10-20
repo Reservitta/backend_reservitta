@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,9 +31,9 @@ class FakeRestaurantService extends RestaurantService {
   }
 
   @override
-  Future<PaginatedRestaurantsResult> getActiveRestaurants({
+  Future<PaginatedRestaurantsResult> getPaginatedActiveRestaurants({
     int limit = 10,
-    dynamic startAfterDocument,
+    DocumentSnapshot<Map<String, dynamic>>? startAfterDocument,
     String? searchQuery,
     String? servicioId,
   }) async {

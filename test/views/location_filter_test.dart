@@ -18,9 +18,9 @@ class FakeRestaurantLocationService extends RestaurantService {
   Future<List<ServiceCatalogModel>> getServicesCatalog() async => [];
 
   @override
-  Future<PaginatedRestaurantsResult> getActiveRestaurants({
+  Future<PaginatedRestaurantsResult> getPaginatedActiveRestaurants({
     int limit = 10,
-    dynamic startAfterDocument,
+    DocumentSnapshot<Map<String, dynamic>>? startAfterDocument,
     String? searchQuery,
     String? servicioId,
   }) async {
