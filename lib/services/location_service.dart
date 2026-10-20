@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart' as geo;
 import 'geocoding_service.dart';
 
 /// Representa el estado del permiso de ubicación (HU02-RF01 Criterios 1, 2, 3)
@@ -55,7 +56,84 @@ abstract class LocationProvider {
   Future<UserLocation?> getCurrentPosition();
 }
 
-/// Proveedor por defecto de ubicación
+/// Proveedor nativo de geolocalización conectado al hardware real del dispositivo (Android/iOS)
+class DeviceLocationProvider implements LocationProvider {
+  @override
+  Future<bool> isLocationServiceEnabled() async {
+    try {
+      return await geo.Geolocator.isLocationServiceEnabled();
+    } catch (_) {
+      return false;
+    }
+  }
+
+  @override
+  Future<LocationPermissionStatus> checkPermission() async {
+    try {
+      final perm = await geo.Geolocator.checkPermission();
+      return _mapPermission(perm);
+    } catch (_) {
+      return LocationPermissionStatus.denied;
+    }
+  }
+
+  @override
+  Future<LocationPermissionStatus> requestPermission() async {
+    try {
+      final perm = await geo.Geolocator.requestPermission();
+      return _mapPermission(perm);
+    } catch (_) {
+      return LocationPermissionStatus.denied;
+    }
+  }
+
+  @override
+  Future<UserLocation?> getCurrentPosition() async {
+    try {
+      final pos = await geo.Geolocator.getCurrentPosition(
+        locationSettings: const geo.LocationSettings(
+          accuracy: geo.LocationAccuracy.high,
+          timeLimit: Duration(seconds: 15),
+        ),
+      );
+      return UserLocation(
+        latitude: pos.latitude,
+        longitude: pos.longitude,
+        label: 'Mi ubicación actual',
+        isGps: true,
+      );
+    } catch (_) {
+      // Fallback a última posición conocida si la consulta en tiempo real tarda
+      try {
+        final lastPos = await geo.Geolocator.getLastKnownPosition();
+        if (lastPos != null) {
+          return UserLocation(
+            latitude: lastPos.latitude,
+            longitude: lastPos.longitude,
+            label: 'Mi ubicación actual',
+            isGps: true,
+          );
+        }
+      } catch (_) {}
+      return null;
+    }
+  }
+
+  LocationPermissionStatus _mapPermission(geo.LocationPermission perm) {
+    switch (perm) {
+      case geo.LocationPermission.always:
+      case geo.LocationPermission.whileInUse:
+        return LocationPermissionStatus.granted;
+      case geo.LocationPermission.deniedForever:
+        return LocationPermissionStatus.permanentlyDenied;
+      case geo.LocationPermission.denied:
+      case geo.LocationPermission.unableToDetermine:
+        return LocationPermissionStatus.denied;
+    }
+  }
+}
+
+/// Proveedor mock o en memoria para pruebas y entornos sin sensores nativos
 class DefaultLocationProvider implements LocationProvider {
   bool isServiceEnabled;
   LocationPermissionStatus permissionStatus;
@@ -160,7 +238,7 @@ class LocationService {
     GeocodingService? geocodingService,
     LocationProvider? locationProvider,
   })  : _geocodingService = geocodingService ?? GeocodingService(),
-        _locationProvider = locationProvider ?? DefaultLocationProvider();
+        _locationProvider = locationProvider ?? DeviceLocationProvider();
 
   LocationProvider get locationProvider => _locationProvider;
 

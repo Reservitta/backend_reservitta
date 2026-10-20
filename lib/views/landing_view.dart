@@ -552,6 +552,22 @@ class _RestaurantCard extends StatelessWidget {
                         ? Image.network(
                             restaurant.imagenPrincipalUrl,
                             fit: BoxFit.cover,
+                            loadingBuilder: (context, child, loadingProgress) {
+                              if (loadingProgress == null) return child;
+                              return Center(
+                                child: SizedBox(
+                                  width: 24,
+                                  height: 24,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    value: loadingProgress.expectedTotalBytes != null
+                                        ? loadingProgress.cumulativeBytesLoaded /
+                                            loadingProgress.expectedTotalBytes!
+                                        : null,
+                                  ),
+                                ),
+                              );
+                            },
                             errorBuilder: (context, error, stackTrace) =>
                                 _buildFallbackCover(theme),
                           )
@@ -694,10 +710,23 @@ class _RestaurantCard extends StatelessWidget {
 
   Widget _buildFallbackCover(ThemeData theme) {
     return Center(
-      child: Icon(
-        Icons.restaurant,
-        size: 48,
-        color: theme.colorScheme.primary,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.restaurant,
+            size: 40,
+            color: theme.colorScheme.primary.withAlpha(160),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Sin imagen disponible',
+            style: TextStyle(
+              fontSize: 11,
+              color: theme.colorScheme.onSurfaceVariant.withAlpha(140),
+            ),
+          ),
+        ],
       ),
     );
   }
