@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:reservitta/models/restaurant_model.dart';
-import 'package:reservitta/services/restaurant_service.dart';
 import 'package:reservitta/repositories/restaurant_repository.dart';
 
 /// Implementación Fake de RestaurantRepository para pruebas unitarias de HU01-RF01
@@ -59,6 +58,74 @@ class FakeRestaurantRepository implements RestaurantRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  @override
+  Future<List<RestaurantModel>> getActiveRestaurantsByRadius({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) async {
+    final active = await getActiveRestaurants();
+    return GeoUtils.filterAndSortByDistance(
+      restaurants: active,
+      userLatitude: userLatitude,
+      userLongitude: userLongitude,
+      radiusKm: radiusKm,
+    );
+  }
+
+  @override
+  Future<RestaurantQueryResult> getActiveRestaurantsByRadiusResult({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) async {
+    try {
+      final list = await getActiveRestaurantsByRadius(
+        userLatitude: userLatitude,
+        userLongitude: userLongitude,
+        radiusKm: radiusKm,
+      );
+      return RestaurantQueryResult.success(list);
+    } catch (e) {
+      return RestaurantQueryResult.failure(e.toString());
+    }
+  }
+
+  @override
+  Stream<List<RestaurantModel>> getActiveRestaurantsByRadiusStream({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) {
+    return getActiveRestaurantsStream().map((list) {
+      return GeoUtils.filterAndSortByDistance(
+        restaurants: list,
+        userLatitude: userLatitude,
+        userLongitude: userLongitude,
+        radiusKm: radiusKm,
+      );
+    });
+  }
+
+  @override
+  Future<List<RestaurantWithDistance>> getRestaurantsWithDistanceByRadius({
+    required double userLatitude,
+    required double userLongitude,
+    required double radiusKm,
+  }) async {
+    final list = await getActiveRestaurantsByRadius(
+      userLatitude: userLatitude,
+      userLongitude: userLongitude,
+      radiusKm: radiusKm,
+    );
+    return list
+        .map((r) => RestaurantWithDistance(
+              restaurant: r,
+              distanceKm: r.distanciaKm ?? 0.0,
+            ))
+        .toList();
   }
 }
 
