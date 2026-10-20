@@ -1,6 +1,10 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/branch_model.dart';
+import '../models/categoria_model.dart';
+import '../models/platillo_model.dart';
 import '../models/reservation_model.dart';
+import '../models/restaurant_detail_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/restaurant_with_distance.dart';
 import '../models/service_catalog_model.dart';
@@ -49,7 +53,7 @@ class RestaurantQueryResult {
         hasError = true;
 }
 
-/// Contrato del Repositorio de Restaurantes (HU01-RF01, HU02-RF02)
+/// Contrato del Repositorio de Restaurantes (HU01-RF01, HU02-RF02, HU05-RF01)
 abstract class RestaurantRepository {
   /// Consulta de restaurantes asociados con estado 'activo' (HU01-RF01 Criterio 2)
   Future<List<RestaurantModel>> getActiveRestaurants({int? limit});
@@ -156,6 +160,45 @@ abstract class RestaurantRepository {
     required int partySize,
     DateTime? dateTime,
     int durationMin = 90,
+  });
+
+  /// HU05-RF01: Consulta del detalle de un restaurante junto con su menú organizado por categorías.
+  /// Si el restaurante no existe o está inactivo, lanza [ControlledRestaurantQueryException].
+  Future<RestaurantDetailModel> getRestaurantDetail(
+    String restaurantId, {
+    bool soloPlatillosVisibles = true,
+  });
+
+  /// HU05-RF01: Versión segura que devuelve RestaurantDetailResult con error controlado si no existe o está inactivo.
+  Future<RestaurantDetailResult> getRestaurantDetailResult(
+    String restaurantId, {
+    bool soloPlatillosVisibles = true,
+  });
+
+  /// HU06-RF01: Consulta del menú organizado por categorías temáticas para un restaurante dado.
+  /// - Obtiene sus categorías temáticas con los platillos de cada una.
+  /// - Cada platillo incluye nombre, descripción/ingredientes, precio e imagen.
+  /// - Respeta el orden definido por el restaurante (campo 'orden').
+  /// - Solo devuelve platillos activos o disponibles ([soloDisponibles] = true).
+  /// - Un restaurante sin menú devuelve una lista vacía, no un error (Criterio 5).
+  Future<List<MenuCategoryModel>> getMenuByCategories(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  });
+
+  /// HU06-RF01: Versión segura que devuelve un [MenuQueryResult] con lista vacía o error controlado
+  Future<MenuQueryResult> getMenuByCategoriesResult(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  });
+
+  /// HU06-RF01: Stream en tiempo real del menú por categorías para sincronización reactiva (HU32-RF01)
+  Stream<List<MenuCategoryModel>> getMenuByCategoriesStream(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
   });
 }
 
@@ -773,6 +816,360 @@ class RestaurantService implements RestaurantRepository {
     }).handleError((_) {
       return <RestaurantModel>[];
     });
+  }
+
+  /// HU05-RF01: Consulta del detalle completo de un restaurante y su menú organizado por categorías.
+  /// Si el restaurante no existe o está inactivo, lanza [ControlledRestaurantQueryException].
+  @override
+  Future<RestaurantDetailModel> getRestaurantDetail(
+    String restaurantId, {
+    bool soloPlatillosVisibles = true,
+  }) async {
+    try {
+      final doc =
+          await _firestore.collection('restaurants').doc(restaurantId).get();
+      if (!doc.exists) {
+        throw const ControlledRestaurantQueryException(
+          'El restaurante solicitado no existe.',
+        );
+      }
+
+      final restaurant = RestaurantModel.fromFirestore(doc);
+      if (!restaurant.isActivo) {
+        throw ControlledRestaurantQueryException(
+          'El restaurante "${restaurant.nombre}" se encuentra inactivo actualmente.',
+        );
+      }
+
+      // Consultar subcolecciones de categorías y platillos en paralelo
+      final categoriasFuture = _firestore
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('categorias')
+          .get();
+
+      final platillosFuture = _firestore
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('platillos')
+          .get();
+
+      final results = await Future.wait([categoriasFuture, platillosFuture]);
+      final categoriasSnap = results[0];
+      final platillosSnap = results[1];
+
+      final categorias = categoriasSnap.docs
+          .map((d) => CategoriaModel.fromFirestore(d))
+          .toList()
+        ..sort((a, b) => a.orden.compareTo(b.orden));
+
+      var platillos = platillosSnap.docs
+          .map((d) => PlatilloModel.fromFirestore(d))
+          .toList();
+
+      if (soloPlatillosVisibles) {
+        // HU06: Para visitantes, se excluyen platillos inactivos
+        platillos = platillos.where((p) => !p.isInactivo).toList();
+      }
+
+      // Agrupar platillos por categoría manteniendo el orden
+      final List<MenuCategoryModel> menuOrganizado = [];
+      for (final cat in categorias) {
+        final platillosDeCat = platillos
+            .where((p) => p.categoriaId == cat.id)
+            .toList()
+          ..sort((a, b) => a.orden.compareTo(b.orden));
+
+        menuOrganizado.add(
+          MenuCategoryModel(
+            categoria: cat,
+            platillos: platillosDeCat,
+          ),
+        );
+      }
+
+      // Platillos sin categoría asignada (si existieran)
+      final idsCategorias = categorias.map((c) => c.id).toSet();
+      final platillosHuerfanos = platillos
+          .where((p) => !idsCategorias.contains(p.categoriaId))
+          .toList();
+      if (platillosHuerfanos.isNotEmpty) {
+        menuOrganizado.add(
+          MenuCategoryModel(
+            categoria: const CategoriaModel(
+              id: 'general',
+              nombre: 'Otros',
+              nombreNormalizado: 'otros',
+              orden: 999,
+              tipo: 'general',
+            ),
+            platillos: platillosHuerfanos,
+          ),
+        );
+      }
+
+      return RestaurantDetailModel(
+        restaurant: restaurant,
+        menu: menuOrganizado,
+      );
+    } catch (e) {
+      if (e is ControlledRestaurantQueryException) rethrow;
+      throw ControlledRestaurantQueryException(
+        'Error controlado al consultar el detalle del restaurante: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  /// HU05-RF01: Versión segura que devuelve RestaurantDetailResult sin lanzar excepciones no controladas
+  @override
+  Future<RestaurantDetailResult> getRestaurantDetailResult(
+    String restaurantId, {
+    bool soloPlatillosVisibles = true,
+  }) async {
+    try {
+      final detail = await getRestaurantDetail(
+        restaurantId,
+        soloPlatillosVisibles: soloPlatillosVisibles,
+      );
+      return RestaurantDetailResult.success(detail);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantDetailResult.failure(e.message);
+    } catch (e) {
+      return RestaurantDetailResult.failure(
+        'Error inesperado al consultar el detalle del restaurante: $e',
+      );
+    }
+  }
+
+  /// Utilidad estática para agrupar platillos en categorías respetando orden y disponibilidad (HU06-RF01)
+  static List<MenuCategoryModel> agruparMenu({
+    required List<CategoriaModel> categorias,
+    required List<PlatilloModel> platillos,
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) {
+    final categoriasOrdenadas = List<CategoriaModel>.from(categorias)
+      ..sort((a, b) => a.orden.compareTo(b.orden));
+
+    var platillosFiltrados = List<PlatilloModel>.from(platillos);
+    if (soloDisponibles) {
+      platillosFiltrados = platillosFiltrados.where((p) => p.isActivo).toList();
+    }
+
+    final List<MenuCategoryModel> menuOrganizado = [];
+    for (final cat in categoriasOrdenadas) {
+      final platillosDeCat = platillosFiltrados
+          .where((p) => p.categoriaId == cat.id)
+          .toList()
+        ..sort((a, b) => a.orden.compareTo(b.orden));
+
+      if (ocultarCategoriasVacias && platillosDeCat.isEmpty) {
+        continue;
+      }
+
+      menuOrganizado.add(
+        MenuCategoryModel(
+          categoria: cat,
+          platillos: platillosDeCat,
+        ),
+      );
+    }
+
+    // Platillos huérfanos sin categoría asignada (si existieran)
+    final idsCategorias = categoriasOrdenadas.map((c) => c.id).toSet();
+    final platillosHuerfanos = platillosFiltrados
+        .where((p) => !idsCategorias.contains(p.categoriaId))
+        .toList()
+      ..sort((a, b) => a.orden.compareTo(b.orden));
+
+    if (platillosHuerfanos.isNotEmpty) {
+      menuOrganizado.add(
+        MenuCategoryModel(
+          categoria: const CategoriaModel(
+            id: 'general',
+            nombre: 'Otros',
+            nombreNormalizado: 'otros',
+            orden: 9999,
+            tipo: 'general',
+          ),
+          platillos: platillosHuerfanos,
+        ),
+      );
+    }
+
+    return menuOrganizado;
+  }
+
+  /// HU06-RF01: Consulta del menú organizado por categorías temáticas para un restaurante dado.
+  /// Criterios:
+  /// 1. Dado el ID del restaurante, se obtienen sus categorías temáticas con los platillos de cada una.
+  /// 2. Cada platillo incluye nombre, descripción/ingredientes, precio e imagen.
+  /// 3. Las categorías y los platillos respetan el orden definido por el restaurante.
+  /// 4. Solo se devuelven platillos activos o disponibles.
+  /// 5. Un restaurante sin menú devuelve una lista vacía, no un error.
+  @override
+  Future<List<MenuCategoryModel>> getMenuByCategories(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) async {
+    if (restaurantId.trim().isEmpty) {
+      return [];
+    }
+
+    try {
+      // 1. Verificar si el restaurante existe y está activo
+      final doc =
+          await _firestore.collection('restaurants').doc(restaurantId).get();
+      if (!doc.exists) {
+        // Criterio 5: Un restaurante sin menú devuelve una lista vacía, no un error
+        return [];
+      }
+
+      final data = doc.data() ?? {};
+      final estado = (data['estado'] as String?)?.toLowerCase() ?? 'inactivo';
+      if (estado != 'activo') {
+        // Restaurante inactivo devuelve lista vacía para comensales
+        return [];
+      }
+
+      // 2. Consultar subcolecciones de categorías y platillos en paralelo
+      final categoriasFuture = _firestore
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('categorias')
+          .get();
+
+      final platillosFuture = _firestore
+          .collection('restaurants')
+          .doc(restaurantId)
+          .collection('platillos')
+          .get();
+
+      final results = await Future.wait([categoriasFuture, platillosFuture]);
+      final categoriasSnap = results[0];
+      final platillosSnap = results[1];
+
+      if (categoriasSnap.docs.isEmpty && platillosSnap.docs.isEmpty) {
+        // Criterio 5: Restaurante sin menú devuelve lista vacía, no un error
+        return [];
+      }
+
+      final categorias = categoriasSnap.docs
+          .map((d) => CategoriaModel.fromFirestore(d))
+          .toList();
+
+      final platillos = platillosSnap.docs
+          .map((d) => PlatilloModel.fromFirestore(d))
+          .toList();
+
+      return agruparMenu(
+        categorias: categorias,
+        platillos: platillos,
+        soloDisponibles: soloDisponibles,
+        ocultarCategoriasVacias: ocultarCategoriasVacias,
+      );
+    } catch (e) {
+      if (e is ControlledRestaurantQueryException) {
+        return [];
+      }
+      throw ControlledRestaurantQueryException(
+        'Error controlado al consultar el menú por categorías: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  /// HU06-RF01: Versión segura que devuelve un [MenuQueryResult] con lista vacía o error controlado
+  @override
+  Future<MenuQueryResult> getMenuByCategoriesResult(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) async {
+    try {
+      final menu = await getMenuByCategories(
+        restaurantId,
+        soloDisponibles: soloDisponibles,
+        ocultarCategoriasVacias: ocultarCategoriasVacias,
+      );
+      return MenuQueryResult.success(menu);
+    } on ControlledRestaurantQueryException catch (e) {
+      return MenuQueryResult.failure(e.message);
+    } catch (e) {
+      return MenuQueryResult.failure(
+        'Error inesperado al consultar el menú por categorías: $e',
+      );
+    }
+  }
+
+  /// HU06-RF01: Stream en tiempo real del menú por categorías (HU32-RF01)
+  @override
+  Stream<List<MenuCategoryModel>> getMenuByCategoriesStream(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) {
+    if (restaurantId.trim().isEmpty) {
+      return Stream.value(<MenuCategoryModel>[]);
+    }
+
+    final controller = StreamController<List<MenuCategoryModel>>.broadcast();
+    List<CategoriaModel>? ultimasCategorias;
+    List<PlatilloModel>? ultimosPlatillos;
+
+    void emitir() {
+      if (ultimasCategorias == null || ultimosPlatillos == null) return;
+      final menu = agruparMenu(
+        categorias: ultimasCategorias!,
+        platillos: ultimosPlatillos!,
+        soloDisponibles: soloDisponibles,
+        ocultarCategoriasVacias: ocultarCategoriasVacias,
+      );
+      if (!controller.isClosed) {
+        controller.add(menu);
+      }
+    }
+
+    final subCat = _firestore
+        .collection('restaurants')
+        .doc(restaurantId)
+        .collection('categorias')
+        .snapshots()
+        .listen(
+      (snap) {
+        ultimasCategorias =
+            snap.docs.map((d) => CategoriaModel.fromFirestore(d)).toList();
+        emitir();
+      },
+      onError: (_) {
+        if (!controller.isClosed) controller.add(<MenuCategoryModel>[]);
+      },
+    );
+
+    final subPlat = _firestore
+        .collection('restaurants')
+        .doc(restaurantId)
+        .collection('platillos')
+        .snapshots()
+        .listen(
+      (snap) {
+        ultimosPlatillos =
+            snap.docs.map((d) => PlatilloModel.fromFirestore(d)).toList();
+        emitir();
+      },
+      onError: (_) {
+        if (!controller.isClosed) controller.add(<MenuCategoryModel>[]);
+      },
+    );
+
+    controller.onCancel = () {
+      subCat.cancel();
+      subPlat.cancel();
+    };
+
+    return controller.stream;
   }
 
   /// Stream de todos los restaurantes (para dashboard de administrador)

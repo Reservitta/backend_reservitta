@@ -3,7 +3,7 @@ import 'package:reservitta/models/restaurant_model.dart';
 import 'package:reservitta/repositories/restaurant_repository.dart';
 
 /// Implementación en memoria de RestaurantRepository para pruebas unitarias de HU03-RF01
-class MemoryRestaurantRepository implements RestaurantRepository {
+class MemoryRestaurantRepository extends Fake implements RestaurantRepository {
   final List<RestaurantModel> restaurants;
   final List<ReservationModel> reservations;
   final bool shouldFail;

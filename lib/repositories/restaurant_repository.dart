@@ -1,5 +1,11 @@
 export '../models/mesa_model.dart' show MesaModel;
 export '../models/reservation_model.dart' show ReservationModel;
+export '../models/restaurant_detail_model.dart'
+    show
+        MenuCategoryModel,
+        RestaurantDetailModel,
+        RestaurantDetailResult,
+        MenuQueryResult;
 export '../models/restaurant_with_distance.dart' show RestaurantWithDistance;
 export '../services/restaurant_service.dart'
     show
