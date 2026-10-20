@@ -127,6 +127,46 @@ class FakeRestaurantRepository implements RestaurantRepository {
             ))
         .toList();
   }
+
+  @override
+  Future<RestaurantDetailModel> getRestaurantDetail(
+    String restaurantId, {
+    bool soloPlatillosVisibles = true,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<RestaurantDetailResult> getRestaurantDetailResult(
+    String restaurantId, {
+    bool soloPlatillosVisibles = true,
+  }) async {
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<List<MenuCategoryModel>> getMenuByCategories(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) async =>
+      [];
+
+  @override
+  Future<MenuQueryResult> getMenuByCategoriesResult(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) async =>
+      const MenuQueryResult.success([]);
+
+  @override
+  Stream<List<MenuCategoryModel>> getMenuByCategoriesStream(
+    String restaurantId, {
+    bool soloDisponibles = true,
+    bool ocultarCategoriasVacias = false,
+  }) =>
+      const Stream.empty();
 }
 
 void main() {

@@ -5,16 +5,31 @@ import '../models/restaurant_model.dart';
 import '../models/user_model.dart';
 
 class AuthService {
-  final FirebaseAuth _auth;
-  final FirebaseFirestore _firestore;
+  final FirebaseAuth? _authInstance;
+  final FirebaseFirestore? _firestoreInstance;
 
   AuthService({FirebaseAuth? auth, FirebaseFirestore? firestore})
-    : _auth = auth ?? FirebaseAuth.instance,
-      _firestore = firestore ?? FirebaseFirestore.instance;
+    : _authInstance = auth,
+      _firestoreInstance = firestore;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  FirebaseAuth get _auth => _authInstance ?? FirebaseAuth.instance;
+  FirebaseFirestore get _firestore => _firestoreInstance ?? FirebaseFirestore.instance;
 
-  User? get currentUser => _auth.currentUser;
+  Stream<User?> get authStateChanges {
+    try {
+      return _auth.authStateChanges();
+    } catch (_) {
+      return const Stream.empty();
+    }
+  }
+
+  User? get currentUser {
+    try {
+      return _auth.currentUser;
+    } catch (_) {
+      return null;
+    }
+  }
 
   /// Retorna el perfil de usuario almacenado en Firestore (users/{uid})
   Future<UserModel?> getUserProfile(String uid) async {

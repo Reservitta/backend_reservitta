@@ -47,7 +47,8 @@ service cloud.firestore {
     }
 
     match /restaurants/{restaurantId} {
-      // HU01-RF01 Criterio 3: Las reglas de Firestore permiten leer los campos públicos sin autenticación.
+      // HU01-RF01 Criterios 3 y 4: Las reglas de Firestore permiten leer los campos públicos sin autenticación.
+      // HU01-RF03: Navegación pública sin sesión.
       allow read: if true;
       allow create: if isAdminAfterRegistration()
                     && request.resource.data.adminId == userPath(request.auth.uid);
@@ -60,9 +61,40 @@ service cloud.firestore {
         allow read: if true;
         allow create, update, delete: if isReservittaAdmin();
       }
+
+      match /categorias/{categoriaId} {
+        allow read: if true;
+        allow create, update, delete: if isReservittaAdmin();
+      }
+
+      match /platillos/{platilloId} {
+        allow read: if true;
+        allow create, update, delete: if isReservittaAdmin();
+      }
+
+      match /zonas/{zonaId} {
+        allow read: if true;
+        allow create, update, delete: if isReservittaAdmin();
+      }
+
+      match /mesas/{mesaId} {
+        allow read: if true;
+        allow create, update, delete: if isReservittaAdmin();
+      }
+
+      match /ocasiones/{ocasionId} {
+        allow read: if true;
+        allow create, update, delete: if isReservittaAdmin();
+
+        match /experiencias/{experienciaId} {
+          allow read: if true;
+          allow create, update, delete: if isReservittaAdmin();
+        }
+      }
     }
 
     match /reservations/{reservationId} {
+      // Las reservaciones sí requieren cuenta y estar autenticado (HU01-RF03)
       allow read, create, update: if hasReservittaProfile();
       allow delete: if false;
     }
