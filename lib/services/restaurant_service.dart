@@ -9,6 +9,19 @@ import '../models/restaurant_with_distance.dart';
 import '../models/service_catalog_model.dart';
 import '../utils/geo_utils.dart';
 
+/// Resultado paginado para navegación de restaurantes con scroll infinito (HU01-RF01, HU01-RF02)
+class PaginatedRestaurantsResult {
+  final List<RestaurantModel> restaurants;
+  final DocumentSnapshot<Map<String, dynamic>>? lastDocument;
+  final bool hasMore;
+
+  const PaginatedRestaurantsResult({
+    required this.restaurants,
+    this.lastDocument,
+    required this.hasMore,
+  });
+}
+
 /// Excepción controlada para errores en consultas de restaurantes (HU01-RF01 Criterio 4)
 class ControlledRestaurantQueryException implements Exception {
   final String message;
@@ -122,6 +135,7 @@ abstract class RestaurantRepository {
   });
 }
 
+/// Servicio y Repositorio de Restaurantes (HU01-RF01, HU01-RF02, HU02-RF02)
 class RestaurantService implements RestaurantRepository {
   final FirebaseFirestore? _firestoreInstance;
 
@@ -686,6 +700,59 @@ class RestaurantService implements RestaurantRepository {
         return RestaurantModel.fromFirestore(doc);
       }).toList();
     });
+  }
+
+  /// Consulta paginada de restaurantes activos para la interfaz pública (HU01-RF01 Criterios 2, 3, 5)
+  Future<PaginatedRestaurantsResult> getPaginatedActiveRestaurants({
+    int limit = 10,
+    DocumentSnapshot<Map<String, dynamic>>? startAfterDocument,
+    String? searchQuery,
+    String? servicioId,
+  }) async {
+    try {
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('restaurants')
+          .where('estado', isEqualTo: 'activo');
+
+      if (startAfterDocument != null) {
+        query = query.startAfterDocument(startAfterDocument);
+      }
+
+      query = query.limit(limit + 1);
+
+      final snapshot = await query.get();
+      final docs = snapshot.docs;
+
+      final bool hasMore = docs.length > limit;
+      final pageDocs = hasMore ? docs.sublist(0, limit) : docs;
+
+      List<RestaurantModel> items = pageDocs.map((doc) {
+        return RestaurantModel.fromFirestore(doc);
+      }).toList();
+
+      if (servicioId != null && servicioId.isNotEmpty) {
+        items = items.where((r) => r.serviciosIds.contains(servicioId)).toList();
+      }
+
+      if (searchQuery != null && searchQuery.trim().isNotEmpty) {
+        final queryClean = searchQuery.trim().toLowerCase();
+        items = items.where((r) {
+          final nombreMatch = r.nombre.toLowerCase().contains(queryClean);
+          final descMatch = r.descripcion.toLowerCase().contains(queryClean);
+          final dirMatch = r.direccion.toLowerCase().contains(queryClean);
+          return nombreMatch || descMatch || dirMatch;
+        }).toList();
+      }
+
+      return PaginatedRestaurantsResult(
+        restaurants: items,
+        lastDocument: pageDocs.isNotEmpty ? pageDocs.last : null,
+        hasMore: hasMore,
+      );
+    } catch (e) {
+      // HU01-RF01 Criterio 5: Retorno con error controlado sin cerrar la app
+      throw Exception('No fue posible consultar los restaurantes disponibles. Por favor, reintenta.');
+    }
   }
 
   /// Guarda el perfil completo del restaurante junto con su sucursal principal y sucursales adicionales
