@@ -61,13 +61,15 @@ class _LandingViewState extends State<LandingView> {
         return Scaffold(
           appBar: AppBar(
             elevation: 1,
+            titleSpacing: 12,
             title: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.restaurant_menu, color: theme.colorScheme.primary),
-                const SizedBox(width: 8),
+                Icon(Icons.restaurant_menu, color: theme.colorScheme.primary, size: 20),
+                const SizedBox(width: 5),
                 const Text(
                   'Reservitta',
-                  style: TextStyle(fontWeight: FontWeight.bold),
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
                 ),
               ],
             ),
@@ -75,27 +77,50 @@ class _LandingViewState extends State<LandingView> {
               if (!_viewModel.isUserAuthenticated) ...[
                 TextButton(
                   key: const ValueKey('boton_header_registrarse'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    visualDensity: VisualDensity.compact,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   onPressed: () {
                     AuthModalDialog.show(
                       context,
                       initialMode: AuthMode.registerRoleSelection,
                     );
                   },
-                  child: const Text('Crear Cuenta'),
+                  child: const Text(
+                    'Crear Cuenta',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
                 ),
-                const SizedBox(width: 8),
                 Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: FilledButton.icon(
+                  padding: const EdgeInsets.only(left: 4, right: 10),
+                  child: FilledButton(
                     key: const ValueKey('boton_header_iniciar_sesion'),
-                    icon: const Icon(Icons.login, size: 18),
-                    label: const Text('Iniciar Sesión'),
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      visualDensity: VisualDensity.compact,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
                     onPressed: () {
                       AuthModalDialog.show(
                         context,
                         initialMode: AuthMode.login,
                       );
                     },
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.login, size: 15),
+                        SizedBox(width: 4),
+                        Text(
+                          'Iniciar Sesión',
+                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ] else ...[
@@ -576,30 +601,7 @@ class _RestaurantCard extends StatelessWidget {
                 children: [
                   Container(
                     color: theme.colorScheme.primaryContainer.withAlpha(80),
-                    child: restaurant.imagenPrincipalUrl.isNotEmpty
-                        ? Image.network(
-                            restaurant.imagenPrincipalUrl,
-                            fit: BoxFit.cover,
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: SizedBox(
-                                  width: 24,
-                                  height: 24,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    value: loadingProgress.expectedTotalBytes != null
-                                        ? loadingProgress.cumulativeBytesLoaded /
-                                            loadingProgress.expectedTotalBytes!
-                                        : null,
-                                  ),
-                                ),
-                              );
-                            },
-                            errorBuilder: (context, error, stackTrace) =>
-                                _buildFallbackCover(theme),
-                          )
-                        : _buildFallbackCover(theme),
+                    child: _buildRestaurantCoverImage(restaurant.imagenPrincipalUrl, theme),
                   ),
                   Positioned(
                     top: 10,
@@ -733,6 +735,48 @@ class _RestaurantCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildRestaurantCoverImage(String rawUrl, ThemeData theme) {
+    final trimmedUrl = rawUrl.trim();
+    if (trimmedUrl.isEmpty) {
+      return _buildFallbackCover(theme);
+    }
+
+    String finalUrl = trimmedUrl;
+    try {
+      finalUrl = Uri.encodeFull(trimmedUrl);
+    } catch (_) {}
+
+    return Image.network(
+      finalUrl,
+      fit: BoxFit.cover,
+      headers: const {
+        'User-Agent':
+            'Mozilla/5.0 (Linux; Android 14; Mobile) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'Accept': 'image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8',
+      },
+      loadingBuilder: (context, child, loadingProgress) {
+        if (loadingProgress == null) return child;
+        return Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              value: loadingProgress.expectedTotalBytes != null
+                  ? loadingProgress.cumulativeBytesLoaded /
+                      loadingProgress.expectedTotalBytes!
+                  : null,
+            ),
+          ),
+        );
+      },
+      errorBuilder: (context, error, stackTrace) {
+        debugPrint('[Reservitta Image Error] $error - URL: $finalUrl');
+        return _buildFallbackCover(theme);
+      },
     );
   }
 

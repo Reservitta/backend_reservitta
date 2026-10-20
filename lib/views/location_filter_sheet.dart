@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart' as latlng;
 import '../services/location_service.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
 
@@ -467,26 +469,27 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
     final lon = _temporaryLocation!.longitude;
     final isGps = _temporaryLocation!.isGps;
 
-    int zoom = 14;
+    double zoom = 13.5;
     if (_selectedRadius >= 20) {
-      zoom = 11;
+      zoom = 10.5;
     } else if (_selectedRadius >= 10) {
-      zoom = 12;
+      zoom = 11.5;
     } else if (_selectedRadius >= 5) {
-      zoom = 13;
+      zoom = 12.5;
+    } else if (_selectedRadius <= 1) {
+      zoom = 14.5;
     }
 
-    final osmStaticUrl =
-        'https://staticmap.openstreetmap.de/staticmap.php?center=$lat,$lon&zoom=$zoom&size=600x260&markers=$lat,$lon,ol-marker';
+    final centerPoint = latlng.LatLng(lat, lon);
 
     return Container(
       margin: const EdgeInsets.only(top: 14),
-      height: 160,
+      height: 180,
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: theme.colorScheme.primary.withAlpha(100),
+          color: theme.colorScheme.primary.withAlpha(120),
           width: 1.5,
         ),
         boxShadow: [
@@ -501,78 +504,61 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          Image.network(
-            osmStaticUrl,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) =>
-                CustomPaint(
-                  painter: _RadarGridPainter(
-                    primaryColor: theme.colorScheme.primary,
-                    radiusKm: _selectedRadius,
-                  ),
-                ),
-            loadingBuilder: (context, child, progress) {
-              if (progress == null) return child;
-              return CustomPaint(
-                painter: _RadarGridPainter(
-                  primaryColor: theme.colorScheme.primary,
-                  radiusKm: _selectedRadius,
-                ),
-              );
-            },
-          ),
-
-          // Círculo sombreado del radio de cobertura
-          Center(
-            child: Container(
-              width: 110,
-              height: 110,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: theme.colorScheme.primary.withAlpha(45),
-                border: Border.all(
-                  color: theme.colorScheme.primary.withAlpha(180),
-                  width: 2,
-                ),
+          FlutterMap(
+            key: ValueKey('mapa_real_${lat}_${lon}_$_selectedRadius'),
+            options: MapOptions(
+              initialCenter: centerPoint,
+              initialZoom: zoom,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.pinchZoom | InteractiveFlag.drag,
               ),
             ),
-          ),
-
-          // Pin central
-          Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    color: isGps ? Colors.green.shade600 : theme.colorScheme.primary,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withAlpha(90),
-                        blurRadius: 6,
-                        offset: const Offset(0, 2),
+            children: [
+              TileLayer(
+                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.reservitta.reservitta',
+              ),
+              CircleLayer(
+                circles: [
+                  CircleMarker(
+                    point: centerPoint,
+                    radius: _selectedRadius * 1000,
+                    useRadiusInMeter: true,
+                    color: theme.colorScheme.primary.withAlpha(45),
+                    borderColor: theme.colorScheme.primary,
+                    borderStrokeWidth: 2,
+                  ),
+                ],
+              ),
+              MarkerLayer(
+                markers: [
+                  Marker(
+                    point: centerPoint,
+                    width: 38,
+                    height: 38,
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: isGps ? Colors.green.shade600 : theme.colorScheme.primary,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(90),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
-                    ],
+                      child: Icon(
+                        isGps ? Icons.my_location : Icons.location_on,
+                        size: 20,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
-                  child: Icon(
-                    isGps ? Icons.my_location : Icons.location_on,
-                    size: 16,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Container(
-                  width: 6,
-                  height: 6,
-                  decoration: const BoxDecoration(
-                    color: Colors.black45,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
 
           // Badge superior izquierdo (Tipo de señal)
@@ -672,50 +658,4 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
       ),
     );
   }
-}
-
-/// CustomPainter para el radar topográfico de respaldo en caso de que tarde el mapa por red
-class _RadarGridPainter extends CustomPainter {
-  final Color primaryColor;
-  final double radiusKm;
-
-  _RadarGridPainter({required this.primaryColor, required this.radiusKm});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final bgPaint = Paint()..color = const Color(0xFF1E222D);
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), bgPaint);
-
-    final gridPaint = Paint()
-      ..color = Colors.white.withAlpha(20)
-      ..strokeWidth = 1;
-
-    for (double x = 0; x < size.width; x += 30) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), gridPaint);
-    }
-    for (double y = 0; y < size.height; y += 30) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), gridPaint);
-    }
-
-    final center = Offset(size.width / 2, size.height / 2);
-
-    final radarPaint = Paint()
-      ..color = primaryColor.withAlpha(60)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-
-    canvas.drawCircle(center, 30, radarPaint);
-    canvas.drawCircle(center, 55, radarPaint);
-    canvas.drawCircle(center, 80, radarPaint);
-
-    final axisPaint = Paint()
-      ..color = primaryColor.withAlpha(80)
-      ..strokeWidth = 1;
-    canvas.drawLine(Offset(center.dx - 85, center.dy), Offset(center.dx + 85, center.dy), axisPaint);
-    canvas.drawLine(Offset(center.dx, center.dy - 65), Offset(center.dx, center.dy + 65), axisPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _RadarGridPainter oldDelegate) =>
-      oldDelegate.radiusKm != radiusKm || oldDelegate.primaryColor != primaryColor;
 }
