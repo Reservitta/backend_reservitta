@@ -127,6 +127,77 @@ class FakeRestaurantRepository implements RestaurantRepository {
             ))
         .toList();
   }
+
+  @override
+  Future<List<RestaurantModel>> getRestaurantsByDateTime({
+    required DateTime dateTime,
+    int? partySize,
+    int durationMin = 90,
+  }) async {
+    final active = await getActiveRestaurants();
+    return active
+        .where((r) =>
+            ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime))
+        .toList();
+  }
+
+  @override
+  Future<RestaurantQueryResult> getRestaurantsByDateTimeResult({
+    required DateTime dateTime,
+    int? partySize,
+    int durationMin = 90,
+  }) async {
+    try {
+      final list = await getRestaurantsByDateTime(
+        dateTime: dateTime,
+        partySize: partySize,
+        durationMin: durationMin,
+      );
+      return RestaurantQueryResult.success(list);
+    } catch (e) {
+      return RestaurantQueryResult.failure(e.toString());
+    }
+  }
+
+  @override
+  Stream<List<RestaurantModel>> getRestaurantsByDateTimeStream({
+    required DateTime dateTime,
+    int? partySize,
+    int durationMin = 90,
+  }) {
+    return getActiveRestaurantsStream().map((list) {
+      return list
+          .where((r) =>
+              ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime))
+          .toList();
+    });
+  }
+
+  @override
+  Future<bool> checkRestaurantAvailability({
+    required String restaurantId,
+    required DateTime dateTime,
+    int partySize = 1,
+    int durationMin = 90,
+  }) async {
+    final r = await getRestaurantById(restaurantId);
+    if (r == null) return false;
+    return ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime);
+  }
+
+  @override
+  Future<int> getRemainingCapacity({
+    required String restaurantId,
+    required DateTime dateTime,
+    int durationMin = 90,
+  }) async {
+    final r = await getRestaurantById(restaurantId);
+    if (r == null ||
+        !ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime)) {
+      return 0;
+    }
+    return r.capacidadMaxima;
+  }
 }
 
 void main() {
