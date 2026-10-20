@@ -30,6 +30,8 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
   UserLocation? _temporaryLocation;
   List<UserLocation> _manualSearchResults = [];
   bool _isSearching = false;
+  bool _isRequestingGps = false;
+  String? _permissionErrorMessage;
 
   @override
   void initState() {
@@ -47,11 +49,26 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
   /// HU02-RF01 Criterios 1 y 2: El permiso y obtención de ubicación se solicita
   /// únicamente cuando el usuario activa el filtro.
   Future<void> _useCurrentLocation() async {
-    final location = await widget.viewModel.locationService.getCurrentLocation();
     setState(() {
-      _temporaryLocation = location;
-      _manualSearchResults.clear();
-      _searchZoneController.clear();
+      _isRequestingGps = true;
+      _permissionErrorMessage = null;
+    });
+
+    final result = await widget.viewModel.locationService.requestCurrentLocation();
+
+    if (!mounted) return;
+
+    setState(() {
+      _isRequestingGps = false;
+      if (result.isSuccess) {
+        _temporaryLocation = result.location;
+        _manualSearchResults.clear();
+        _searchZoneController.clear();
+        _permissionErrorMessage = null;
+      } else {
+        // HU02-RF01 Criterio 3: Si deniega o GPS apagado, ofrece elegir manualmente
+        _permissionErrorMessage = result.message ?? 'No fue posible obtener tu ubicación GPS.';
+      }
     });
   }
 
@@ -125,17 +142,22 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.location_on, color: theme.colorScheme.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Filtro de Ubicación',
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          fontWeight: FontWeight.bold,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Icon(Icons.location_on, color: theme.colorScheme.primary),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: Text(
+                            'Filtro de Ubicación',
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   if (widget.viewModel.isLocationFilterActive)
                     TextButton(
@@ -147,16 +169,75 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
               ),
               const SizedBox(height: 16),
 
-              // 1. Botón: Usar mi ubicación actual (GPS)
+              // 1. Botón: Usar mi ubicación actual (GPS) (HU02-RF01 Criterios 1 y 2)
               FilledButton.tonalIcon(
                 key: const ValueKey('boton_usar_gps_ubicacion'),
-                icon: const Icon(Icons.my_location),
-                label: const Text('Usar mi ubicación actual (GPS)'),
+                icon: _isRequestingGps
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.my_location),
+                label: Text(
+                  _isRequestingGps
+                      ? 'Detectando coordenadas...'
+                      : 'Usar mi ubicación actual (GPS)',
+                ),
                 style: FilledButton.styleFrom(
                   minimumSize: const Size.fromHeight(48),
                 ),
-                onPressed: _useCurrentLocation,
+                onPressed: _isRequestingGps ? null : _useCurrentLocation,
               ),
+
+              // HU02-RF01 Criterio 3: Si deniega el permiso o el GPS está apagado, se ofrece elegir manualmente
+              if (_permissionErrorMessage != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  key: const ValueKey('aviso_permiso_denegado_o_gps_apagado'),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer.withAlpha(90),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: theme.colorScheme.error.withAlpha(120),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.location_off_outlined,
+                            size: 20,
+                            color: theme.colorScheme.error,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _permissionErrorMessage!,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.onErrorContainer,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'No te preocupes: puedes elegir manualmente una ciudad o zona a continuación sin restricciones.',
+                        style: TextStyle(
+                          color: theme.colorScheme.onErrorContainer,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
 
               if (_temporaryLocation != null) ...[
                 const SizedBox(height: 12),
