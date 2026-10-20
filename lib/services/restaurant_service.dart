@@ -3,11 +3,58 @@ import '../models/branch_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/service_catalog_model.dart';
 
-class RestaurantService {
-  final FirebaseFirestore _firestore;
+/// Excepción controlada para errores en consultas de restaurantes (HU01-RF01 Criterio 4)
+class ControlledRestaurantQueryException implements Exception {
+  final String message;
+  final Object? originalError;
+
+  const ControlledRestaurantQueryException(
+    this.message, {
+    this.originalError,
+  });
+
+  @override
+  String toString() => message;
+}
+
+/// Resultado seguro de consulta para evitar cierres o excepciones no capturadas
+class RestaurantQueryResult {
+  final List<RestaurantModel> restaurants;
+  final String? errorMessage;
+  final bool hasError;
+
+  const RestaurantQueryResult.success(this.restaurants)
+      : errorMessage = null,
+        hasError = false;
+
+  const RestaurantQueryResult.failure(this.errorMessage)
+      : restaurants = const [],
+        hasError = true;
+}
+
+/// Contrato del Repositorio de Restaurantes (HU01-RF01)
+abstract class RestaurantRepository {
+  /// Consulta de restaurantes asociados con estado 'activo' (Criterio 2)
+  Future<List<RestaurantModel>> getActiveRestaurants({int? limit});
+
+  /// Consulta de restaurantes asociados activos retornando un resultado seguro (Criterio 4)
+  Future<RestaurantQueryResult> getActiveRestaurantsResult({int? limit});
+
+  /// Stream en tiempo real de restaurantes asociados activos
+  Stream<List<RestaurantModel>> getActiveRestaurantsStream();
+
+  /// Obtiene los datos de un restaurante por su ID
+  Future<RestaurantModel?> getRestaurantById(String restaurantId);
+}
+
+class RestaurantService implements RestaurantRepository {
+  final FirebaseFirestore? _firestoreInstance;
 
   RestaurantService({FirebaseFirestore? firestore})
-      : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestoreInstance = firestore;
+
+  FirebaseFirestore get _firestore =>
+      _firestoreInstance ?? FirebaseFirestore.instance;
 
   static const List<Map<String, String>> defaultServicesList = [
     {'id': 'reservaciones', 'nombre': 'Reservaciones', 'icono': 'event_seat'},
@@ -20,7 +67,8 @@ class RestaurantService {
     {'id': 'pet_friendly', 'nombre': 'Apto para mascotas', 'icono': 'pets'},
   ];
 
-  /// Obtiene los datos de un restaurante por su ID
+  /// Obtiene los datos de un restaurante por su ID con manejo de error controlado
+  @override
   Future<RestaurantModel?> getRestaurantById(String restaurantId) async {
     try {
       final doc =
@@ -28,12 +76,76 @@ class RestaurantService {
       if (!doc.exists) return null;
       return RestaurantModel.fromFirestore(doc);
     } catch (e) {
-      // Re-throw para ser manejado por el ViewModel si es crítico
-      rethrow;
+      // HU01-RF01 Criterio 4: Error controlado sin cerrar la app
+      return null;
     }
   }
 
-  /// Stream de todos los restaurantes (para listados públicos o dashboard)
+  /// HU01-RF01 Criterio 2: Consulta de restaurantes asociados con estado activo.
+  /// HU01-RF01 Criterio 4: Manejo controlado de fallas sin cerrar la app.
+  @override
+  Future<List<RestaurantModel>> getActiveRestaurants({int? limit}) async {
+    try {
+      Query<Map<String, dynamic>> query = _firestore
+          .collection('restaurants')
+          .where('estado', isEqualTo: 'activo');
+
+      if (limit != null && limit > 0) {
+        query = query.limit(limit);
+      }
+
+      final snapshot = await query.get();
+      final list = snapshot.docs
+          .map((doc) => RestaurantModel.fromFirestore(doc))
+          .where((r) => r.isActivo)
+          .toList();
+
+      // Ordenar alfabéticamente por nombre para consistencia
+      list.sort((a, b) => a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase()));
+      return list;
+    } catch (e) {
+      // HU01-RF01 Criterio 4: Si la consulta falla, el repositorio devuelve un error controlado
+      throw ControlledRestaurantQueryException(
+        'Error controlado al consultar restaurantes asociados activos: $e',
+        originalError: e,
+      );
+    }
+  }
+
+  /// HU01-RF01 Criterio 4: Consulta segura que retorna RestaurantQueryResult y no cierra la app
+  @override
+  Future<RestaurantQueryResult> getActiveRestaurantsResult({int? limit}) async {
+    try {
+      final list = await getActiveRestaurants(limit: limit);
+      return RestaurantQueryResult.success(list);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantQueryResult.failure(e.message);
+    } catch (e) {
+      return RestaurantQueryResult.failure('Error inesperado al consultar restaurantes: $e');
+    }
+  }
+
+  /// HU01-RF01 Criterio 2 y 4: Stream en tiempo real de restaurantes activos con manejo de error controlado
+  @override
+  Stream<List<RestaurantModel>> getActiveRestaurantsStream() {
+    return _firestore
+        .collection('restaurants')
+        .where('estado', isEqualTo: 'activo')
+        .snapshots()
+        .map((snapshot) {
+      final list = snapshot.docs
+          .map((doc) => RestaurantModel.fromFirestore(doc))
+          .where((r) => r.isActivo)
+          .toList();
+      list.sort((a, b) => a.nombre.toLowerCase().compareTo(b.nombre.toLowerCase()));
+      return list;
+    }).handleError((error) {
+      // HU01-RF01 Criterio 4: Error controlado en el stream sin cerrar la app
+      return <RestaurantModel>[];
+    });
+  }
+
+  /// Stream de todos los restaurantes (para dashboard de administrador)
   Stream<List<RestaurantModel>> getRestaurantsStream() {
     return _firestore.collection('restaurants').snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
