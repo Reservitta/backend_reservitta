@@ -45,6 +45,9 @@ class PlatilloModel {
   /// Indica si el platillo está activo y disponible para preordenar
   bool get isActivo => estado == estadoActivo;
 
+  /// Indica si el platillo está disponible para los clientes (HU06-RF01)
+  bool get isDisponible => estado == estadoActivo;
+
   /// Indica si el platillo está marcado temporalmente como agotado (HU32-RF01)
   bool get isAgotado => estado == estadoAgotado;
 
