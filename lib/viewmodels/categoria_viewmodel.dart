@@ -63,6 +63,18 @@ class CategoriaViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Obtiene la cantidad de platillos asociados a una categoría
+  Future<int> contarPlatillosAsociados(String categoriaId) async {
+    try {
+      return await _categoriaService.contarPlatillosAsociados(
+        restaurantId: restaurantId,
+        categoriaId: categoriaId,
+      );
+    } catch (_) {
+      return 0;
+    }
+  }
+
   /// 1. Crear una nueva categoría validando que no sea vacía ni duplicada
   Future<bool> crearCategoria({
     String? nombre,
@@ -156,6 +168,12 @@ class CategoriaViewModel extends ChangeNotifier {
     final itemMovido = listaReordenada.removeAt(oldIndex);
     listaReordenada.insert(newIndex, itemMovido);
 
+    // Reasignar índices de orden secuenciales (1..N)
+    for (int i = 0; i < listaReordenada.length; i++) {
+      listaReordenada[i] = listaReordenada[i].copyWith(orden: i + 1);
+    }
+    categoriasEnTiempoReal = List<CategoriaModel>.from(listaReordenada);
+
     isLoading = true;
     errorMessage = null;
     notifyListeners();
@@ -173,6 +191,26 @@ class CategoriaViewModel extends ChangeNotifier {
       isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// 3b. Mover categoría hacia arriba mediante botón de flecha
+  Future<bool> moverArriba(int index) async {
+    if (index <= 0 || index >= categoriasEnTiempoReal.length) return false;
+    return await reordenarCategorias(
+      categoriasEnTiempoReal,
+      index,
+      index - 1,
+    );
+  }
+
+  /// 3c. Mover categoría hacia abajo mediante botón de flecha
+  Future<bool> moverAbajo(int index) async {
+    if (index < 0 || index >= categoriasEnTiempoReal.length - 1) return false;
+    return await reordenarCategorias(
+      categoriasEnTiempoReal,
+      index,
+      index + 2,
+    );
   }
 
   /// 4. Eliminar categoría: verifica primero si tiene platillos asociados.
