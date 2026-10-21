@@ -1,3 +1,5 @@
+export '../models/mesa_model.dart' show MesaModel;
+export '../models/reservation_model.dart' show ReservationModel;
 export '../models/restaurant_detail_model.dart'
     show
         MenuCategoryModel,
@@ -12,3 +14,4 @@ export '../services/restaurant_service.dart'
         ControlledRestaurantQueryException,
         RestaurantQueryResult;
 export '../utils/geo_utils.dart' show GeoUtils;
+export '../utils/schedule_utils.dart' show ScheduleUtils;
