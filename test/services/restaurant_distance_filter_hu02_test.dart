@@ -154,6 +154,135 @@ class FakeRestaurantRepositoryHU02 implements RestaurantRepository {
   }
 
   @override
+  Future<List<RestaurantModel>> getRestaurantsByDateTime({
+    required DateTime dateTime,
+    int? partySize,
+    int durationMin = 90,
+  }) async {
+    final active = await getActiveRestaurants();
+    return active
+        .where((r) =>
+            ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime))
+        .toList();
+  }
+
+  @override
+  Future<RestaurantQueryResult> getRestaurantsByDateTimeResult({
+    required DateTime dateTime,
+    int? partySize,
+    int durationMin = 90,
+  }) async {
+    try {
+      final list = await getRestaurantsByDateTime(
+        dateTime: dateTime,
+        partySize: partySize,
+        durationMin: durationMin,
+      );
+      return RestaurantQueryResult.success(list);
+    } catch (e) {
+      return RestaurantQueryResult.failure(e.toString());
+    }
+  }
+
+  @override
+  Stream<List<RestaurantModel>> getRestaurantsByDateTimeStream({
+    required DateTime dateTime,
+    int? partySize,
+    int durationMin = 90,
+  }) {
+    return getActiveRestaurantsStream().map((list) {
+      return list
+          .where((r) =>
+              ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime))
+          .toList();
+    });
+  }
+
+  @override
+  Future<bool> checkRestaurantAvailability({
+    required String restaurantId,
+    required DateTime dateTime,
+    int partySize = 1,
+    int durationMin = 90,
+  }) async {
+    final r = await getRestaurantById(restaurantId);
+    if (r == null) return false;
+    return ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime);
+  }
+
+  @override
+  Future<int> getRemainingCapacity({
+    required String restaurantId,
+    required DateTime dateTime,
+    int durationMin = 90,
+  }) async {
+    final r = await getRestaurantById(restaurantId);
+    if (r == null ||
+        !ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime)) {
+      return 0;
+    }
+    return r.capacidadTotal;
+  }
+
+  @override
+  Future<List<RestaurantModel>> getRestaurantsByCapacity({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    if (shouldFail) {
+      throw const ControlledRestaurantQueryException(
+        'Error simulado de red en Firestore al consultar restaurantes por capacidad.',
+      );
+    }
+    if (partySize <= 0) return <RestaurantModel>[];
+    return restaurantsEnMemoria.where((r) {
+      if (!r.isActivo || !r.tieneCapacidadRegistrada) return false;
+      if (dateTime != null && !ScheduleUtils.isRestaurantOpenAt(restaurant: r, dateTime: dateTime)) {
+        return false;
+      }
+      return r.capacidadTotal >= partySize;
+    }).toList();
+  }
+
+  @override
+  Future<RestaurantQueryResult> getRestaurantsByCapacityResult({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async {
+    try {
+      final list = await getRestaurantsByCapacity(
+        partySize: partySize,
+        dateTime: dateTime,
+        durationMin: durationMin,
+      );
+      return RestaurantQueryResult.success(list);
+    } on ControlledRestaurantQueryException catch (e) {
+      return RestaurantQueryResult.failure(e.message);
+    } catch (e) {
+      return RestaurantQueryResult.failure('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Stream<List<RestaurantModel>> getRestaurantsByCapacityStream({
+    required int partySize,
+    DateTime? dateTime,
+    int durationMin = 90,
+  }) async* {
+    if (shouldFail) {
+      yield <RestaurantModel>[];
+      return;
+    }
+    yield await getRestaurantsByCapacity(
+      partySize: partySize,
+      dateTime: dateTime,
+      durationMin: durationMin,
+    );
+  }
+
+  @override
   Future<RestaurantDetailModel> getRestaurantDetail(
     String restaurantId, {
     bool soloPlatillosVisibles = true,

@@ -6,7 +6,7 @@ import 'package:reservitta/repositories/restaurant_repository.dart';
 import 'package:reservitta/viewmodels/restaurant_detail_viewmodel.dart';
 
 /// Implementación simulada del repositorio para pruebas unitarias de HU05-RF01
-class FakeRestaurantDetailRepository implements RestaurantRepository {
+class FakeRestaurantDetailRepository extends Fake implements RestaurantRepository {
   final Map<String, RestaurantModel> restaurants;
   final Map<String, List<CategoriaModel>> categorias;
   final Map<String, List<PlatilloModel>> platillos;
