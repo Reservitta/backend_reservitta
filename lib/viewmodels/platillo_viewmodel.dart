@@ -282,9 +282,11 @@ class PlatilloViewModel extends ChangeNotifier {
         precio: precioNumerico,
         categoriaId: catFinal,
         estado: estadoFinal,
-        orden: ordenSeleccionado,
-        etiquetas: etiquetasSeleccionadas,
-        placeholderObservacion: placeholderObsController.text.trim(),
+        orden: platilloOriginal.orden,
+        etiquetas: etiquetasSeleccionadas.isNotEmpty ? etiquetasSeleccionadas : platilloOriginal.etiquetas,
+        placeholderObservacion: placeholderObsController.text.trim().isNotEmpty
+            ? placeholderObsController.text.trim()
+            : platilloOriginal.placeholderObservacion,
       );
 
       await _platilloService.actualizarPlatillo(
