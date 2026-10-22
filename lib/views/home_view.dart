@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/restaurant_model.dart';
 import '../viewmodels/home_viewmodel.dart';
+import 'categoria_list_view.dart';
 import 'restaurant_profile_view.dart';
 
 class HomeView extends StatefulWidget {
@@ -266,6 +267,78 @@ class _HomeViewState extends State<HomeView> {
                               ),
                             ),
                           ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Botón de acceso a Gestión de Categorías (HU24-RF02)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDF1EB),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(
+                            Icons.category_rounded,
+                            color: _primaryTerracotta,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Categorías del Menú',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 15,
+                                  color: Color(0xFF2E241E),
+                                ),
+                              ),
+                              SizedBox(height: 2),
+                              Text(
+                                'Organiza las secciones, agrega, edita o reordena',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Color(0xFF7A6E65),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _primaryTerracotta,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          ),
+                          icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                          label: const Text('Gestionar'),
+                          onPressed: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => CategoriaListView(
+                                  restaurantId: currentRest.id,
+                                ),
+                              ),
+                            );
+                          },
                         ),
                       ],
                     ),
