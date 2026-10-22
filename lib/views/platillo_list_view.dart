@@ -346,33 +346,6 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                                 ],
                                               ),
                                             ),
-                                            const SizedBox(width: 10),
-                                            ElevatedButton.icon(
-                                              onPressed: _abrirDialogoCrear,
-                                              style: ElevatedButton.styleFrom(
-                                                backgroundColor:
-                                                    PlatilloListView._primary,
-                                                foregroundColor: Colors.white,
-                                                elevation: 0,
-                                                shape: RoundedRectangleBorder(
-                                                  borderRadius:
-                                                      BorderRadius.circular(10),
-                                                ),
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 14,
-                                                  vertical: 8,
-                                                ),
-                                              ),
-                                              icon: const Icon(Icons.add_rounded,
-                                                  size: 18),
-                                              label: const Text(
-                                                'Nuevo Platillo',
-                                                style: TextStyle(
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ),
                                           ],
                                         ),
                                       ],

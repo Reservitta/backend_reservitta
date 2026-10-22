@@ -802,7 +802,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
 
                             // Texto de ayuda / placeholder
                             const Text(
-                              'Texto de ayuda / Placeholder (Criterio 2)',
+                              'Texto de ayuda / Placeholder',
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
@@ -843,9 +843,9 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                             ),
                             const SizedBox(height: 10),
 
-                            // Límite máximo de caracteres (HU24-RF05 Criterio 4)
+                            // Límite máximo de caracteres
                             const Text(
-                              'Límite de caracteres para la nota (Criterio 4)',
+                              'Límite de caracteres para la nota',
                               style: TextStyle(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w600,
