@@ -379,6 +379,24 @@ class PlatilloViewModel extends ChangeNotifier {
     );
   }
 
+  /// 6. Eliminar un platillo definitivamente del menú
+  Future<bool> eliminarPlatillo(String platilloId) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _platilloService.eliminarPlatillo(restaurantId, platilloId);
+      return true;
+    } catch (e) {
+      errorMessage = 'No se pudo eliminar el platillo.';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
+  }
+
   @override
   void dispose() {
     _platillosSubscription?.cancel();

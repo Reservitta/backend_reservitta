@@ -16,12 +16,14 @@ class CategoriaListView extends StatefulWidget {
   final String restaurantId;
   final CategoriaService? categoriaService;
   final CategoriaViewModel? viewModel;
+  final bool showAppBar;
 
   const CategoriaListView({
     super.key,
     required this.restaurantId,
     this.categoriaService,
     this.viewModel,
+    this.showAppBar = true,
   });
 
   static const Color _primaryTerracotta = Color(0xFFB34A26);
@@ -184,19 +186,21 @@ class _CategoriaListViewState extends State<CategoriaListView> {
 
         return Scaffold(
           backgroundColor: CategoriaListView._lightBg,
-          appBar: AppBar(
-            backgroundColor: Colors.white,
-            foregroundColor: CategoriaListView._textDark,
-            elevation: 0,
-            title: const Text(
-              'Gestión de Categorías',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 18,
-                color: CategoriaListView._textDark,
-              ),
-            ),
-          ),
+          appBar: widget.showAppBar
+              ? AppBar(
+                  backgroundColor: Colors.white,
+                  foregroundColor: CategoriaListView._textDark,
+                  elevation: 0,
+                  title: const Text(
+                    'Gestión de Categorías',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      color: CategoriaListView._textDark,
+                    ),
+                  ),
+                )
+              : null,
           floatingActionButton: hayCategorias
               ? FloatingActionButton.extended(
                   onPressed: _viewModel.isLoading ? null : _abrirDialogoAgregar,
@@ -230,9 +234,37 @@ class _CategoriaListViewState extends State<CategoriaListView> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
+                              if (!widget.showAppBar) ...[
+                                const Padding(
+                                  padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Categorías',
+                                        style: TextStyle(
+                                          fontFamily: 'serif',
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.bold,
+                                          color: CategoriaListView._textDark,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Organiza las secciones del menú, agrega, edita o reordena.',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          color: CategoriaListView._textMuted,
+                                        ),
+                                      ),
+                                      SizedBox(height: 12),
+                                    ],
+                                  ),
+                                ),
+                              ],
                               // Encabezado descriptivo y contador
                               Padding(
-                                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                                padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
                                 child: Row(
                                   mainAxisAlignment:
                                       MainAxisAlignment.spaceBetween,
