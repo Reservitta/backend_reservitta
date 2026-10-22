@@ -120,10 +120,13 @@ class PlatilloCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
 
-                  // Categoría y Badge de disponibilidad
-                  Row(
+                  // Categoría y Badge de disponibilidad (Wrap previene desbordamiento en pantallas angostas)
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
-                      if (categoriaNombre.isNotEmpty) ...[
+                      if (categoriaNombre.isNotEmpty)
                         Container(
                           padding: const EdgeInsets.symmetric(
                               horizontal: 8, vertical: 2),
@@ -140,8 +143,6 @@ class PlatilloCard extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
-                      ],
                       Container(
                         padding: const EdgeInsets.symmetric(
                             horizontal: 7, vertical: 2),
@@ -162,6 +163,36 @@ class PlatilloCard extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (platillo.permitePersonalizacion)
+                        Tooltip(
+                          message: platillo.placeholderObservacion.isNotEmpty
+                              ? 'Guía: "${platillo.placeholderObservacion}" (máx ${platillo.limiteCaracteresObs} car.)'
+                              : 'Personalizable por el cliente (máx ${platillo.limiteCaracteresObs} car.)',
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 7, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBF3FA),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: const [
+                                Icon(Icons.tune_rounded,
+                                    size: 11, color: Color(0xFF1E5288)),
+                                SizedBox(width: 3),
+                                Text(
+                                  'Personalizable',
+                                  style: TextStyle(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF1E5288),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                     ],
                   ),
 

@@ -8,6 +8,7 @@ import '../services/categoria_service.dart';
 import '../services/platillo_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
+import 'widgets/preorden_item_dialog.dart';
 
 /// Pantalla pública de detalle del restaurante (HU01-RF03, HU05)
 /// Accesible libremente sin necesidad de iniciar sesión o registrarse.
@@ -448,69 +449,142 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(100)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withAlpha(50),
-                borderRadius: BorderRadius.circular(8),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () async {
+          final item = await PreordenItemDialog.show(context, platillo: p);
+          if (item != null && mounted) {
+            final obs = (item['observacion'] as String? ?? '').trim();
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  obs.isNotEmpty
+                      ? 'Agregado a preorden: ${item['nombre']} (${item['cantidad']}x) - "$obs"'
+                      : 'Agregado a preorden: ${item['nombre']} (${item['cantidad']}x)',
+                ),
+                backgroundColor: const Color(0xFF2C5E94),
+                behavior: SnackBarBehavior.floating,
               ),
-              child: p.imagenUrl.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        p.imagenUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.fastfood_outlined,
-                          color: theme.colorScheme.primary,
+            );
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withAlpha(50),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: p.imagenUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          p.imagenUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.fastfood_outlined,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
+                      )
+                    : Icon(
+                        Icons.fastfood_outlined,
+                        color: theme.colorScheme.primary,
                       ),
-                    )
-                  : Icon(
-                      Icons.fastfood_outlined,
-                      color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            p.nombre,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        if (p.permitePersonalizacion)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBF3FA),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Personalizable',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E5288),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.nombre,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  if (p.descripcion.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      p.descripcion,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (p.descripcion.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        p.descripcion,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '\$${p.precio.toStringAsFixed(2)} MXN',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        OutlinedButton.icon(
+                          key: ValueKey('btn_preordenar_${p.id}'),
+                          icon: const Icon(Icons.add_shopping_cart, size: 14),
+                          label: const Text('Preordenar', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () async {
+                            final item = await PreordenItemDialog.show(context, platillo: p);
+                            if (item != null && mounted) {
+                              final obs = (item['observacion'] as String? ?? '').trim();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    obs.isNotEmpty
+                                        ? 'Agregado a preorden: ${item['nombre']} (${item['cantidad']}x) - "$obs"'
+                                        : 'Agregado a preorden: ${item['nombre']} (${item['cantidad']}x)',
+                                  ),
+                                  backgroundColor: const Color(0xFF2C5E94),
+                                  behavior: SnackBarBehavior.floating,
+                                ),
+                              );
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ],
-                  const SizedBox(height: 6),
-                  Text(
-                    '\$${p.precio.toStringAsFixed(2)} MXN',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

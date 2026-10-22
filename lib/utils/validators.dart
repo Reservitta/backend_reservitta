@@ -239,4 +239,26 @@ class AppValidators {
     }
     return null;
   }
+
+  /// Valida campo opcional de personalización del cliente (HU24-RF05 Criterio 4)
+  static String? validateCustomization(String? value, {int maxCharacters = 150}) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // Es opcional
+    }
+    if (value.trim().length > maxCharacters) {
+      return 'Las modificaciones no pueden exceder los $maxCharacters caracteres.';
+    }
+    return null;
+  }
+
+  /// Valida el texto de ejemplo / ayuda (placeholder) definido por el admin (HU24-RF05 Criterio 2)
+  static String? validatePlaceholder(String? value, {int maxCharacters = 80}) {
+    if (value == null || value.trim().isEmpty) {
+      return null; // Es opcional
+    }
+    if (value.trim().length > maxCharacters) {
+      return 'El texto de ejemplo no puede exceder los $maxCharacters caracteres.';
+    }
+    return null;
+  }
 }
