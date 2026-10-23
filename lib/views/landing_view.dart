@@ -316,6 +316,60 @@ class _LandingViewState extends State<LandingView> {
           ),
           const SizedBox(width: 8),
 
+          // Control de filtro de fecha y hora (HU03-RF02 Criterios 1, 2, 3)
+          ActionChip(
+            key: const ValueKey('boton_filtro_fecha_hora'),
+            elevation: _viewModel.isDateTimeFilterActive ? 2 : 0,
+            shadowColor: theme.colorScheme.primary.withAlpha(90),
+            avatar: Icon(
+              _viewModel.isDateTimeFilterActive
+                  ? Icons.event_available
+                  : Icons.calendar_today_outlined,
+              size: 18,
+              color: _viewModel.isDateTimeFilterActive
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.primary,
+            ),
+            side: BorderSide(
+              color: _viewModel.isDateTimeFilterActive
+                  ? Colors.transparent
+                  : theme.colorScheme.primary.withAlpha(120),
+              width: 1.2,
+            ),
+            backgroundColor: _viewModel.isDateTimeFilterActive
+                ? theme.colorScheme.primary
+                : theme.colorScheme.primaryContainer.withAlpha(70),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _viewModel.isDateTimeFilterActive
+                      ? _viewModel.selectedDateTimeFormatted!
+                      : 'Fecha y hora',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _viewModel.isDateTimeFilterActive
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                if (_viewModel.isDateTimeFilterActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Colors.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            onPressed: _openNativeDateTimePicker,
+          ),
+          const SizedBox(width: 8),
+
           // Chips de servicios disponibles
           ..._viewModel.availableServices.map((s) {
             final isSelected = _viewModel.selectedServiceId == s.id;
@@ -366,6 +420,16 @@ class _LandingViewState extends State<LandingView> {
                 _searchController.clear();
                 _viewModel.setSearchQuery('');
               },
+            ),
+
+          // Chip de Fecha y hora activa con opción para quitar (HU03-RF02 Criterio 3 y 4)
+          if (_viewModel.isDateTimeFilterActive)
+            Chip(
+              key: const ValueKey('chip_filtro_fecha_hora_activo'),
+              avatar: const Icon(Icons.event, size: 16),
+              deleteButtonTooltipMessage: 'Quitar filtro de fecha y hora',
+              label: Text(_viewModel.selectedDateTimeFormatted!),
+              onDeleted: () => _viewModel.clearDateTimeFilter(),
             ),
 
           if (_viewModel.selectedServiceId != null)
@@ -494,6 +558,16 @@ class _LandingViewState extends State<LandingView> {
                     child: const Text('Limpiar filtros'),
                   ),
                 ],
+                // HU03-RF02 Criterio 4: Opción directa de quitar filtro de fecha y hora
+                if (_viewModel.isDateTimeFilterActive) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('boton_quitar_filtro_fecha_hora_vacio'),
+                    icon: const Icon(Icons.event_busy),
+                    label: const Text('Quitar filtro de fecha y hora'),
+                    onPressed: () => _viewModel.clearDateTimeFilter(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -562,6 +636,79 @@ class _LandingViewState extends State<LandingView> {
       if (s.id == id) return s.nombre;
     }
     return id;
+  }
+
+  /// HU03-RF02: Selector nativo de fecha y hora (Criterios 1, 2, 3 y 4)
+  Future<void> _openNativeDateTimePicker() async {
+    final now = DateTime.now();
+
+    // 1. Selector nativo de Fecha (showDatePicker)
+    // Criterio 2: firstDate es la fecha actual (hoy), impidiendo seleccionar fechas pasadas.
+    final initialDate = _viewModel.selectedDateTime != null &&
+            !_viewModel.selectedDateTime!.isBefore(now)
+        ? _viewModel.selectedDateTime!
+        : now;
+
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 90)),
+      helpText: 'SELECCIONA LA FECHA DE TU RESERVA',
+      cancelText: 'CANCELAR',
+      confirmText: 'SIGUIENTE (HORA)',
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    // 2. Selector nativo de Hora (showTimePicker)
+    final initialTime = _viewModel.selectedDateTime != null
+        ? TimeOfDay.fromDateTime(_viewModel.selectedDateTime!)
+        : TimeOfDay.now();
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      helpText: 'SELECCIONA LA HORA DE TU RESERVA',
+      cancelText: 'CANCELAR',
+      confirmText: 'ACEPTAR',
+    );
+
+    if (pickedTime == null || !mounted) return;
+
+    // 3. Combinar fecha y hora seleccionada
+    final combinedDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    // Criterio 2: No se permiten fechas ni horas pasadas
+    final isSuccess = _viewModel.setDateTimeFilter(combinedDateTime, now);
+    if (!isSuccess && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('aviso_fecha_hora_pasada'),
+          content: Text('No se permiten fechas ni horas pasadas. Elige un horario futuro.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Horario seleccionado: ${_viewModel.selectedDateTimeFormatted}'),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          onPressed: () => _viewModel.clearDateTimeFilter(),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 }
 
@@ -737,6 +884,7 @@ class _RestaurantCard extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildRestaurantCoverImage(String rawUrl, ThemeData theme) {
     final trimmedUrl = rawUrl.trim();

@@ -44,6 +44,9 @@ class PublicCatalogViewModel extends ChangeNotifier {
   UserLocation? _selectedLocation;
   double? _selectedRadiusKm;
 
+  // Filtro de fecha y hora (HU03-RF02)
+  DateTime? _selectedDateTime;
+
   // Getters
   List<RestaurantModel> get restaurants => _restaurants;
   List<ServiceCatalogModel> get availableServices => _availableServices;
@@ -55,14 +58,54 @@ class PublicCatalogViewModel extends ChangeNotifier {
   String? get selectedServiceId => _selectedServiceId;
   UserLocation? get selectedLocation => _selectedLocation;
   double? get selectedRadiusKm => _selectedRadiusKm;
+  DateTime? get selectedDateTime => _selectedDateTime;
   LocationService get locationService => _locationService;
 
   /// Indica si el filtro de ubicación por radio está actualmente activo
   bool get isLocationFilterActive => _selectedLocation != null && _selectedRadiusKm != null;
 
-  /// Indica si hay algún filtro activo (texto, servicio o ubicación)
+  /// Indica si el filtro de fecha y hora está actualmente activo (HU03-RF02 Criterio 3)
+  bool get isDateTimeFilterActive => _selectedDateTime != null;
+
+  /// Indica si hay algún filtro activo (texto, servicio, ubicación o fecha/hora)
   bool get hasActiveFilters =>
-      _searchQuery.isNotEmpty || _selectedServiceId != null || isLocationFilterActive;
+      _searchQuery.isNotEmpty ||
+      _selectedServiceId != null ||
+      isLocationFilterActive ||
+      isDateTimeFilterActive;
+
+  static const List<String> _meses = [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+  ];
+  static const List<String> _diasSemana = [
+    'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom',
+  ];
+
+  /// Horario formateado visible en pantalla principal (HU03-RF02 Criterio 3)
+  String? get selectedDateTimeFormatted {
+    if (_selectedDateTime == null) return null;
+    final dt = _selectedDateTime!;
+    final now = DateTime.now();
+
+    final hora = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    final timeStr = '$hora:$min';
+
+    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final tomorrow = now.add(const Duration(days: 1));
+    final isTomorrow = dt.year == tomorrow.year && dt.month == tomorrow.month && dt.day == tomorrow.day;
+
+    if (isToday) {
+      return 'Hoy, $timeStr';
+    } else if (isTomorrow) {
+      return 'Mañana, $timeStr';
+    } else {
+      final diaSemana = _diasSemana[dt.weekday - 1];
+      final mes = _meses[dt.month - 1];
+      return '$diaSemana ${dt.day} $mes, $timeStr';
+    }
+  }
 
   /// Indica si el usuario actual cuenta con una sesión iniciada
   bool get isUserAuthenticated => _authService.currentUser != null;
@@ -161,7 +204,12 @@ class PublicCatalogViewModel extends ChangeNotifier {
           r.descripcion.toLowerCase().contains(q)).toList();
     }
 
-    // 3. Filtrar por ubicación y radio utilizando la lógica del backend (HU02-RF02)
+    // 3. Filtrar por fecha y hora según horarios de apertura (HU03-RF02 Criterio 3)
+    if (isDateTimeFilterActive) {
+      list = list.where((r) => r.isOpenAt(_selectedDateTime!)).toList();
+    }
+
+    // 4. Filtrar por ubicación y radio utilizando la lógica del backend (HU02-RF02)
     if (isLocationFilterActive) {
       list = GeoUtils.filterAndSortByDistance(
         restaurants: list,
@@ -267,12 +315,41 @@ class PublicCatalogViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Restablece todos los filtros activos (incluyendo texto, servicios y ubicación)
+  /// Valida si una fecha y hora es futura (no pasada)
+  /// HU03-RF02 Criterio 2
+  static bool isValidFutureDateTime(DateTime dateTime, [DateTime? referenceNow]) {
+    final now = referenceNow ?? DateTime.now();
+    // Tolerancia de 1 minuto para evitar falsos rechazos en el mismo minuto
+    final threshold = now.subtract(const Duration(minutes: 1));
+    return dateTime.isAfter(threshold);
+  }
+
+  /// Establece el filtro de fecha y hora (HU03-RF02 Criterios 1, 2)
+  /// Retorna false si la fecha y hora es pasada.
+  bool setDateTimeFilter(DateTime dateTime, [DateTime? referenceNow]) {
+    if (!isValidFutureDateTime(dateTime, referenceNow)) {
+      return false;
+    }
+    _selectedDateTime = dateTime;
+    _applyFiltersAndSorting();
+    notifyListeners();
+    return true;
+  }
+
+  /// Quita el filtro de fecha y hora y restablece los resultados (HU03-RF02 Criterio 4)
+  void clearDateTimeFilter() {
+    _selectedDateTime = null;
+    _applyFiltersAndSorting();
+    notifyListeners();
+  }
+
+  /// Restablece todos los filtros activos (incluyendo texto, servicios, ubicación y fecha/hora)
   void clearFilters() {
     _searchQuery = '';
     _selectedServiceId = null;
     _selectedLocation = null;
     _selectedRadiusKm = null;
+    _selectedDateTime = null;
     _fetchFirstPage();
   }
 
@@ -301,12 +378,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
 
     // Si no tiene sesión, redirige al modal de inicio de sesión / registro
     final target = restaurantName != null ? ' en $restaurantName' : '';
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Para $actionName$target necesitas iniciar sesión o crear una cuenta.'),
+        duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Iniciar sesión',
           onPressed: () {
+            messenger.hideCurrentSnackBar();
             AuthModalDialog.show(context, initialMode: AuthMode.login);
           },
         ),
