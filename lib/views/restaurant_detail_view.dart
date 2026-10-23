@@ -92,14 +92,18 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
   void _onReservarPressed() {
     final user = _authService.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.hideCurrentSnackBar();
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             'Para reservar en ${widget.restaurant.nombre} necesitas una cuenta en Reservitta.',
           ),
+          duration: const Duration(seconds: 3),
           action: SnackBarAction(
             label: 'Iniciar sesión',
             onPressed: () {
+              messenger.hideCurrentSnackBar();
               AuthModalDialog.show(context, initialMode: AuthMode.login);
             },
           ),

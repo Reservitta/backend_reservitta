@@ -378,12 +378,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
 
     // Si no tiene sesión, redirige al modal de inicio de sesión / registro
     final target = restaurantName != null ? ' en $restaurantName' : '';
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Para $actionName$target necesitas iniciar sesión o crear una cuenta.'),
+        duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Iniciar sesión',
           onPressed: () {
+            messenger.hideCurrentSnackBar();
             AuthModalDialog.show(context, initialMode: AuthMode.login);
           },
         ),
