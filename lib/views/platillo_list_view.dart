@@ -296,9 +296,12 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                       const SizedBox(height: 20),
                                     ],
                                     // Resumen contador
-                                    Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
+                                    Wrap(
+                                      alignment: WrapAlignment.spaceBetween,
+                                      crossAxisAlignment:
+                                          WrapCrossAlignment.center,
+                                      spacing: 12,
+                                      runSpacing: 10,
                                       children: [
                                         Text(
                                           '${todosLosPlatillos.length} ${todosLosPlatillos.length == 1 ? 'platillo registrado' : 'platillos registrados'}',
@@ -308,37 +311,42 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                             color: PlatilloListView._textMuted,
                                           ),
                                         ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 10,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: PlatilloListView._creamAccent,
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                          ),
-                                          child: const Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.sync_rounded,
-                                                size: 13,
-                                                color: PlatilloListView
-                                                    ._primaryTerracotta,
+                                        Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(
+                                                horizontal: 10,
+                                                vertical: 5,
                                               ),
-                                              SizedBox(width: 4),
-                                              Text(
-                                                'Tiempo Real Activo',
-                                                style: TextStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: PlatilloListView
-                                                      ._primaryTerracotta,
-                                                ),
+                                              decoration: BoxDecoration(
+                                                color: PlatilloListView._creamAccent,
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                               ),
-                                            ],
-                                          ),
+                                              child: const Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  Icon(
+                                                    Icons.sync_rounded,
+                                                    size: 13,
+                                                    color: PlatilloListView
+                                                        ._primaryTerracotta,
+                                                  ),
+                                                  SizedBox(width: 4),
+                                                  Text(
+                                                    'Tiempo Real Activo',
+                                                    style: TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: PlatilloListView
+                                                          ._primaryTerracotta,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),

@@ -268,10 +268,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 100));
 
       // Presionamos el botón "+ Nuevo Platillo"
-      final fabNuevo = find.text('Nuevo Platillo');
-      expect(fabNuevo, findsOneWidget);
+      final botonNuevo = find.text('Nuevo Platillo');
+      expect(botonNuevo, findsWidgets);
 
-      await tester.tap(fabNuevo);
+      await tester.tap(botonNuevo.first);
       await tester.pumpAndSettle();
 
       expect(find.text('Nuevo Platillo'), findsWidgets);

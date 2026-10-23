@@ -64,6 +64,8 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
 
   String? _categoriaSeleccionadaId;
   bool _isDisponible = true;
+  bool _permitePersonalizacion = true;
+  int _limiteCaracteresObs = 150;
   bool _isSubmitting = false;
   String? _errorMessage;
 
@@ -82,12 +84,16 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
           TextEditingController(text: p.placeholderObservacion);
       _categoriaSeleccionadaId = p.categoriaId.isNotEmpty ? p.categoriaId : null;
       _isDisponible = p.isActivo;
+      _permitePersonalizacion = p.permitePersonalizacion;
+      _limiteCaracteresObs = p.limiteCaracteresObs;
     } else {
       _nombreController = TextEditingController();
       _precioController = TextEditingController();
       _descripcionController = TextEditingController();
       _placeholderObsController = TextEditingController();
       _isDisponible = true;
+      _permitePersonalizacion = true;
+      _limiteCaracteresObs = 150;
     }
   }
 
@@ -141,7 +147,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
     bool exito = false;
 
     if (esEdicion) {
-      // 1. Edición de platillo existente (HU24-RF04)
+      // 1. Edición de platillo existente (HU24-RF04 y HU24-RF05)
       widget.viewModel.placeholderObsController.text =
           _placeholderObsController.text.trim();
       exito = await widget.viewModel.actualizarPlatillo(
@@ -151,11 +157,14 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         descripcion: _descripcionController.text.trim(),
         categoriaId: _categoriaSeleccionadaId,
         nuevoEstado: nuevoEstado,
+        permitePersonalizacion: _permitePersonalizacion,
+        placeholderObservacion: _placeholderObsController.text.trim(),
+        limiteCaracteresObs: _limiteCaracteresObs,
         nuevaImagenBytes: _localImageBytes,
         nuevaImagenExt: _localImageExt,
       );
     } else {
-      // 2. Alta de nuevo platillo (HU24-RF04)
+      // 2. Alta de nuevo platillo (HU24-RF04 y HU24-RF05)
       widget.viewModel.estadoSeleccionado = nuevoEstado;
       widget.viewModel.placeholderObsController.text =
           _placeholderObsController.text.trim();
@@ -164,6 +173,9 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         precioTexto: _precioController.text.trim(),
         descripcion: _descripcionController.text.trim(),
         categoriaId: _categoriaSeleccionadaId,
+        permitePersonalizacion: _permitePersonalizacion,
+        placeholderObservacion: _placeholderObsController.text.trim(),
+        limiteCaracteresObs: _limiteCaracteresObs,
         customImageBytes: _localImageBytes,
         customImageExt: _localImageExt,
       );
@@ -287,7 +299,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 540),
+        constraints: const BoxConstraints(maxWidth: 540, maxHeight: 720),
         child: Container(
           decoration: BoxDecoration(
             color: PlatilloFormDialog._cardBg,
@@ -303,16 +315,16 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
           ),
           child: ClipRRect(
             borderRadius: BorderRadius.circular(20),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Header con icono y botón cerrar
-                    Row(
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header con icono y botón cerrar (fijo)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(22, 18, 16, 14),
+                    child: Row(
                       children: [
                         Container(
                           padding: const EdgeInsets.all(10),
@@ -367,7 +379,17 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 18),
+                  ),
+                  const Divider(height: 1, color: PlatilloFormDialog._cardBorder),
+
+                  // Cuerpo del formulario con scroll
+                  Flexible(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(22),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
 
                     // Mensaje de error general si ocurre
                     if (_errorMessage != null) ...[
@@ -704,46 +726,187 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                     ),
                     const SizedBox(height: 16),
 
-                    // 6. Placeholder de personalización del cliente (HU24-RF05)
-                    const Text(
-                      'Texto de ayuda para personalización del cliente (Opcional)',
-                      style: TextStyle(
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: PlatilloFormDialog._textMuted,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    TextFormField(
-                      controller: _placeholderObsController,
-                      enabled: !_isSubmitting,
-                      decoration: InputDecoration(
-                        hintText: 'Ej. Término medio, sin cebolla, aderezo aparte...',
-                        prefixIcon: const Icon(Icons.edit_note_rounded,
-                            size: 20, color: PlatilloFormDialog._textMuted),
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: PlatilloFormDialog._cardBorder),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: PlatilloFormDialog._cardBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(
-                              color: PlatilloFormDialog._primary, width: 1.8),
+                    // 6. Personalización del cliente (HU24-RF05)
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: _permitePersonalizacion
+                            ? const Color(0xFFF0F5FA)
+                            : const Color(0xFFF9F7F5),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: _permitePersonalizacion
+                              ? const Color(0xFFB8D0E8)
+                              : PlatilloFormDialog._cardBorder,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.tune_rounded,
+                                color: _permitePersonalizacion
+                                    ? const Color(0xFF1E5288)
+                                    : PlatilloFormDialog._textMuted,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Permitir personalización del cliente',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13.5,
+                                        color: _permitePersonalizacion
+                                            ? const Color(0xFF0F3660)
+                                            : PlatilloFormDialog._textDark,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Habilita un campo opcional para que el comensal indique modificaciones al preordenar.',
+                                      style: TextStyle(
+                                        fontSize: 11.5,
+                                        color: _permitePersonalizacion
+                                            ? const Color(0xFF2C5E94)
+                                            : PlatilloFormDialog._textMuted,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Switch(
+                                key: const ValueKey('switch_permite_personalizacion'),
+                                value: _permitePersonalizacion,
+                                activeThumbColor: const Color(0xFF1E5288),
+                                activeTrackColor: const Color(0xFFB8D0E8),
+                                onChanged: _isSubmitting
+                                    ? null
+                                    : (val) {
+                                        setState(() {
+                                          _permitePersonalizacion = val;
+                                        });
+                                      },
+                              ),
+                            ],
+                          ),
+                          if (_permitePersonalizacion) ...[
+                            const SizedBox(height: 14),
+                            const Divider(height: 1, color: Color(0xFFD6E3F0)),
+                            const SizedBox(height: 14),
 
-                    // Botones Cancelar y Guardar
-                    Row(
+                            // Texto de ayuda / placeholder
+                            const Text(
+                              'Texto de ayuda / Placeholder',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F3660),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            TextFormField(
+                              key: const ValueKey('input_placeholder_observacion'),
+                              controller: _placeholderObsController,
+                              enabled: !_isSubmitting,
+                              maxLength: 80,
+                              validator: AppValidators.validatePlaceholder,
+                              decoration: InputDecoration(
+                                hintText: 'Ej. Término medio, sin cebolla, salsa aparte...',
+                                prefixIcon: const Icon(Icons.help_outline_rounded,
+                                    size: 20, color: Color(0xFF2C5E94)),
+                                helperText: 'Guía visible para el comensal al preordenar este platillo.',
+                                helperStyle: const TextStyle(fontSize: 11),
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFFB8D0E8)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFFB8D0E8)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(
+                                      color: Color(0xFF1E5288), width: 1.8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+
+                            // Límite máximo de caracteres
+                            const Text(
+                              'Límite de caracteres para la nota',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF0F3660),
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            const Text(
+                              'Longitud máxima de la nota del cliente (150 caracteres por defecto).',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Color(0xFF5A738E),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Wrap(
+                              key: const ValueKey('wrap_limite_caracteres'),
+                              spacing: 8,
+                              runSpacing: 6,
+                              children: [80, 100, 150, 200, 250].map((limite) {
+                                final seleccionado = _limiteCaracteresObs == limite;
+                                return ChoiceChip(
+                                  key: ValueKey('chip_limite_$limite'),
+                                  label: Text('$limite car.'),
+                                  selected: seleccionado,
+                                  onSelected: _isSubmitting
+                                      ? null
+                                      : (sel) {
+                                          if (sel) {
+                                            setState(() {
+                                              _limiteCaracteresObs = limite;
+                                            });
+                                          }
+                                        },
+                                  selectedColor: const Color(0xFFD3E3F2),
+                                  labelStyle: TextStyle(
+                                    fontSize: 11.5,
+                                    fontWeight: seleccionado
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
+                                    color: seleccionado
+                                        ? const Color(0xFF0F3660)
+                                        : PlatilloFormDialog._textDark,
+                                  ),
+                                );
+                              }).toList(),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const Divider(height: 1, color: PlatilloFormDialog._cardBorder),
+
+                  // Botones Cancelar y Guardar (fijos al pie)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+                    child: Row(
                       children: [
                         Expanded(
                           child: OutlinedButton(
@@ -788,8 +951,8 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),
