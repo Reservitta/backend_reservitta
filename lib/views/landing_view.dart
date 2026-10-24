@@ -147,39 +147,44 @@ class _LandingViewState extends State<LandingView> {
           ),
           body: RefreshIndicator(
             onRefresh: _viewModel.refresh,
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                // 1. Hero Banner y Buscador
-                SliverToBoxAdapter(
-                  child: _buildHeroSection(theme),
-                ),
-
-                // 2. Filtros de Ubicación y Servicios
-                SliverToBoxAdapter(
-                  child: _buildFiltersBar(theme),
-                ),
-
-                // 3. Barra de Filtros Activos
-                if (_viewModel.hasActiveFilters)
-                  SliverToBoxAdapter(
-                    child: _buildActiveFiltersBar(theme),
-                  ),
-
-                // 4. Lista o Grid de Restaurantes
-                _buildRestaurantsContent(theme),
-
-                // 5. Indicador de carga de más elementos al final
-                if (_viewModel.isLoadingMore)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1080),
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    // 1. Hero Banner y Buscador
+                    SliverToBoxAdapter(
+                      child: _buildHeroSection(theme),
                     ),
-                  ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-              ],
+                    // 2. Filtros de Ubicación y Servicios
+                    SliverToBoxAdapter(
+                      child: _buildFiltersBar(theme),
+                    ),
+
+                    // 3. Barra de Filtros Activos
+                    if (_viewModel.hasActiveFilters)
+                      SliverToBoxAdapter(
+                        child: _buildActiveFiltersBar(theme),
+                      ),
+
+                    // 4. Lista o Grid de Restaurantes
+                    _buildRestaurantsContent(theme),
+
+                    // 5. Indicador de carga de más elementos al final
+                    if (_viewModel.isLoadingMore)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -580,11 +585,20 @@ class _LandingViewState extends State<LandingView> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       sliver: SliverLayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.crossAxisExtent > 700;
+          final width = constraints.crossAxisExtent;
+          final int crossAxisCount;
+          if (width > 800) {
+            crossAxisCount = 3;
+          } else if (width > 500) {
+            crossAxisCount = 2;
+          } else {
+            crossAxisCount = 1;
+          }
+
           return SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isWide ? 2 : 1,
-              mainAxisExtent: 320,
+              crossAxisCount: crossAxisCount,
+              mainAxisExtent: 270,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
             ),
@@ -604,22 +618,6 @@ class _LandingViewState extends State<LandingView> {
                         builder: (_) => RestaurantDetailView(restaurant: restaurant),
                       ),
                     );
-                  },
-                  onReservar: () {
-                    // Criterio 3: Redirige a login si no tiene cuenta
-                    final canProceed = _viewModel.requireAuthForAction(
-                      context,
-                      actionName: 'reservar mesa',
-                      restaurantName: restaurant.nombre,
-                    );
-                    if (canProceed) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RestaurantDetailView(restaurant: restaurant),
-                        ),
-                      );
-                    }
                   },
                 );
               },
@@ -717,13 +715,11 @@ class _RestaurantCard extends StatelessWidget {
   final RestaurantModel restaurant;
   final String? distanceFormatted;
   final VoidCallback onTap;
-  final VoidCallback onReservar;
 
   const _RestaurantCard({
     required this.restaurant,
     this.distanceFormatted,
     required this.onTap,
-    required this.onReservar,
   });
 
   @override
@@ -850,31 +846,23 @@ class _RestaurantCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // Botones de acción
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          key: ValueKey('boton_ver_detalle_${restaurant.id}'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onPressed: onTap,
-                          child: const Text('Ver Detalle'),
+                  // Botón de acción: sólo Ver Detalle
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      key: ValueKey('boton_ver_detalle_${restaurant.id}'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton(
-                          key: ValueKey('boton_reservar_${restaurant.id}'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onPressed: onReservar,
-                          child: const Text('Reservar'),
-                        ),
+                      onPressed: onTap,
+                      child: const Text(
+                        'Ver Detalle',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
