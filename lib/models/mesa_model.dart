@@ -2,6 +2,16 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Modelo inmutable de Mesa para gestión de capacidad y asignación (HU04-RF01 Criterio 1)
 class MesaModel {
+  // Formas del plano (HU10-RF01 Criterio 1)
+  static const String formaRedonda = 'redonda';
+  static const String formaCuadrada = 'cuadrada';
+  static const String formaRectangular = 'rectangular';
+  static const List<String> formasValidas = [
+    formaRedonda,
+    formaCuadrada,
+    formaRectangular,
+  ];
+
   final String id;
   final String nombre;
   final int capacidad;
@@ -29,6 +39,18 @@ class MesaModel {
     this.alto = 100.0,
     this.estadoManual,
   });
+
+  /// Tiene coordenadas para dibujarse en el plano (HU10-RF01 Criterio 1).
+  bool get tienePosicion => x != null && y != null;
+
+  /// La forma es una de las admitidas por el plano.
+  bool get tieneFormaValida => formasValidas.contains(forma);
+
+  /// Dos mesas pueden unirse si ambas son combinables y alguna declara a la otra.
+  bool puedeCombinarCon(MesaModel otra) {
+    if (id == otra.id || !combinable || !otra.combinable) return false;
+    return combinableCon.contains(otra.id) || otra.combinableCon.contains(id);
+  }
 
   factory MesaModel.fromFirestore(
     DocumentSnapshot<Map<String, dynamic>> doc,
