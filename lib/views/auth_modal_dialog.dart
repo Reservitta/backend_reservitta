@@ -224,6 +224,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                   final navigator = Navigator.of(context);
                   final success = await _viewModel.login();
                   if (success && mounted) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
                     navigator.pop();
                   }
                 },
@@ -525,6 +526,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                   final navigator = Navigator.of(context);
                   final success = await _viewModel.register();
                   if (success && mounted) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
                     navigator.pop();
                   }
                 },
