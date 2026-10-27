@@ -1045,7 +1045,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildQuickAccessChips() {
-    final now = DateTime.now();
+    final now = _viewModel.currentClockTime;
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
 
