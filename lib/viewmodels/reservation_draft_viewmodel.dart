@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/branch_model.dart';
+import '../models/mesa_model.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
+import '../repositories/table_repository.dart';
+import '../services/availability_service.dart';
 import '../services/restaurant_service.dart';
 import '../utils/schedule_utils.dart';
 
@@ -10,11 +13,13 @@ import '../utils/schedule_utils.dart';
 class ReservationDraftViewModel extends ChangeNotifier {
   final RestaurantModel restaurant;
   final RestaurantService? restaurantService;
+  final TableRepository? tableRepository;
   final DateTime Function() _clock;
   final int maxAnticipacionDias;
 
   ReservationDraftModel _draft;
-  int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas
+  int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas, 4: Mesa, 5: Horario
+  int? _maxFromTables; // Mayor grupo que las mesas reales pueden sentar
   List<BranchModel> _branches = [];
   bool _isLoadingBranches = false;
   String? _errorMessage;
@@ -35,6 +40,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   ReservationDraftViewModel({
     required this.restaurant,
     this.restaurantService,
+    this.tableRepository,
     DateTime Function()? clock,
     this.maxAnticipacionDias = 60,
   })  : _clock = clock ?? DateTime.now,
@@ -44,6 +50,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
           personas: 2,
         ) {
     _initBranches();
+    _initTables();
   }
 
   // Getters
@@ -55,6 +62,8 @@ class ReservationDraftViewModel extends ChangeNotifier {
 
   /// Capacidad máxima permitida para el grupo (HU09-RF01)
   int get maxPartySize {
+    final desdeMesas = _maxFromTables;
+    if (desdeMesas != null && desdeMesas > 0) return desdeMesas;
     if (restaurant.capacidadTotal > 0) {
       return restaurant.capacidadTotal;
     }
@@ -120,6 +129,24 @@ class ReservationDraftViewModel extends ChangeNotifier {
         esPrincipal: false,
       ),
     ];
+  }
+
+  /// Calcula el máximo de personas con las mesas registradas del restaurante.
+  Future<void> _initTables() async {
+    final repo = tableRepository;
+    if (repo == null) return;
+    try {
+      final mesas = await repo.getMesas(restaurant.id);
+      if (mesas.isEmpty) return;
+      _maxFromTables = AvailabilityService.maxGroupSize(mesas);
+      if (_draft.personas > _maxFromTables!) {
+        _draft = _draft.copyWith(personas: _maxFromTables);
+        _invalidateTableSelection();
+      }
+      notifyListeners();
+    } catch (_) {
+      // Sin acceso a las mesas se conserva el máximo por capacidad del restaurante.
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -199,6 +226,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
     }
 
     _draft = _draft.copyWith(fecha: () => target);
+    _invalidateTableSelection();
     notifyListeners();
   }
 
@@ -213,6 +241,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
       return;
     }
     _draft = _draft.copyWith(duracionMin: minutes);
+    _invalidateTableSelection();
     notifyListeners();
   }
 
@@ -227,12 +256,14 @@ class ReservationDraftViewModel extends ChangeNotifier {
       return;
     }
     _draft = _draft.copyWith(personas: count);
+    _invalidateTableSelection();
     notifyListeners();
   }
 
   void incrementPartySize() {
     if (_draft.personas < maxPartySize) {
       _draft = _draft.copyWith(personas: _draft.personas + 1);
+      _invalidateTableSelection();
       notifyListeners();
     }
   }
@@ -240,12 +271,59 @@ class ReservationDraftViewModel extends ChangeNotifier {
   void decrementPartySize() {
     if (_draft.personas > minPartySize) {
       _draft = _draft.copyWith(personas: _draft.personas - 1);
+      _invalidateTableSelection();
       notifyListeners();
     }
   }
 
   bool get canContinueFromPeople =>
       _draft.personas >= minPartySize && _draft.personas <= maxPartySize;
+
+  // ---------------------------------------------------------------------------
+  // HU10-RF03 / HU10-RF04: mesa o combinación elegida (Paso 4)
+  // ---------------------------------------------------------------------------
+
+  /// Guarda en el borrador la mesa o combinación elegida. Cambiar de mesa
+  /// invalida el horario, porque los horarios libres dependen de las mesas.
+  void setSelectedTables(List<MesaModel> mesas) {
+    _draft = _draft.copyWith(
+      mesaIds: mesas.map((m) => m.id).toList(),
+      mesasNombres: mesas.map((m) => m.nombre).toList(),
+      horario: () => null,
+    );
+    notifyListeners();
+  }
+
+  bool get canContinueFromTables => _draft.mesaIds.isNotEmpty;
+
+  // ---------------------------------------------------------------------------
+  // HU11-RF02: horario elegido (Paso 5)
+  // ---------------------------------------------------------------------------
+
+  /// Guarda en el borrador la hora de inicio del [slot] elegido.
+  void selectTime(TimeSlot slot) {
+    _draft = _draft.copyWith(
+      horario: () => TimeOfDay(hour: slot.inicio.hour, minute: slot.inicio.minute),
+    );
+    notifyListeners();
+  }
+
+  void clearTime() {
+    _draft = _draft.copyWith(horario: () => null);
+    notifyListeners();
+  }
+
+  bool get canContinueFromTime => _draft.horario != null;
+
+  /// Fecha, duración o personas cambiaron: la mesa y el horario elegidos ya no valen.
+  void _invalidateTableSelection() {
+    if (_draft.mesaIds.isEmpty && _draft.horario == null) return;
+    _draft = _draft.copyWith(
+      mesaIds: const [],
+      mesasNombres: const [],
+      horario: () => null,
+    );
+  }
 
   // ---------------------------------------------------------------------------
   // Navegación de pasos y retención / descarte del borrador (HU07-RF01)
@@ -260,13 +338,17 @@ class ReservationDraftViewModel extends ChangeNotifier {
         return canContinueFromDuration;
       case 3:
         return canContinueFromPeople;
+      case 4:
+        return canContinueFromTables;
+      case 5:
+        return canContinueFromTime;
       default:
         return false;
     }
   }
 
   void nextStep() {
-    if (canAdvanceCurrentStep && _currentStep < 3) {
+    if (canAdvanceCurrentStep && _currentStep < 5) {
       _currentStep++;
       notifyListeners();
     }
@@ -282,7 +364,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   void goToStep(int step) {
-    if (step >= 0 && step <= 3) {
+    if (step >= 0 && step <= 5) {
       _currentStep = step;
       notifyListeners();
     }

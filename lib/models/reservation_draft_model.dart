@@ -68,6 +68,29 @@ class ReservationDraftModel {
   bool get hasDate => fecha != null;
   bool get hasDuration => duracionMin >= 30;
   bool get hasPeople => personas >= 1;
+  bool get hasTables => mesaIds.isNotEmpty;
+  bool get hasTime => horario != null;
+
+  /// Inicio de la visita: fecha elegida más hora de inicio (HU11-RF02).
+  DateTime? get inicio {
+    if (fecha == null || horario == null) return null;
+    return DateTime(
+        fecha!.year, fecha!.month, fecha!.day, horario!.hour, horario!.minute);
+  }
+
+  /// Fin de la visita: inicio más duración.
+  DateTime? get fin => inicio?.add(Duration(minutes: duracionMin));
+
+  String _hhmm(DateTime d) =>
+      '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+  /// Rango legible del horario elegido (ej. "14:00 – 15:30").
+  String get formattedTimeRange {
+    final i = inicio;
+    final f = fin;
+    if (i == null || f == null) return '';
+    return '${_hhmm(i)} – ${_hhmm(f)}';
+  }
 
   /// Formato legible para pantalla de la fecha elegida (ej. "S, 31 de Octubre")
   String get formattedDate {

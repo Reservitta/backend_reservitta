@@ -308,6 +308,39 @@ class AvailabilityService {
   /// Número máximo de mesas que se unen en una combinación.
   static const int maxMesasPorCombinacion = 4;
 
+  /// Mayor grupo que se puede sentar: la mesa más grande o el mayor conjunto de
+  /// mesas combinables enlazadas (hasta [maxMesasPorCombinacion] mesas). Es una
+  /// cota superior: no considera reservaciones.
+  static int maxGroupSize(List<MesaModel> mesas) {
+    var mejor = 0;
+    for (final m in mesas) {
+      if (m.capacidad > mejor) mejor = m.capacidad;
+    }
+
+    final visitadas = <String>{};
+    for (final inicio in mesas.where((m) => m.combinable)) {
+      if (visitadas.contains(inicio.id)) continue;
+      final componente = <MesaModel>[inicio];
+      visitadas.add(inicio.id);
+      for (var i = 0; i < componente.length; i++) {
+        for (final otra in mesas) {
+          if (!visitadas.contains(otra.id) &&
+              componente[i].puedeCombinarCon(otra)) {
+            visitadas.add(otra.id);
+            componente.add(otra);
+          }
+        }
+      }
+      final capacidades = componente.map((m) => m.capacidad).toList()
+        ..sort((a, b) => b.compareTo(a));
+      final suma = capacidades
+          .take(maxMesasPorCombinacion)
+          .fold<int>(0, (acc, c) => acc + c);
+      if (suma > mejor) mejor = suma;
+    }
+    return mejor;
+  }
+
   /// Máximo de combinaciones que se devuelven.
   static const int maxCombinaciones = 10;
 
@@ -360,8 +393,9 @@ class AvailabilityService {
   /// Solo se devuelven combinaciones mínimas: ninguna mesa sobra para cubrir al grupo.
   List<TableCombination> _findCombinations(
     List<MesaModel> libres,
-    int personas,
-  ) {
+    int personas, {
+    bool Function(List<MesaModel> grupo)? isViable,
+  }) {
     final candidatas = libres.where((m) => m.combinable).toList()
       ..sort((a, b) => a.id.compareTo(b.id));
     final encontradas = <TableCombination>[];
@@ -370,7 +404,9 @@ class AvailabilityService {
     void explorar(List<MesaModel> actual, int desde) {
       final capacidad = actual.fold<int>(0, (acc, m) => acc + m.capacidad);
       if (actual.length >= 2 && capacidad >= personas) {
-        if (_esConexa(actual) && _esMinima(actual, personas)) {
+        if (_esConexa(actual) &&
+            _esMinima(actual, personas) &&
+            (isViable == null || isViable(actual))) {
           final key = (actual.map((m) => m.id).toList()..sort()).join('|');
           if (vistas.add(key)) {
             encontradas.add(
@@ -459,6 +495,228 @@ class AvailabilityService {
                 : (disponibilidad.mesasBloqueadasIds.contains(m.id)
                       ? MesaEstado.ocupada
                       : MesaEstado.disponible),
+          ),
+      ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // HU11-RF01: horarios disponibles para la mesa (o combinación) elegida
+  // ---------------------------------------------------------------------------
+
+  /// Horarios de inicio disponibles en [fecha] para [mesaIds] con [duracionMin].
+  ///
+  /// Genera inicios cada [intervaloMin] minutos dentro del horario de atención,
+  /// solo si la reserva termina antes del cierre; descarta los que se traslapan
+  /// con otra reserva activa de alguna de las mesas y, hoy, los que ya pasaron.
+  /// Sin horarios devuelve una lista vacía.
+  Future<List<TimeSlot>> getAvailableTimeSlots({
+    required RestaurantModel restaurant,
+    required DateTime fecha,
+    required int duracionMin,
+    required List<String> mesaIds,
+    int intervaloMin = 30,
+  }) async {
+    final reservations = await _reservationsAround(restaurant.id, fecha);
+    return _slotsFor(
+      restaurant: restaurant,
+      fecha: fecha,
+      duracionMin: duracionMin,
+      mesaIds: mesaIds.toSet(),
+      intervaloMin: intervaloMin,
+      reservations: reservations,
+    );
+  }
+
+  List<TimeSlot> _slotsFor({
+    required RestaurantModel restaurant,
+    required DateTime fecha,
+    required int duracionMin,
+    required Set<String> mesaIds,
+    required int intervaloMin,
+    required List<ReservationModel> reservations,
+  }) {
+    if (!validateDate(restaurant: restaurant, fecha: fecha).isValid) {
+      return const [];
+    }
+
+    final schedule = _scheduleFor(
+      restaurant,
+      ScheduleUtils.dayOfWeekToName(fecha.weekday),
+    );
+    if (schedule == null || !schedule.abierto) return const [];
+
+    final apertura = ScheduleUtils.parseTimeToMinutes(schedule.apertura);
+    final cierre = ScheduleUtils.parseTimeToMinutes(schedule.cierre);
+    if (apertura == null || cierre == null) return const [];
+
+    final duracion = duracionMin > 0 ? duracionMin : 90;
+    final paso = intervaloMin > 0 ? intervaloMin : 30;
+    final cierreAbsoluto = (apertura == 0 && cierre == 0)
+        ? 1440
+        : (cierre < apertura ? cierre + 1440 : cierre);
+
+    final ahora = _now();
+    final relevantes = mesaIds.isEmpty
+        ? const <ReservationModel>[]
+        : reservations.where((r) => r.mesaIds.any(mesaIds.contains)).toList();
+
+    final slots = <TimeSlot>[];
+    for (var m = apertura; m + duracion <= cierreAbsoluto; m += paso) {
+      final inicio = DateTime(
+        fecha.year,
+        fecha.month,
+        fecha.day,
+        m ~/ 60,
+        m % 60,
+      );
+      if (inicio.isBefore(ahora)) continue;
+
+      final fin = inicio.add(Duration(minutes: duracion));
+      final ocupado = relevantes.any(
+        (r) => intervalsOverlap(
+          inicio,
+          fin,
+          r.effectiveStart,
+          r.effectiveEnd.add(Duration(minutes: margenLimpiezaMin)),
+        ),
+      );
+      if (!ocupado) slots.add(TimeSlot(inicio: inicio, fin: fin));
+    }
+    return slots;
+  }
+
+  /// Reservaciones activas del día anterior, del día y del siguiente: las
+  /// reservas nocturnas cruzan la medianoche.
+  Future<List<ReservationModel>> _reservationsAround(
+    String restauranteId,
+    DateTime fecha,
+  ) async {
+    final dia = DateTime(fecha.year, fecha.month, fecha.day);
+    final fechas = {
+      ScheduleUtils.formatDateLocal(dia.subtract(const Duration(days: 1))),
+      ScheduleUtils.formatDateLocal(dia),
+      ScheduleUtils.formatDateLocal(dia.add(const Duration(days: 1))),
+    };
+    final vistos = <String>{};
+    final result = <ReservationModel>[];
+    for (final f in fechas) {
+      final delDia = await _reservations
+          .getActiveReservationsByRestaurantAndDate(
+            restauranteId: restauranteId,
+            fechaLocal: f,
+          );
+      for (final r in delDia) {
+        if (r.id.isEmpty || vistos.add(r.id)) result.add(r);
+      }
+    }
+    return result;
+  }
+
+  /// Mesas que cubren a [personas] y tienen al menos un horario libre en [fecha]
+  /// (HU09-RF02 a nivel de día, antes de elegir la hora). Si ninguna alcanza,
+  /// devuelve combinaciones cuyas mesas comparten algún horario libre.
+  Future<TableSuggestionResult> findSuitableTablesForDate({
+    required RestaurantModel restaurant,
+    required DateTime fecha,
+    required int personas,
+    int duracionMin = 90,
+    int intervaloMin = 30,
+  }) async {
+    final validation = validateDate(restaurant: restaurant, fecha: fecha);
+    if (!validation.isValid) {
+      return TableSuggestionResult(reason: validation.reason);
+    }
+
+    final mesas = await _loadMesas(restaurant);
+    final reservations = await _reservationsAround(restaurant.id, fecha);
+    bool hasSlot(Iterable<MesaModel> grupo) => _slotsFor(
+      restaurant: restaurant,
+      fecha: fecha,
+      duracionMin: duracionMin,
+      mesaIds: grupo.map((m) => m.id).toSet(),
+      intervaloMin: intervaloMin,
+      reservations: reservations,
+    ).isNotEmpty;
+
+    final libres = mesas.where((m) => hasSlot([m])).toList();
+    final individuales =
+        libres
+            .where((m) => m.capacidad >= personas)
+            .map((m) => TableOption(mesa: m, personas: personas))
+            .toList()
+          ..sort((a, b) {
+            final byHolgura = a.holgura.compareTo(b.holgura);
+            return byHolgura != 0
+                ? byHolgura
+                : a.mesa.nombre.compareTo(b.mesa.nombre);
+          });
+    if (individuales.isNotEmpty) {
+      return TableSuggestionResult(mesas: individuales);
+    }
+
+    final combinaciones = _findCombinations(
+      libres,
+      personas,
+      isViable: hasSlot,
+    );
+    return TableSuggestionResult(
+      reason: combinaciones.isEmpty
+          ? AvailabilityFailure.sinDisponibilidad
+          : null,
+      combinaciones: combinaciones,
+    );
+  }
+
+  /// Plano con el estado de cada mesa a nivel de día: disponible si tiene al menos
+  /// un horario libre en [fecha] con [duracionMin]; ocupada si no le queda ninguno.
+  Future<FloorPlanResult> getFloorPlanForDate({
+    required RestaurantModel restaurant,
+    required DateTime fecha,
+    int duracionMin = 90,
+    int intervaloMin = 30,
+  }) async {
+    final todas = await _loadMesas(restaurant);
+    if (todas.isEmpty) return const FloorPlanResult.sinPlano();
+
+    // Sin plano configurado se devuelven todas las mesas para mostrarlas en lista.
+    final conPosicion = todas.where((m) => m.tienePosicion).toList();
+    final configurado = conPosicion.isNotEmpty;
+    final mesas = configurado ? conPosicion : todas;
+
+    final zonas = await _loadZonas(restaurant.id);
+    final validation = validateDate(restaurant: restaurant, fecha: fecha);
+    if (!validation.isValid) {
+      return FloorPlanResult(
+        configurado: configurado,
+        zonas: zonas,
+        reason: validation.reason,
+        mesas: [
+          for (final m in mesas)
+            PlanoMesa(mesa: m, estado: MesaEstado.noDisponible),
+        ],
+      );
+    }
+
+    final reservations = await _reservationsAround(restaurant.id, fecha);
+    return FloorPlanResult(
+      configurado: configurado,
+      zonas: zonas,
+      mesas: [
+        for (final m in mesas)
+          PlanoMesa(
+            mesa: m,
+            estado:
+                _slotsFor(
+                  restaurant: restaurant,
+                  fecha: fecha,
+                  duracionMin: duracionMin,
+                  mesaIds: {m.id},
+                  intervaloMin: intervaloMin,
+                  reservations: reservations,
+                ).isEmpty
+                ? MesaEstado.ocupada
+                : MesaEstado.disponible,
           ),
       ],
     );

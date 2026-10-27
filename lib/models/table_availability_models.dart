@@ -17,6 +17,21 @@ enum AvailabilityFailure {
   sinDisponibilidad,
 }
 
+/// Horario de inicio disponible con su hora de fin (HU11-RF01).
+class TimeSlot {
+  final DateTime inicio;
+  final DateTime fin;
+
+  const TimeSlot({required this.inicio, required this.fin});
+
+  @override
+  bool operator ==(Object other) =>
+      other is TimeSlot && other.inicio == inicio && other.fin == fin;
+
+  @override
+  int get hashCode => Object.hash(inicio, fin);
+}
+
 /// Una mesa libre cuya capacidad cubre al grupo (HU09-RF02 Criterios 2 y 5).
 class TableOption {
   final MesaModel mesa;
