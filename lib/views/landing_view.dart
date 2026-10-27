@@ -375,6 +375,60 @@ class _LandingViewState extends State<LandingView> {
           ),
           const SizedBox(width: 8),
 
+          // Control de filtro de cantidad de personas (HU04-RF02 Criterios 1, 2, 3)
+          ActionChip(
+            key: const ValueKey('boton_filtro_cantidad_personas'),
+            elevation: _viewModel.isGuestCountFilterActive ? 2 : 0,
+            shadowColor: theme.colorScheme.primary.withAlpha(90),
+            avatar: Icon(
+              _viewModel.isGuestCountFilterActive
+                  ? Icons.group
+                  : Icons.group_outlined,
+              size: 18,
+              color: _viewModel.isGuestCountFilterActive
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.primary,
+            ),
+            side: BorderSide(
+              color: _viewModel.isGuestCountFilterActive
+                  ? Colors.transparent
+                  : theme.colorScheme.primary.withAlpha(120),
+              width: 1.2,
+            ),
+            backgroundColor: _viewModel.isGuestCountFilterActive
+                ? theme.colorScheme.primary
+                : theme.colorScheme.primaryContainer.withAlpha(70),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _viewModel.isGuestCountFilterActive
+                      ? _viewModel.selectedGuestCountFormatted!
+                      : 'Personas',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _viewModel.isGuestCountFilterActive
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                if (_viewModel.isGuestCountFilterActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Colors.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            onPressed: _openGuestCountPicker,
+          ),
+          const SizedBox(width: 8),
+
           // Chips de servicios disponibles
           ..._viewModel.availableServices.map((s) {
             final isSelected = _viewModel.selectedServiceId == s.id;
@@ -435,6 +489,16 @@ class _LandingViewState extends State<LandingView> {
               deleteButtonTooltipMessage: 'Quitar filtro de fecha y hora',
               label: Text(_viewModel.selectedDateTimeFormatted!),
               onDeleted: () => _viewModel.clearDateTimeFilter(),
+            ),
+
+          // Chip de Cantidad de personas activa con opción para quitar (HU04-RF02 Criterios 3 y 4)
+          if (_viewModel.isGuestCountFilterActive)
+            Chip(
+              key: const ValueKey('chip_filtro_cantidad_personas_activo'),
+              avatar: const Icon(Icons.group, size: 16),
+              deleteButtonTooltipMessage: 'Quitar filtro de cantidad de personas',
+              label: Text(_viewModel.selectedGuestCountFormatted!),
+              onDeleted: () => _viewModel.clearGuestCountFilter(),
             ),
 
           if (_viewModel.selectedServiceId != null)
@@ -573,6 +637,17 @@ class _LandingViewState extends State<LandingView> {
                     onPressed: () => _viewModel.clearDateTimeFilter(),
                   ),
                 ],
+
+                // HU04-RF02 Criterio 4: Opción directa de quitar filtro de personas
+                if (_viewModel.isGuestCountFilterActive) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('boton_quitar_filtro_personas_vacio'),
+                    icon: const Icon(Icons.group_remove),
+                    label: const Text('Quitar filtro de personas'),
+                    onPressed: () => _viewModel.clearGuestCountFilter(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -707,6 +782,150 @@ class _LandingViewState extends State<LandingView> {
         duration: const Duration(seconds: 3),
       ),
     );
+  }
+
+  /// HU04-RF02: Selector numérico (stepper) de cantidad de personas (Criterios 1, 2, 3 y 4)
+  Future<void> _openGuestCountPicker() async {
+    int tempCount = _viewModel.selectedGuestCount ?? 2;
+    const minGuests = PublicCatalogViewModel.minGuestCount;
+    const maxGuests = PublicCatalogViewModel.maxGuestCount;
+
+    final selected = await showDialog<int?>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              key: const ValueKey('dialogo_selector_cantidad_personas'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Icon(Icons.people_alt_outlined, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Cantidad de personas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Selecciona el número de personas para filtrar restaurantes con capacidad disponible:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withAlpha(100),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton.filledTonal(
+                          key: const ValueKey('boton_decrementar_personas'),
+                          icon: const Icon(Icons.remove),
+                          onPressed: tempCount > minGuests
+                              ? () => setModalState(() => tempCount--)
+                              : null,
+                          tooltip: 'Disminuir personas',
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$tempCount',
+                              key: const ValueKey('texto_conteo_personas'),
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            Text(
+                              tempCount == 1 ? 'persona' : 'personas',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton.filledTonal(
+                          key: const ValueKey('boton_incrementar_personas'),
+                          icon: const Icon(Icons.add),
+                          onPressed: tempCount < maxGuests
+                              ? () => setModalState(() => tempCount++)
+                              : null,
+                          tooltip: 'Aumentar personas',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Mínimo $minGuests y máximo $maxGuests personas.',
+                    style: TextStyle(fontSize: 12, color: theme.colorScheme.outline),
+                  ),
+                ],
+              ),
+              actions: [
+                if (_viewModel.isGuestCountFilterActive)
+                  TextButton(
+                    key: const ValueKey('boton_quitar_filtro_personas_dialogo'),
+                    onPressed: () {
+                      Navigator.pop(dialogCtx, 0); // 0 indica quitar filtro
+                    },
+                    child: const Text('Quitar filtro', style: TextStyle(color: Colors.redAccent)),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, null),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  key: const ValueKey('boton_aplicar_filtro_personas'),
+                  onPressed: () => Navigator.pop(dialogCtx, tempCount),
+                  child: const Text('Aplicar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+
+    if (selected == 0) {
+      _viewModel.clearGuestCountFilter();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Filtro de cantidad de personas eliminado'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } else {
+      final success = _viewModel.setGuestCountFilter(selected);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Filtro aplicado: $selected ${selected == 1 ? 'persona' : 'personas'}',
+            ),
+            action: SnackBarAction(
+              label: 'Deshacer',
+              onPressed: () => _viewModel.clearGuestCountFilter(),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
 

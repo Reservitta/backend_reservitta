@@ -60,6 +60,9 @@ class ReservationDraftViewModel extends ChangeNotifier {
   bool get isLoadingBranches => _isLoadingBranches;
   String? get errorMessage => _errorMessage;
 
+  /// Fecha y hora actual según el reloj inyectado o del sistema
+  DateTime get currentClockTime => _clock();
+
   /// Capacidad máxima permitida para el grupo (HU09-RF01)
   int get maxPartySize {
     final desdeMesas = _maxFromTables;
