@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/branch_model.dart';
 import '../models/restaurant_model.dart';
+import '../services/availability_service.dart';
+import '../services/reservation_service.dart';
 import '../services/restaurant_service.dart';
+import '../services/table_service.dart';
 import '../viewmodels/reservation_draft_viewmodel.dart';
+import 'widgets/table_selection_step.dart';
+import 'widgets/time_slot_step.dart';
 
 /// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01).
 /// Implementa los pasos 1 al 3: Sucursal, Fecha, Duración y Personas.
@@ -11,11 +16,15 @@ class ReservationFlowView extends StatefulWidget {
   final RestaurantService? restaurantService;
   final ReservationDraftViewModel? viewModel;
 
+  /// Motor de disponibilidad para los pasos de mesa y horario (HU09 a HU11).
+  final AvailabilityService? availabilityService;
+
   const ReservationFlowView({
     super.key,
     required this.restaurant,
     this.restaurantService,
     this.viewModel,
+    this.availabilityService,
   });
 
   @override
@@ -25,6 +34,12 @@ class ReservationFlowView extends StatefulWidget {
 class _ReservationFlowViewState extends State<ReservationFlowView> {
   late final ReservationDraftViewModel _viewModel;
   late final bool _isExternalViewModel;
+
+  AvailabilityService? _availability;
+
+  AvailabilityService get _availabilityService => _availability ??=
+      widget.availabilityService ??
+      AvailabilityService(ReservationService(), tables: TableService());
 
   // Mes visible en el selector de calendario
   late DateTime _visibleMonth;
@@ -45,6 +60,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         ReservationDraftViewModel(
           restaurant: widget.restaurant,
           restaurantService: widget.restaurantService ?? RestaurantService(),
+          tableRepository: TableService(),
         );
 
     final now = DateTime.now();
@@ -154,7 +170,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                         ),
                       ),
                       Text(
-                        'Puntos 1 al 3 completados con éxito',
+                        'Pasos 1 al 5 completados con éxito',
                         style: TextStyle(fontSize: 13, color: mutedText),
                       ),
                     ],
@@ -201,12 +217,24 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     label: 'Cantidad',
                     value: '${draft.personas} personas',
                   ),
+                  const Divider(height: 18),
+                  _buildSummaryRow(
+                    icon: Icons.table_restaurant_outlined,
+                    label: draft.mesaIds.length > 1 ? 'Mesas' : 'Mesa',
+                    value: draft.mesasNombres.join(' + '),
+                  ),
+                  const Divider(height: 18),
+                  _buildSummaryRow(
+                    icon: Icons.schedule,
+                    label: 'Horario',
+                    value: draft.formattedTimeRange,
+                  ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             const Text(
-              'Nota: Los pasos 4 a 6 (Mesa, Horario y Datos) se integrarán en la siguiente etapa del flujo.',
+              'Nota: El paso 6 (Datos) se integrará en la siguiente etapa del flujo.',
               style: TextStyle(fontSize: 12, color: mutedText, fontStyle: FontStyle.italic),
             ),
             const SizedBox(height: 24),
@@ -487,9 +515,51 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         return _buildStep2DuracionSelection();
       case 3:
         return _buildStep3PersonasSelection();
+      case 4:
+        return _buildStep4MesaSelection();
+      case 5:
+        return _buildStep5HorarioSelection();
       default:
         return const SizedBox.shrink();
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // PASO 4: MESA (HU09-RF03, HU10-RF02/03/04) Y PASO 5: HORARIO (HU11-RF02)
+  // ---------------------------------------------------------------------------
+  Widget _buildStep4MesaSelection() {
+    final draft = _viewModel.draft;
+    return TableSelectionStep(
+      key: ValueKey(
+        'step_mesas_${draft.fecha}_${draft.duracionMin}_${draft.personas}',
+      ),
+      restaurant: widget.restaurant,
+      availability: _availabilityService,
+      fecha: draft.fecha!,
+      personas: draft.personas,
+      duracionMin: draft.duracionMin,
+      initialSelectedIds: draft.mesaIds,
+      onSelectionChanged: _viewModel.setSelectedTables,
+      onChangeStep: _viewModel.goToStep,
+    );
+  }
+
+  Widget _buildStep5HorarioSelection() {
+    final draft = _viewModel.draft;
+    return TimeSlotStep(
+      key: ValueKey(
+        'step_horario_${draft.fecha}_${draft.duracionMin}_${draft.mesaIds.join(',')}',
+      ),
+      restaurant: widget.restaurant,
+      availability: _availabilityService,
+      fecha: draft.fecha!,
+      duracionMin: draft.duracionMin,
+      mesaIds: draft.mesaIds,
+      mesasNombres: draft.mesasNombres,
+      initialInicio: draft.inicio,
+      onSelected: _viewModel.selectTime,
+      onChangeStep: _viewModel.goToStep,
+    );
   }
 
   // ---------------------------------------------------------------------------
@@ -1562,7 +1632,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       );
     }
 
-    // Pasos 1, 2 y 3: Botón Continuar / Ver mesas disponibles
+    // Pasos 1 a 5: Botón Continuar / Ver mesas disponibles
     final buttonText = step == 3 ? 'Ver mesas disponibles' : 'Continuar';
 
     return Container(
@@ -1592,10 +1662,10 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           ),
           onPressed: canAdvance
               ? () {
-                  if (step < 3) {
+                  if (step < 5) {
                     _viewModel.nextStep();
                   } else {
-                    // Fin del alcance de esta fase (puntos 1 a 3)
+                    // Fin del alcance de esta fase (pasos 1 a 5)
                     _mostrarResumenBorradorFinal();
                   }
                 }

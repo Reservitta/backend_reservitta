@@ -4,6 +4,9 @@ import 'package:reservitta/models/branch_model.dart';
 import 'package:reservitta/models/restaurant_model.dart';
 import 'package:reservitta/models/categoria_model.dart';
 import 'package:reservitta/models/platillo_model.dart';
+import 'package:reservitta/models/reservation_model.dart';
+import 'package:reservitta/repositories/reservation_repository.dart';
+import 'package:reservitta/services/availability_service.dart';
 import 'package:reservitta/services/categoria_service.dart';
 import 'package:reservitta/services/platillo_service.dart';
 import 'package:reservitta/viewmodels/reservation_draft_viewmodel.dart';
@@ -20,6 +23,18 @@ class _FakePlatilloService extends PlatilloService {
   @override
   Stream<List<PlatilloModel>> getPlatillosActivosStream(String restaurantId) =>
       Stream.value(const []);
+}
+
+class _NoReservations implements ReservationRepository {
+  @override
+  Future<List<ReservationModel>> getActiveReservationsByRestaurantAndDate({
+    required String restauranteId,
+    required String fechaLocal,
+  }) async =>
+      const [];
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 void main() {
@@ -446,6 +461,7 @@ void main() {
         home: ReservationFlowView(
           restaurant: testRestaurant,
           viewModel: vm,
+          availabilityService: AvailabilityService(_NoReservations()),
         ),
       ));
       await tester.pumpAndSettle();
@@ -477,13 +493,13 @@ void main() {
       expect(btnVerMesas, findsOneWidget);
       expect(find.text('Ver mesas disponibles'), findsOneWidget);
 
-      // Al pulsar "Ver mesas disponibles" abre el resumen del borrador
+      // Al pulsar "Ver mesas disponibles" avanza al paso de mesa
       await tester.tap(btnVerMesas);
       await tester.pumpAndSettle();
 
-      expect(find.text('¡Borrador guardado!'), findsOneWidget);
-      expect(find.text('Miel Aurum'), findsOneWidget);
-      expect(find.text('6 personas'), findsOneWidget);
+      expect(vm.currentStep, equals(4));
+      expect(find.text('Elige tu mesa'), findsOneWidget);
+      expect(vm.draft.personas, equals(6));
     });
   });
 }
