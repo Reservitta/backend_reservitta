@@ -567,7 +567,7 @@ void main() {
       expect(vm.draft.formattedTimeRange, '14:00 – 15:30');
     });
 
-    test('se puede avanzar hasta el paso 5 y no más', () {
+    test('se puede avanzar hasta el paso 6 (Resumen) y no mas', () {
       final vm = draft()..goToStep(4);
       vm.setSelectedTables([_mesas[3]]);
       vm.nextStep();
@@ -579,7 +579,9 @@ void main() {
         ),
       );
       vm.nextStep();
-      expect(vm.currentStep, 5);
+      expect(vm.currentStep, 6); // Paso 6: Resumen
+      vm.nextStep(); // No debe avanzar mas alla del paso 6
+      expect(vm.currentStep, 6);
     });
   });
 }

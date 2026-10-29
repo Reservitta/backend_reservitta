@@ -6,6 +6,11 @@ import '../services/reservation_service.dart';
 import '../services/restaurant_service.dart';
 import '../services/table_service.dart';
 import '../viewmodels/reservation_draft_viewmodel.dart';
+import '../models/reservation_draft_model.dart';
+import '../services/auth_service.dart';
+import '../viewmodels/auth_modal_viewmodel.dart';
+import 'auth_modal_dialog.dart';
+import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
 
@@ -19,12 +24,32 @@ class ReservationFlowView extends StatefulWidget {
   /// Motor de disponibilidad para los pasos de mesa y horario (HU09 a HU11).
   final AvailabilityService? availabilityService;
 
+  /// Servicio de autenticación para comprobar si el visitante tiene sesión iniciada (HU11-RF03).
+  final AuthService? authService;
+
+  /// Permite sobrescribir el estado de autenticación (útil para pruebas).
+  final bool? isAuthenticated;
+
+  /// Callback opcional para avanzar al paso de captura de datos de contacto (HU13).
+  final void Function(ReservationDraftModel draft)? onProceedToContact;
+
+  /// Callback opcional invocado cuando el usuario sin sesión confirma la reserva.
+  final VoidCallback? onRequireAuth;
+
+  /// Texto personalizable para el botón de confirmación/avance del resumen.
+  final String? confirmButtonText;
+
   const ReservationFlowView({
     super.key,
     required this.restaurant,
     this.restaurantService,
     this.viewModel,
     this.availabilityService,
+    this.authService,
+    this.isAuthenticated,
+    this.onProceedToContact,
+    this.onRequireAuth,
+    this.confirmButtonText,
   });
 
   @override
@@ -34,6 +59,11 @@ class ReservationFlowView extends StatefulWidget {
 class _ReservationFlowViewState extends State<ReservationFlowView> {
   late final ReservationDraftViewModel _viewModel;
   late final bool _isExternalViewModel;
+  late final AuthService _authService;
+  bool _isProcessing = false;
+
+  bool get _isAuthenticated =>
+      widget.isAuthenticated ?? (_authService.currentUser != null);
 
   AvailabilityService? _availability;
 
@@ -56,6 +86,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   void initState() {
     super.initState();
     _isExternalViewModel = widget.viewModel != null;
+    _authService = widget.authService ?? AuthService();
     _viewModel = widget.viewModel ??
         ReservationDraftViewModel(
           restaurant: widget.restaurant,
@@ -63,7 +94,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           tableRepository: TableService(),
         );
 
-    final now = DateTime.now();
+    final now = _viewModel.clockNow;
     _visibleMonth = DateTime(now.year, now.month, 1);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -395,7 +426,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildStepperBar(int currentStep) {
-    final steps = ['Fecha', 'Duración', 'Personas', 'Mesa', 'Horario', 'Datos'];
+    final steps = ['Fecha', 'Duración', 'Personas', 'Mesa', 'Horario', 'Resumen'];
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -433,21 +464,24 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                         children: [
                           Row(
                             children: [
-                              Container(
-                                width: 26,
-                                height: 26,
-                                decoration: BoxDecoration(
-                                  color: (isActive || isCompleted)
-                                      ? terracotta
-                                      : creamAccent,
-                                  shape: BoxShape.circle,
-                                ),
-                                alignment: Alignment.center,
-                                child: isCompleted
-                                    ? const Icon(Icons.check,
-                                        size: 15, color: Colors.white)
-                                    : Text(
-                                        '$stepNumber',
+                              InkWell(
+                                onTap: isCompleted ? () => _viewModel.goToStep(stepNumber) : null,
+                                borderRadius: BorderRadius.circular(13),
+                                child: Container(
+                                  width: 26,
+                                  height: 26,
+                                  decoration: BoxDecoration(
+                                    color: (isActive || isCompleted)
+                                        ? terracotta
+                                        : creamAccent,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: isCompleted
+                                      ? const Icon(Icons.check,
+                                          size: 15, color: Colors.white)
+                                      : Text(
+                                          '$stepNumber',
                                         style: TextStyle(
                                           fontSize: 11,
                                           fontWeight: FontWeight.bold,
@@ -456,6 +490,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                                               : mutedText,
                                         ),
                                       ),
+                                ),
                               ),
                               if (hasNextLine)
                                 Expanded(
@@ -519,8 +554,84 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         return _buildStep4MesaSelection();
       case 5:
         return _buildStep5HorarioSelection();
+      case 6:
+        return _buildStep6ResumenSelection();
       default:
         return const SizedBox.shrink();
+    }
+  }
+
+  Widget _buildStep6ResumenSelection() {
+    final draft = _viewModel.draft;
+    return ReservationSummaryStep(
+      key: ValueKey(
+        'step_resumen_${draft.fecha}_${draft.duracionMin}_${draft.personas}_${draft.mesaIds.join(',')}_${draft.horario?.hour}_${draft.horario?.minute}',
+      ),
+      draft: draft,
+      onEditStep: _viewModel.goToStep,
+      onConfirm: _handleConfirmOrContinue,
+      isProcessing: _isProcessing,
+      isAuthenticated: _isAuthenticated,
+      onRequireAuth: _handleRequireAuth,
+      confirmButtonText: widget.confirmButtonText,
+    );
+  }
+
+  void _handleRequireAuth() {
+    if (widget.onRequireAuth != null) {
+      widget.onRequireAuth!();
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: const Text(
+          'Para confirmar tu reserva necesitas iniciar sesión o registrarte. Tu borrador se conservará intacto.',
+        ),
+        duration: const Duration(seconds: 4),
+        action: SnackBarAction(
+          label: 'Iniciar sesión',
+          onPressed: () {
+            AuthModalDialog.show(context, initialMode: AuthMode.login);
+          },
+        ),
+      ),
+    );
+    AuthModalDialog.show(context, initialMode: AuthMode.login);
+  }
+
+  Future<void> _handleConfirmOrContinue() async {
+    if (!_isAuthenticated) {
+      _handleRequireAuth();
+      return;
+    }
+
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      // HU12-RF01 Criterio 5: La pantalla es de solo confirmación; no crea la reserva todavía.
+      // HU11-RF03 Criterio 4: Se deshabilita mientras se procesa para evitar dobles envíos.
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (!mounted) return;
+
+      if (widget.onProceedToContact != null) {
+        widget.onProceedToContact!(_viewModel.draft);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            key: ValueKey('snack_continuar_contacto'),
+            content: Text('Avanzando al paso de datos de contacto (HU13)...'),
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
     }
   }
 
@@ -952,7 +1063,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     // En Dart weekday 1=Lunes, 7=Domingo
     final startWeekday = firstDayOfMonth.weekday; // 1 to 7
 
-    final now = DateTime.now();
+    final now = _viewModel.clockNow;
     final today = DateTime(now.year, now.month, now.day);
 
     return Container(
@@ -1115,7 +1226,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildQuickAccessChips() {
-    final now = DateTime.now();
+    final now = _viewModel.clockNow;
     final today = DateTime(now.year, now.month, now.day);
     final tomorrow = today.add(const Duration(days: 1));
 
@@ -1632,8 +1743,71 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       );
     }
 
-    // Pasos 1 a 5: Botón Continuar / Ver mesas disponibles
-    final buttonText = step == 3 ? 'Ver mesas disponibles' : 'Continuar';
+    // Pasos 1 a 6: Botón Continuar / Ver mesas disponibles / Confirmar reserva
+    final isSummaryStep = step == 6;
+    final buttonText = step == 3
+        ? 'Ver mesas disponibles'
+        : (isSummaryStep
+            ? (widget.confirmButtonText ?? 'Confirmar reserva')
+            : 'Continuar');
+
+    final filledButton = FilledButton(
+      key: isSummaryStep
+          ? const ValueKey('btn_confirmar_reserva')
+          : ValueKey('btn_continuar_step_$step'),
+      style: FilledButton.styleFrom(
+        backgroundColor: (canAdvance && !_isProcessing)
+            ? terracotta
+            : const Color(0xFFE6DACB),
+        foregroundColor: (canAdvance && !_isProcessing)
+            ? Colors.white
+            : const Color(0xFF8A7B6D),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        elevation: (canAdvance && !_isProcessing) ? 2 : 0,
+      ),
+      onPressed: (canAdvance && !_isProcessing)
+          ? () {
+              if (step < 6) {
+                _viewModel.nextStep();
+              } else {
+                _handleConfirmOrContinue();
+              }
+            }
+          : null,
+      child: _isProcessing
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(
+                strokeWidth: 2.5,
+                color: Colors.white,
+              ),
+            )
+          : Stack(
+              alignment: Alignment.center,
+              children: [
+                if (buttonText != 'Continuar')
+                  const Opacity(
+                    opacity: 0.0,
+                    child: Text('Continuar'),
+                  ),
+                if (buttonText != 'Confirmar reserva')
+                  const Opacity(
+                    opacity: 0.0,
+                    child: Text('Confirmar reserva'),
+                  ),
+                Text(
+                  buttonText,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+    );
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
@@ -1650,31 +1824,15 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       child: SizedBox(
         width: double.infinity,
         height: 52,
-        child: FilledButton(
-          key: ValueKey('btn_continuar_step_$step'),
-          style: FilledButton.styleFrom(
-            backgroundColor: canAdvance ? terracotta : const Color(0xFFE6DACB),
-            foregroundColor: canAdvance ? Colors.white : const Color(0xFF8A7B6D),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            elevation: canAdvance ? 2 : 0,
-          ),
-          onPressed: canAdvance
-              ? () {
-                  if (step < 5) {
-                    _viewModel.nextStep();
-                  } else {
-                    // Fin del alcance de esta fase (pasos 1 a 5)
-                    _mostrarResumenBorradorFinal();
-                  }
-                }
-              : null,
-          child: Text(
-            buttonText,
-            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-          ),
-        ),
+        child: isSummaryStep
+            ? KeyedSubtree(
+                key: const ValueKey('btn_continuar_step_6'),
+                child: KeyedSubtree(
+                  key: const ValueKey('btn_continuar_resumen'),
+                  child: filledButton,
+                ),
+              )
+            : filledButton,
       ),
     );
   }

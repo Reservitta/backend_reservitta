@@ -18,7 +18,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   final int maxAnticipacionDias;
 
   ReservationDraftModel _draft;
-  int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas, 4: Mesa, 5: Horario
+  int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas, 4: Mesa, 5: Horario, 6: Resumen
   int? _maxFromTables; // Mayor grupo que las mesas reales pueden sentar
   List<BranchModel> _branches = [];
   bool _isLoadingBranches = false;
@@ -58,6 +58,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   int get currentStep => _currentStep;
   List<BranchModel> get branches => List.unmodifiable(_branches);
   bool get isLoadingBranches => _isLoadingBranches;
+  DateTime get clockNow => _clock();
   String? get errorMessage => _errorMessage;
 
   /// Capacidad máxima permitida para el grupo (HU09-RF01)
@@ -153,6 +154,8 @@ class ReservationDraftViewModel extends ChangeNotifier {
   // Manejo de Sucursal (Paso 0)
   // ---------------------------------------------------------------------------
   void selectBranch(BranchModel branch) {
+    // HU12-RF02: Si se conserva la misma sucursal, no se invalidan datos
+    if (_draft.branch?.id == branch.id) return;
     _draft = _draft.copyWith(branch: () => branch);
     notifyListeners();
   }
@@ -225,6 +228,14 @@ class ReservationDraftViewModel extends ChangeNotifier {
       return;
     }
 
+    // HU12-RF02: Si se conserva la misma fecha, no se invalidan mesas ni horario
+    if (_draft.fecha != null &&
+        _draft.fecha!.year == target.year &&
+        _draft.fecha!.month == target.month &&
+        _draft.fecha!.day == target.day) {
+      return;
+    }
+
     _draft = _draft.copyWith(fecha: () => target);
     _invalidateTableSelection();
     notifyListeners();
@@ -240,6 +251,10 @@ class ReservationDraftViewModel extends ChangeNotifier {
     if (!duracionesDisponibles.contains(minutes)) {
       return;
     }
+    // HU12-RF02: Si se conserva la misma duración, no se invalidan mesas ni horario
+    if (_draft.duracionMin == minutes) {
+      return;
+    }
     _draft = _draft.copyWith(duracionMin: minutes);
     _invalidateTableSelection();
     notifyListeners();
@@ -253,6 +268,10 @@ class ReservationDraftViewModel extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   void setPartySize(int count) {
     if (count < minPartySize || count > maxPartySize) {
+      return;
+    }
+    // HU12-RF02: Si se conserva la misma cantidad de personas, no se invalidan mesas ni horario
+    if (_draft.personas == count) {
       return;
     }
     _draft = _draft.copyWith(personas: count);
@@ -286,8 +305,16 @@ class ReservationDraftViewModel extends ChangeNotifier {
   /// Guarda en el borrador la mesa o combinación elegida. Cambiar de mesa
   /// invalida el horario, porque los horarios libres dependen de las mesas.
   void setSelectedTables(List<MesaModel> mesas) {
+    final newIds = mesas.map((m) => m.id).toList();
+    final oldIds = _draft.mesaIds;
+    final sameTables = newIds.length == oldIds.length &&
+        newIds.toSet().containsAll(oldIds) &&
+        oldIds.toSet().containsAll(newIds);
+    if (sameTables && _draft.horario != null) {
+      return;
+    }
     _draft = _draft.copyWith(
-      mesaIds: mesas.map((m) => m.id).toList(),
+      mesaIds: newIds,
       mesasNombres: mesas.map((m) => m.nombre).toList(),
       horario: () => null,
     );
@@ -342,13 +369,17 @@ class ReservationDraftViewModel extends ChangeNotifier {
         return canContinueFromTables;
       case 5:
         return canContinueFromTime;
+      case 6:
+        return canContinueFromSummary;
       default:
         return false;
     }
   }
 
+  bool get canContinueFromSummary => _draft.isReadyForSummary;
+
   void nextStep() {
-    if (canAdvanceCurrentStep && _currentStep < 5) {
+    if (canAdvanceCurrentStep && _currentStep < 6) {
       _currentStep++;
       notifyListeners();
     }
@@ -364,7 +395,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   void goToStep(int step) {
-    if (step >= 0 && step <= 5) {
+    if (step >= 0 && step <= 6) {
       _currentStep = step;
       notifyListeners();
     }
