@@ -141,15 +141,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
       if (mesas.isEmpty) return;
       _maxFromTables = AvailabilityService.maxGroupSize(mesas);
       if (_draft.personas > _maxFromTables!) {
-        final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
-    _draft = _draft.copyWith(personas: _maxFromTables);
+        _draft = _draft.copyWith(personas: _maxFromTables);
         _invalidateTableSelection();
       }
       notifyListeners();
@@ -162,14 +154,8 @@ class ReservationDraftViewModel extends ChangeNotifier {
   // Manejo de Sucursal (Paso 0)
   // ---------------------------------------------------------------------------
   void selectBranch(BranchModel branch) {
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
+    // HU12-RF02: Si se conserva la misma sucursal, no se invalidan datos
+    if (_draft.branch?.id == branch.id) return;
     _draft = _draft.copyWith(branch: () => branch);
     notifyListeners();
   }
@@ -250,20 +236,6 @@ class ReservationDraftViewModel extends ChangeNotifier {
       return;
     }
 
-    if (_draft.fecha != null &&
-        _draft.fecha!.year == target.year &&
-        _draft.fecha!.month == target.month &&
-        _draft.fecha!.day == target.day) {
-      return;
-    }
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
     _draft = _draft.copyWith(fecha: () => target);
     _invalidateTableSelection();
     notifyListeners();
@@ -281,15 +253,6 @@ class ReservationDraftViewModel extends ChangeNotifier {
     }
     // HU12-RF02: Si se conserva la misma duración, no se invalidan mesas ni horario
     if (_draft.duracionMin == minutes) {
-      return;
-    }
-    if (_draft.duracionMin == minutes) return;
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
       return;
     }
     _draft = _draft.copyWith(duracionMin: minutes);
@@ -311,15 +274,6 @@ class ReservationDraftViewModel extends ChangeNotifier {
     if (_draft.personas == count) {
       return;
     }
-    if (_draft.personas == count) return;
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
     _draft = _draft.copyWith(personas: count);
     _invalidateTableSelection();
     notifyListeners();
@@ -327,15 +281,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
 
   void incrementPartySize() {
     if (_draft.personas < maxPartySize) {
-      final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
-    _draft = _draft.copyWith(personas: _draft.personas + 1);
+      _draft = _draft.copyWith(personas: _draft.personas + 1);
       _invalidateTableSelection();
       notifyListeners();
     }
@@ -343,15 +289,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
 
   void decrementPartySize() {
     if (_draft.personas > minPartySize) {
-      final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
-    _draft = _draft.copyWith(personas: _draft.personas - 1);
+      _draft = _draft.copyWith(personas: _draft.personas - 1);
       _invalidateTableSelection();
       notifyListeners();
     }
@@ -391,14 +329,6 @@ class ReservationDraftViewModel extends ChangeNotifier {
 
   /// Guarda en el borrador la hora de inicio del [slot] elegido.
   void selectTime(TimeSlot slot) {
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
     _draft = _draft.copyWith(
       horario: () => TimeOfDay(hour: slot.inicio.hour, minute: slot.inicio.minute),
     );
@@ -406,14 +336,6 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   void clearTime() {
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
     _draft = _draft.copyWith(horario: () => null);
     notifyListeners();
   }
@@ -423,14 +345,6 @@ class ReservationDraftViewModel extends ChangeNotifier {
   /// Fecha, duración o personas cambiaron: la mesa y el horario elegidos ya no valen.
   void _invalidateTableSelection() {
     if (_draft.mesaIds.isEmpty && _draft.horario == null) return;
-    final newIds = mesas.map((m) => m.id).toList();
-    final oldIds = _draft.mesaIds;
-    final sameTables = newIds.length == oldIds.length &&
-        newIds.toSet().containsAll(oldIds) &&
-        oldIds.toSet().containsAll(newIds);
-    if (sameTables && _draft.horario != null) {
-      return;
-    }
     _draft = _draft.copyWith(
       mesaIds: const [],
       mesasNombres: const [],
