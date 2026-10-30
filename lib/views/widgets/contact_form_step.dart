@@ -1,31 +1,34 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../models/reservation_draft_model.dart';
 import '../../utils/validators.dart';
 
-/// Paso 7: Formulario de datos de contacto y creación de cuenta (HU13-RF01,
+/// Paso 7: Formulario de datos de contacto y creaciÃƒÂ³n de cuenta (HU13-RF01,
 /// HU13-RF02, HU14-RF01).
 ///
 /// Campos:
-///  - Nombre completo, correo electrónico y teléfono (HU13-RF01)
-///  - Checkbox "Quiero crear una cuenta" (HU13-RF02), oculto con sesión iniciada
-///  - Contraseña + Confirmar contraseña, solo si el checkbox está marcado (HU14-RF01)
+///  - Nombre completo, correo electrÃƒÂ³nico y telÃƒÂ©fono (HU13-RF01)
+///  - Checkbox "Quiero crear una cuenta" (HU13-RF02), oculto con sesiÃƒÂ³n iniciada
+///  - ContraseÃƒÂ±a + Confirmar contraseÃƒÂ±a, solo si el checkbox estÃƒÂ¡ marcado (HU14-RF01)
 ///
 /// La validez del formulario la calcula el ViewModel (`canContinueFromContact`),
-/// y el botón "Continuar" de la barra inferior lo maneja [ReservationFlowView].
+/// y el botÃƒÂ³n "Continuar" de la barra inferior lo maneja [ReservationFlowView].
 /// Este widget solo muestra el estado y reporta cambios mediante callbacks.
 class ContactFormStep extends StatefulWidget {
   final ReservationDraftModel draft;
 
-  /// Si el visitante ya tiene sesión iniciada se oculta el checkbox de crear
-  /// cuenta y los campos de contraseña (HU13-RF02).
+  /// Si el visitante ya tiene sesiÃƒÂ³n iniciada se oculta el checkbox de crear
+  /// cuenta y los campos de contraseÃƒÂ±a (HU13-RF02).
   final bool isAuthenticated;
 
-  /// Dígitos exigidos al teléfono (HU13-RF01, configurable).
+  /// Dgitos exigidos al telÇ¸fono (HU13-RF01, configurable).
   final int phoneDigits;
 
-  /// Valores en memoria de las contraseñas (no viven en el borrador).
+  /// Controla si se muestran los campos de contrasea al marcar crear cuenta (HU14-RF01).
+  final bool showPasswordFields;
+
+  /// Valores en memoria de las contraseas (no viven en el borrador).
   final String initialPassword;
   final String initialConfirmPassword;
 
@@ -33,8 +36,8 @@ class ContactFormStep extends StatefulWidget {
   final ValueChanged<String> onEmailChanged;
   final ValueChanged<String> onPhoneChanged;
   final ValueChanged<bool> onCreateAccountChanged;
-  final ValueChanged<String> onPasswordChanged;
-  final ValueChanged<String> onConfirmPasswordChanged;
+  final ValueChanged<String>? onPasswordChanged;
+  final ValueChanged<String>? onConfirmPasswordChanged;
 
   const ContactFormStep({
     super.key,
@@ -44,8 +47,9 @@ class ContactFormStep extends StatefulWidget {
     required this.onEmailChanged,
     required this.onPhoneChanged,
     required this.onCreateAccountChanged,
-    required this.onPasswordChanged,
-    required this.onConfirmPasswordChanged,
+    this.onPasswordChanged,
+    this.onConfirmPasswordChanged,
+    this.showPasswordFields = true,
     this.phoneDigits = 10,
     this.initialPassword = '',
     this.initialConfirmPassword = '',
@@ -90,13 +94,13 @@ class _ContactFormStepState extends State<ContactFormStep> {
   @override
   void didUpdateWidget(covariant ContactFormStep oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Si el ViewModel cambia un valor (prellenado de sesión o descarte),
-    // se refleja en el campo sin pisar lo que el usuario está escribiendo.
+    // Si el ViewModel cambia un valor (prellenado de sesiÃƒÂ³n o descarte),
+    // se refleja en el campo sin pisar lo que el usuario estÃƒÂ¡ escribiendo.
     _sync(_nombreCtrl, widget.draft.contactoNombre);
     _sync(_correoCtrl, widget.draft.contactoCorreo);
     _sync(_telefonoCtrl, widget.draft.contactoTelefono);
 
-    // HU14-RF01: al desmarcar el checkbox, se descartan las contraseñas.
+    // HU14-RF01: al desmarcar el checkbox, se descartan las contraseÃƒÂ±as.
     if (!widget.draft.crearCuenta) {
       _sync(_passwordCtrl, '');
       _sync(_confirmPasswordCtrl, '');
@@ -171,7 +175,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Nombre completo ──────────────────────────────────────────
+                // Ã¢â€â‚¬Ã¢â€â‚¬ Nombre completo Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
                 _buildSectionLabel('Nombre completo'),
                 const SizedBox(height: 6),
                 TextFormField(
@@ -180,7 +184,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(
-                    hint: 'Ej. María López García',
+                    hint: 'Ej. MarÃƒÂ­a LÃƒÂ³pez GarcÃƒÂ­a',
                     prefixIcon: Icons.person_outline,
                   ),
                   validator: AppValidators.validateName,
@@ -188,8 +192,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
                 ),
                 const SizedBox(height: 18),
 
-                // ── Correo electrónico ───────────────────────────────────────
-                _buildSectionLabel('Correo electrónico'),
+                // Ã¢â€â‚¬Ã¢â€â‚¬ Correo electrÃƒÂ³nico Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+                _buildSectionLabel('Correo electrÃƒÂ³nico'),
                 const SizedBox(height: 6),
                 TextFormField(
                   key: const ValueKey('input_contact_correo'),
@@ -205,8 +209,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
                 ),
                 const SizedBox(height: 18),
 
-                // ── Teléfono ─────────────────────────────────────────────────
-                _buildSectionLabel('Teléfono (${widget.phoneDigits} dígitos)'),
+                // Ã¢â€â‚¬Ã¢â€â‚¬ TelÃƒÂ©fono Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
+                _buildSectionLabel('TelÃƒÂ©fono (${widget.phoneDigits} dÃƒÂ­gitos)'),
                 const SizedBox(height: 6),
                 TextFormField(
                   key: const ValueKey('input_contact_telefono'),
@@ -230,13 +234,13 @@ class _ContactFormStepState extends State<ContactFormStep> {
           ),
           const SizedBox(height: 20),
 
-          // ── Checkbox: Crear cuenta (HU13-RF02) ──────────────────────────────
+          // Ã¢â€â‚¬Ã¢â€â‚¬ Checkbox: Crear cuenta (HU13-RF02) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
           if (showAccountOption) ...[
             _buildCreateAccountCheckbox(),
             const SizedBox(height: 12),
           ],
 
-          // ── Campos de contraseña (HU14-RF01) ────────────────────────────────
+          // Ã¢â€â‚¬Ã¢â€â‚¬ Campos de contraseÃƒÂ±a (HU14-RF01) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
           if (showPasswords) ...[
             _buildPasswordSection(),
             const SizedBox(height: 12),
@@ -251,7 +255,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   }
 
   // ---------------------------------------------------------------------------
-  // CHECKBOX — Crear cuenta (HU13-RF02)
+  // CHECKBOX Ã¢â‚¬â€ Crear cuenta (HU13-RF02)
   // ---------------------------------------------------------------------------
   void _handleCheckboxChanged(bool? value) {
     final checked = value ?? false;
@@ -275,9 +279,9 @@ class _ContactFormStepState extends State<ContactFormStep> {
       child: CheckboxListTile(
         key: const ValueKey('checkbox_crear_cuenta'),
         value: widget.draft.crearCuenta,
-        // Marcarlo no agrega campos aquí; las contraseñas aparecen abajo (HU14).
-        // Al desmarcar, el ViewModel descarta las contraseñas y didUpdateWidget
-        // vacía los campos.
+        // Marcarlo no agrega campos aquÃƒÂ­; las contraseÃƒÂ±as aparecen abajo (HU14).
+        // Al desmarcar, el ViewModel descarta las contraseÃƒÂ±as y didUpdateWidget
+        // vacÃƒÂ­a los campos.
         onChanged: _handleCheckboxChanged,
         activeColor: ContactFormStep.terracotta,
         checkboxShape: RoundedRectangleBorder(
@@ -292,7 +296,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
           ),
         ),
         subtitle: const Text(
-          'Podrás ver el historial de tus reservas en cualquier momento.',
+          'PodrÃƒÂ¡s ver el historial de tus reservas en cualquier momento.',
           style: TextStyle(fontSize: 12, color: ContactFormStep.mutedText),
         ),
         controlAffinity: ListTileControlAffinity.leading,
@@ -302,7 +306,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   }
 
   // ---------------------------------------------------------------------------
-  // SECCIÓN DE CONTRASEÑA (HU14-RF01)
+  // SECCIÃƒâ€œN DE CONTRASEÃƒâ€˜A (HU14-RF01)
   // ---------------------------------------------------------------------------
   Widget _buildPasswordSection() {
     return Container(
@@ -343,7 +347,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Crea tu contraseña',
+                      'Crea tu contraseÃƒÂ±a',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -351,7 +355,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                       ),
                     ),
                     Text(
-                      'Mínimo 8 caracteres, una letra y un número.',
+                      'MÃƒÂ­nimo 8 caracteres, una letra y un nÃƒÂºmero.',
                       style: TextStyle(
                         fontSize: 12,
                         color: ContactFormStep.mutedText,
@@ -364,8 +368,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
           ),
           const SizedBox(height: 18),
 
-          // Contraseña
-          _buildSectionLabel('Contraseña'),
+          // ContraseÃƒÂ±a
+          _buildSectionLabel('ContraseÃƒÂ±a'),
           const SizedBox(height: 6),
           TextFormField(
             key: const ValueKey('input_password'),
@@ -373,7 +377,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
             obscureText: !_mostrarPassword,
             textInputAction: TextInputAction.next,
             decoration: _inputDecoration(
-              hint: 'Mínimo 8 caracteres',
+              hint: 'MÃƒÂ­nimo 8 caracteres',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
                 icon: Icon(
@@ -387,8 +391,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
             ),
             validator: AppValidators.validateNewPassword,
             onChanged: (v) {
-              widget.onPasswordChanged(v);
-              // Revalida la confirmación cuando cambia la contraseña.
+              widget.onPasswordChanged?.call(v);
+              // Revalida la confirmaciÃƒÂ³n cuando cambia la contraseÃƒÂ±a.
               if (_confirmPasswordCtrl.text.isNotEmpty) {
                 _confirmFieldKey.currentState?.validate();
               }
@@ -396,8 +400,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
           ),
           const SizedBox(height: 18),
 
-          // Confirmar contraseña
-          _buildSectionLabel('Confirmar contraseña'),
+          // Confirmar contraseÃƒÂ±a
+          _buildSectionLabel('Confirmar contraseÃƒÂ±a'),
           const SizedBox(height: 6),
           TextFormField(
             key: _confirmFieldKey,
@@ -405,7 +409,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
             obscureText: !_mostrarConfirmPassword,
             textInputAction: TextInputAction.done,
             decoration: _inputDecoration(
-              hint: 'Repite tu contraseña',
+              hint: 'Repite tu contraseÃƒÂ±a',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
                 icon: Icon(
@@ -422,7 +426,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
             ),
             validator: (v) =>
                 AppValidators.validateConfirmPassword(_passwordCtrl.text, v),
-            onChanged: widget.onConfirmPasswordChanged,
+            onChanged: (v) => widget.onConfirmPasswordChanged?.call(v),
           ),
         ],
       ),
@@ -447,7 +451,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
           SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Tus datos solo se usan para gestionar tu reserva y enviarte la confirmación. No los compartimos con terceros.',
+              'Tus datos solo se usan para gestionar tu reserva y enviarte la confirmaciÃƒÂ³n. No los compartimos con terceros.',
               style: TextStyle(
                 fontSize: 12,
                 color: ContactFormStep.mutedText,
