@@ -253,6 +253,17 @@ class _ContactFormStepState extends State<ContactFormStep> {
   // ---------------------------------------------------------------------------
   // CHECKBOX — Crear cuenta (HU13-RF02)
   // ---------------------------------------------------------------------------
+  void _handleCheckboxChanged(bool? value) {
+    final checked = value ?? false;
+    if (!checked) {
+      _passwordCtrl.clear();
+      _confirmPasswordCtrl.clear();
+      widget.onPasswordChanged?.call('');
+      widget.onConfirmPasswordChanged?.call('');
+    }
+    widget.onCreateAccountChanged(checked);
+  }
+
   Widget _buildCreateAccountCheckbox() {
     return Container(
       key: const ValueKey('container_crear_cuenta'),
@@ -267,7 +278,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
         // Marcarlo no agrega campos aquí; las contraseñas aparecen abajo (HU14).
         // Al desmarcar, el ViewModel descarta las contraseñas y didUpdateWidget
         // vacía los campos.
-        onChanged: (v) => widget.onCreateAccountChanged(v ?? false),
+        onChanged: _handleCheckboxChanged,
         activeColor: ContactFormStep.terracotta,
         checkboxShape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(4),
