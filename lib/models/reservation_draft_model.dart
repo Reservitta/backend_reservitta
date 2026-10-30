@@ -71,6 +71,10 @@ class ReservationDraftModel {
   bool get hasTables => mesaIds.isNotEmpty;
   bool get hasTime => horario != null;
 
+  /// Indica si el borrador cuenta con todos los datos necesarios para el resumen (HU12-RF01).
+  bool get isReadyForSummary =>
+      hasDate && hasDuration && hasPeople && hasTables && hasTime;
+
   /// Inicio de la visita: fecha elegida más hora de inicio (HU11-RF02).
   DateTime? get inicio {
     if (fecha == null || horario == null) return null;
