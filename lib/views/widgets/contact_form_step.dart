@@ -123,7 +123,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   @override
   Widget build(BuildContext context) {
     final showAccountOption = !widget.isAuthenticated; // HU13-RF02 criterio 2
-    final showPasswords = showAccountOption && widget.draft.crearCuenta;
+    final showPasswords = widget.showPasswordFields && showAccountOption && widget.draft.crearCuenta;
     final phoneExample = '4181234567'
         .padRight(widget.phoneDigits, '0')
         .substring(0, widget.phoneDigits);
