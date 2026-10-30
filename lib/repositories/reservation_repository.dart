@@ -6,6 +6,16 @@ abstract class ReservationRepository {
   /// Crea una nueva reservación con cálculo automático de hora de fin y validación de estado (Criterios 1 y 2)
   Future<ReservationModel> createReservation(ReservationModel reservation);
 
+  /// Guarda la reservación solo si todas sus mesas siguen libres, dentro de una
+  /// transacción que evita reservas dobles (HU11-RF04). Lanza
+  /// `ReservationConflictException` si otra persona ya reservó alguna mesa y
+  /// `ReservationConnectionException` si falla la conexión; en ambos casos no
+  /// queda nada guardado. [margenLimpiezaMin] se suma al final de las reservas existentes.
+  Future<ReservationModel> createReservationVerified(
+    ReservationModel reservation, {
+    int margenLimpiezaMin = 0,
+  });
+
   /// Consulta reservaciones por restaurante y fecha usando los índices definidos (Criterio 4)
   Future<List<ReservationModel>> getReservationsByRestaurantAndDate({
     required String restauranteId,

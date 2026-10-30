@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reservitta/models/booking_models.dart';
 import 'package:reservitta/models/reservation_model.dart';
 import 'package:reservitta/repositories/reservation_repository.dart';
 
@@ -44,6 +45,23 @@ class FakeReservationRepository implements ReservationRepository {
     reservacionesEnMemoria.removeWhere((r) => r.id == toSave.id);
     reservacionesEnMemoria.add(toSave);
     return toSave;
+  }
+
+  @override
+  Future<ReservationModel> createReservationVerified(
+    ReservationModel reservation, {
+    int margenLimpiezaMin = 0,
+  }) async {
+    final ocupadas = reservacionesEnMemoria
+        .where((r) =>
+            r.restauranteId == reservation.restauranteId &&
+            r.overlapsWith(reservation.effectiveStart,
+                durationMin: reservation.duracionMin))
+        .expand((r) => r.mesaIds)
+        .toSet()
+        .intersection(reservation.mesaIds.toSet());
+    if (ocupadas.isNotEmpty) throw ReservationConflictException(ocupadas);
+    return createReservation(reservation);
   }
 
   @override

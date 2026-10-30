@@ -82,6 +82,13 @@ service cloud.firestore {
         allow create, update, delete: if isReservittaAdmin();
       }
 
+      // HU11-RF04: la reserva transaccional lee y actualiza la ocupación de cada
+      // mesa por día para evitar reservas dobles. Requiere un perfil de Reservitta.
+      match /ocupacionMesas/{ocupacionId} {
+        allow read, create, update: if hasReservittaProfile();
+        allow delete: if false;
+      }
+
       match /ocasiones/{ocasionId} {
         allow read: if true;
         allow create, update, delete: if isReservittaAdmin();

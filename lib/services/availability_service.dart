@@ -1,3 +1,4 @@
+import '../models/booking_models.dart';
 import '../models/mesa_model.dart';
 import '../models/reservation_model.dart';
 import '../models/restaurant_model.dart';
@@ -8,41 +9,6 @@ import '../repositories/table_repository.dart';
 import '../utils/schedule_utils.dart';
 
 export '../models/table_availability_models.dart';
-
-/// Resultado de validar una fecha contra el calendario del restaurante (HU07-RF03).
-class DateValidationResult {
-  final bool isValid;
-  final AvailabilityFailure? reason;
-
-  const DateValidationResult.valid() : isValid = true, reason = null;
-
-  const DateValidationResult.invalid(AvailabilityFailure this.reason)
-    : isValid = false;
-
-  /// Mensaje listo para mostrar al visitante.
-  String? get message {
-    switch (reason) {
-      case AvailabilityFailure.restauranteInactivo:
-        return 'El restaurante no está recibiendo reservaciones.';
-      case AvailabilityFailure.fechaPasada:
-        return 'Selecciona una fecha de hoy en adelante.';
-      case AvailabilityFailure.fechaMuyLejana:
-        return 'Aún no se aceptan reservaciones para una fecha tan lejana.';
-      case AvailabilityFailure.sinHorariosHoy:
-        return 'Ya no hay horarios disponibles el día de hoy.';
-      case AvailabilityFailure.cierreEspecial:
-        return 'El restaurante permanecerá cerrado ese día.';
-      case AvailabilityFailure.diaCerrado:
-        return 'El restaurante no abre ese día de la semana.';
-      case AvailabilityFailure.fueraDeHorario:
-        return 'El horario elegido queda fuera del horario de atención.';
-      case AvailabilityFailure.sinDisponibilidad:
-        return 'No hay disponibilidad en el horario elegido.';
-      case null:
-        return null;
-    }
-  }
-}
 
 /// Resultado del cálculo de disponibilidad por traslape (HU08-RF03).
 class AvailabilityResult {
@@ -733,6 +699,101 @@ class AvailabilityService {
     final repo = _tables;
     if (repo == null) return const [];
     return repo.getZonas(restaurantId);
+  }
+
+  // ---------------------------------------------------------------------------
+  // HU12-RF02: revalidación de la selección antes de mostrar el resumen
+  // ---------------------------------------------------------------------------
+
+  /// Comprueba que la mesa o combinación siga libre en [inicio] con [duracionMin].
+  /// No reserva nada: el bloqueo definitivo ocurre al confirmar (HU11-RF04).
+  ///
+  /// Si ya no es válida indica a qué paso volver: 5 (horario) si las mismas
+  /// mesas aún tienen otros horarios, 4 (mesa) si no les queda ninguno, o 1 (fecha).
+  Future<SelectionValidation> revalidateSelection({
+    required RestaurantModel restaurant,
+    required DateTime inicio,
+    required int duracionMin,
+    required List<String> mesaIds,
+    int maxAlternativas = 4,
+  }) async {
+    final duracion = duracionMin > 0 ? duracionMin : 90;
+
+    final fecha = DateTime(inicio.year, inicio.month, inicio.day);
+    final dateCheck = validateDate(restaurant: restaurant, fecha: fecha);
+    if (!dateCheck.isValid) {
+      return SelectionValidation.invalid(
+        issue: SelectionIssue.fechaInvalida,
+        dateReason: dateCheck.reason,
+        redirectStep: 1,
+      );
+    }
+
+    if (inicio.isBefore(_now())) {
+      return const SelectionValidation.invalid(
+        issue: SelectionIssue.horarioPasado,
+        redirectStep: 5,
+      );
+    }
+
+    if (!isWithinOperatingHours(
+      restaurant: restaurant,
+      inicio: inicio,
+      duracionMin: duracion,
+    )) {
+      return const SelectionValidation.invalid(
+        issue: SelectionIssue.fueraDeHorario,
+        redirectStep: 5,
+      );
+    }
+
+    final fin = inicio.add(Duration(minutes: duracion));
+    final overlapping = await _overlappingReservations(
+      restauranteId: restaurant.id,
+      inicio: inicio,
+      fin: fin,
+    );
+    final seleccionadas = mesaIds.toSet();
+    final enConflicto = <String>{
+      for (final r in overlapping)
+        ...r.mesaIds.where(seleccionadas.contains),
+    };
+    if (enConflicto.isEmpty) return const SelectionValidation.valid();
+
+    final alternativas = await alternativeSlots(
+      restaurant: restaurant,
+      fecha: fecha,
+      duracionMin: duracion,
+      mesaIds: mesaIds,
+      cercaDe: inicio,
+      max: maxAlternativas,
+    );
+    return SelectionValidation.invalid(
+      issue: SelectionIssue.mesaOcupada,
+      mesasEnConflicto: enConflicto,
+      alternativas: alternativas,
+      redirectStep: alternativas.isEmpty ? 4 : 5,
+    );
+  }
+
+  /// Horarios libres de [mesaIds] ese día, de más cercano a más lejano a [cercaDe].
+  Future<List<TimeSlot>> alternativeSlots({
+    required RestaurantModel restaurant,
+    required DateTime fecha,
+    required int duracionMin,
+    required List<String> mesaIds,
+    required DateTime cercaDe,
+    int max = 4,
+  }) async {
+    final slots = await getAvailableTimeSlots(
+      restaurant: restaurant,
+      fecha: fecha,
+      duracionMin: duracionMin,
+      mesaIds: mesaIds,
+    );
+    int distancia(TimeSlot s) => s.inicio.difference(cercaDe).inMinutes.abs();
+    final ordenados = [...slots]..sort((a, b) => distancia(a).compareTo(distancia(b)));
+    return ordenados.take(max).toList();
   }
 
   /// Reservaciones activas que se traslapan con [inicio, fin). Consulta también el
