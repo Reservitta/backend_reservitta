@@ -134,6 +134,15 @@ class ReservationConfirmationView extends StatelessWidget {
                             '${reservation.personas}'),
                         _row(Icons.table_restaurant_outlined,
                             reservation.mesaIds.length > 1 ? 'Mesas' : 'Mesa', mesas),
+                        if (reservation.contactoNombre.isNotEmpty)
+                          _row(Icons.person_outline, 'Nombre',
+                              reservation.contactoNombre),
+                        if (reservation.contactoCorreo.isNotEmpty)
+                          _row(Icons.email_outlined, 'Correo',
+                              reservation.contactoCorreo),
+                        if (reservation.contactoTelefono.isNotEmpty)
+                          _row(Icons.phone_outlined, 'Teléfono',
+                              reservation.contactoTelefono),
                         _row(Icons.verified_outlined, 'Estado', _estado),
                         _row(Icons.confirmation_number_outlined, 'Código',
                             reservation.id,

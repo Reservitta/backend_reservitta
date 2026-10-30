@@ -298,6 +298,30 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     label: 'Horario',
                     value: draft.formattedTimeRange,
                   ),
+                  if (draft.contactoNombre.isNotEmpty) ...[
+                    const Divider(height: 18),
+                    _buildSummaryRow(
+                      icon: Icons.person_outline,
+                      label: 'Nombre',
+                      value: draft.contactoNombre,
+                    ),
+                  ],
+                  if (draft.contactoCorreo.isNotEmpty) ...[
+                    const Divider(height: 18),
+                    _buildSummaryRow(
+                      icon: Icons.email_outlined,
+                      label: 'Correo',
+                      value: draft.contactoCorreo,
+                    ),
+                  ],
+                  if (draft.contactoTelefono.isNotEmpty) ...[
+                    const Divider(height: 18),
+                    _buildSummaryRow(
+                      icon: Icons.phone_outlined,
+                      label: 'Teléfono',
+                      value: draft.contactoTelefono,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -663,13 +687,40 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     _viewModel.goToStep(7);
   }
 
-  /// Entrega el borrador (y la contraseña solo si pidió cuenta) al llamador.
-  void _submitContact() {
+  /// Entrega el borrador (y la contraseña solo si pidió cuenta) al llamador,
+  /// o confirma la reserva si createReservationOnConfirm es true.
+  Future<void> _submitContact() async {
     if (!_viewModel.canContinueFromContact) return;
     final draft = _viewModel.draft;
     final password = draft.crearCuenta ? _viewModel.password : null;
     if (widget.onContactSubmitted != null) {
       widget.onContactSubmitted!(draft, password);
+      return;
+    }
+
+    if (widget.createReservationOnConfirm) {
+      if (!_isAuthenticated &&
+          draft.crearCuenta &&
+          password != null &&
+          password.isNotEmpty) {
+        setState(() => _isProcessing = true);
+        try {
+          await _authService.registerVisitor(
+            nombre: draft.contactoNombre,
+            correo: draft.contactoCorreo,
+            telefono: draft.contactoTelefono,
+            password: password,
+          );
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          _showFlowMessage(
+            'Error al crear la cuenta: ${e.toString().replaceAll("Exception: ", "")}',
+          );
+          return;
+        }
+      }
+      await _bookReservation();
     } else {
       _showFlowMessage('Datos de contacto guardados.');
     }
@@ -760,12 +811,24 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     setState(() => _isProcessing = true);
     try {
       final user = _authService.currentUser;
+      final draft = _viewModel.draft;
       final result = await _bookingService.confirm(
         restaurant: widget.restaurant,
-        draft: _viewModel.draft,
-        usuarioId: widget.currentUserId ?? user?.uid ?? '',
-        contactoNombre: user?.displayName ?? '',
-        contactoCorreo: user?.email ?? '',
+        draft: draft,
+        usuarioId: widget.currentUserId ??
+            user?.uid ??
+            (draft.crearCuenta
+                ? ''
+                : 'invitado_${draft.contactoCorreo.isNotEmpty ? draft.contactoCorreo : "anon"}'),
+        contactoNombre: draft.contactoNombre.isNotEmpty
+            ? draft.contactoNombre
+            : (user?.displayName ?? ''),
+        contactoCorreo: draft.contactoCorreo.isNotEmpty
+            ? draft.contactoCorreo
+            : (user?.email ?? ''),
+        contactoTelefono: draft.contactoTelefono.isNotEmpty
+            ? draft.contactoTelefono
+            : (user?.phoneNumber ?? ''),
       );
       if (!mounted) return;
 
@@ -2104,7 +2167,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   child: filledButton,
                 ),
               )
-            : filledButton,
+            : (step == 7
+                ? KeyedSubtree(
+                    key: const ValueKey('btn_continuar_contacto'),
+                    child: filledButton,
+                  )
+                : filledButton),
       ),
     );
   }
