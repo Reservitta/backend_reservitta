@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../models/booking_models.dart';
 import '../models/branch_model.dart';
 import '../models/restaurant_model.dart';
 import '../services/availability_service.dart';
+import '../services/reservation_booking_service.dart';
 import '../services/reservation_service.dart';
 import '../services/restaurant_service.dart';
 import '../services/table_service.dart';
@@ -10,6 +12,7 @@ import '../models/reservation_draft_model.dart';
 import '../services/auth_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
+import 'reservation_confirmation_view.dart';
 import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
@@ -39,6 +42,16 @@ class ReservationFlowView extends StatefulWidget {
   /// Texto personalizable para el botón de confirmación/avance del resumen.
   final String? confirmButtonText;
 
+  /// Si es true y no hay paso de contacto, al confirmar el resumen se guarda la
+  /// reserva en una transacción y se muestra la pantalla de confirmación (HU11-RF04).
+  final bool createReservationOnConfirm;
+
+  /// Servicio que confirma la reserva (se puede sustituir en pruebas).
+  final ReservationBookingService? bookingService;
+
+  /// Permite sobrescribir el id del usuario autenticado (útil para pruebas).
+  final String? currentUserId;
+
   const ReservationFlowView({
     super.key,
     required this.restaurant,
@@ -50,6 +63,9 @@ class ReservationFlowView extends StatefulWidget {
     this.onProceedToContact,
     this.onRequireAuth,
     this.confirmButtonText,
+    this.createReservationOnConfirm = false,
+    this.bookingService,
+    this.currentUserId,
   });
 
   @override
@@ -70,6 +86,15 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   AvailabilityService get _availabilityService => _availability ??=
       widget.availabilityService ??
       AvailabilityService(ReservationService(), tables: TableService());
+
+  ReservationBookingService? _booking;
+
+  ReservationBookingService get _bookingService => _booking ??=
+      widget.bookingService ??
+      ReservationBookingService(_availabilityService, ReservationService());
+
+  /// Cambia cuando la selección se invalida para recargar los pasos de mesa y horario.
+  int _stepReload = 0;
 
   // Mes visible en el selector de calendario
   late DateTime _visibleMonth;
@@ -599,9 +624,172 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     AuthModalDialog.show(context, initialMode: AuthMode.login);
   }
 
+  // ---------------------------------------------------------------------------
+  // HU12-RF02: revalidación antes del resumen · HU11-RF04: confirmación
+  // ---------------------------------------------------------------------------
+  void _showFlowMessage(String message, {SnackBarAction? action}) {
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('snack_flow_message'),
+          content: Text(message),
+          duration: const Duration(seconds: 5),
+          action: action,
+        ),
+      );
+  }
+
+  /// Antes de mostrar el resumen se comprueba que la mesa siga libre (HU12-RF02).
+  Future<void> _revalidateThenAdvance() async {
+    final draft = _viewModel.draft;
+    final inicio = draft.inicio;
+    if (inicio == null) return;
+
+    setState(() => _isProcessing = true);
+    try {
+      final result = await _availabilityService.revalidateSelection(
+        restaurant: widget.restaurant,
+        inicio: inicio,
+        duracionMin: draft.duracionMin,
+        mesaIds: draft.mesaIds,
+      );
+      if (!mounted) return;
+      if (result.isValid) {
+        _viewModel.nextStep();
+      } else {
+        _redirectInvalidSelection(result);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _showFlowMessage(
+        'No se pudo verificar la disponibilidad. Revisa tu conexión e intenta de nuevo.',
+      );
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  /// Informa que la selección ya no es válida y vuelve al paso para elegir de nuevo.
+  void _redirectInvalidSelection(SelectionValidation validation) {
+    if (validation.redirectStep <= 4) {
+      _viewModel.setSelectedTables(const []);
+    } else {
+      _viewModel.clearTime();
+    }
+    setState(() => _stepReload++);
+    _viewModel.goToStep(validation.redirectStep);
+    _showFlowMessage(validation.message ?? 'Elige de nuevo tu selección.');
+  }
+
+  /// Guarda la reserva y muestra la confirmación (HU11-RF04).
+  Future<void> _bookReservation() async {
+    setState(() => _isProcessing = true);
+    try {
+      final user = _authService.currentUser;
+      final result = await _bookingService.confirm(
+        restaurant: widget.restaurant,
+        draft: _viewModel.draft,
+        usuarioId: widget.currentUserId ?? user?.uid ?? '',
+        contactoNombre: user?.displayName ?? '',
+        contactoCorreo: user?.email ?? '',
+      );
+      if (!mounted) return;
+
+      switch (result) {
+        case BookingConfirmed(:final reservation):
+          _viewModel.discardDraft();
+          await Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (_) => ReservationConfirmationView(reservation: reservation),
+            ),
+          );
+        case BookingConflict():
+          // Se libera el botón antes de abrir el diálogo para no dejar el spinner activo.
+          setState(() => _isProcessing = false);
+          await _showConflictDialog(result);
+        case BookingRejected(:final validation):
+          _redirectInvalidSelection(validation);
+        case BookingFailed(:final message, :final retryable):
+          _showFlowMessage(
+            message,
+            action: retryable
+                ? SnackBarAction(label: 'Reintentar', onPressed: _bookReservation)
+                : null,
+          );
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
+  /// Otra persona reservó la mesa: se ofrecen horarios alternativos (HU11-RF04).
+  Future<void> _showConflictDialog(BookingConflict conflict) async {
+    String hhmm(DateTime d) =>
+        '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+    final slot = await showDialog<TimeSlot>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('booking_conflict_dialog'),
+        title: const Text('Esa mesa ya fue reservada'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(conflict.message),
+            if (conflict.alternativas.isNotEmpty) ...[
+              const SizedBox(height: 14),
+              const Text(
+                'Horarios disponibles para tu mesa:',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final s in conflict.alternativas)
+                    ActionChip(
+                      key: ValueKey('alt_slot_${hhmm(s.inicio).replaceAll(':', '')}'),
+                      label: Text('${hhmm(s.inicio)} – ${hhmm(s.fin)}'),
+                      onPressed: () => Navigator.of(ctx).pop(s),
+                    ),
+                ],
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('btn_conflict_other_table'),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Elegir otra mesa'),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return;
+
+    if (slot != null) {
+      _viewModel.selectTime(slot);
+      setState(() => _stepReload++);
+      _viewModel.goToStep(6);
+    } else {
+      _viewModel.setSelectedTables(const []);
+      setState(() => _stepReload++);
+      _viewModel.goToStep(4);
+    }
+  }
+
   Future<void> _handleConfirmOrContinue() async {
     if (!_isAuthenticated) {
       _handleRequireAuth();
+      return;
+    }
+
+    if (widget.onProceedToContact == null && widget.createReservationOnConfirm) {
+      await _bookReservation();
       return;
     }
 
@@ -642,7 +830,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     final draft = _viewModel.draft;
     return TableSelectionStep(
       key: ValueKey(
-        'step_mesas_${draft.fecha}_${draft.duracionMin}_${draft.personas}',
+        'step_mesas_${draft.fecha}_${draft.duracionMin}_${draft.personas}_$_stepReload',
       ),
       restaurant: widget.restaurant,
       availability: _availabilityService,
@@ -659,7 +847,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     final draft = _viewModel.draft;
     return TimeSlotStep(
       key: ValueKey(
-        'step_horario_${draft.fecha}_${draft.duracionMin}_${draft.mesaIds.join(',')}',
+        'step_horario_${draft.fecha}_${draft.duracionMin}_${draft.mesaIds.join(',')}_$_stepReload',
       ),
       restaurant: widget.restaurant,
       availability: _availabilityService,
@@ -1769,7 +1957,9 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       ),
       onPressed: (canAdvance && !_isProcessing)
           ? () {
-              if (step < 6) {
+              if (step == 5) {
+                _revalidateThenAdvance();
+              } else if (step < 6) {
                 _viewModel.nextStep();
               } else {
                 _handleConfirmOrContinue();

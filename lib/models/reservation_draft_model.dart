@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'branch_model.dart';
+import '../utils/schedule_utils.dart';
 import 'restaurant_model.dart';
 
 /// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01).
@@ -75,11 +76,29 @@ class ReservationDraftModel {
   bool get isReadyForSummary =>
       hasDate && hasDuration && hasPeople && hasTables && hasTime;
 
-  /// Inicio de la visita: fecha elegida más hora de inicio (HU11-RF02).
+  /// Inicio de la visita: fecha elegida más hora de inicio (HU11-RF02). Si el
+  /// restaurante cierra de madrugada y la hora es anterior a la apertura, el
+  /// inicio cae en el día siguiente (ej. 00:30 de un turno que abrió a las 22:00).
   DateTime? get inicio {
     if (fecha == null || horario == null) return null;
+    final minutos = horario!.hour * 60 + horario!.minute;
+    final dia = ScheduleUtils.dayOfWeekToName(fecha!.weekday);
+    DaySchedule? turno;
+    for (final e in restaurant.horarios.entries) {
+      if (ScheduleUtils.normalizeDayName(e.key) == dia) turno = e.value;
+    }
+    final apertura = ScheduleUtils.parseTimeToMinutes(turno?.apertura);
+    final cierre = ScheduleUtils.parseTimeToMinutes(turno?.cierre);
+    final cruzaMedianoche =
+        apertura != null && cierre != null && cierre < apertura;
+    final alDiaSiguiente = cruzaMedianoche && minutos < apertura;
     return DateTime(
-        fecha!.year, fecha!.month, fecha!.day, horario!.hour, horario!.minute);
+      fecha!.year,
+      fecha!.month,
+      fecha!.day + (alDiaSiguiente ? 1 : 0),
+      horario!.hour,
+      horario!.minute,
+    );
   }
 
   /// Fin de la visita: inicio más duración.
