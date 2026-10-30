@@ -132,6 +132,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
         builder: (_) => ReservationFlowView(
           restaurant: widget.restaurant,
           createReservationOnConfirm: true,
+          enableContactStep: true,
         ),
       ),
     );

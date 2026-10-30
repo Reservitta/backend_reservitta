@@ -13,12 +13,14 @@ import '../services/auth_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'reservation_confirmation_view.dart';
+import 'widgets/contact_form_step.dart';
 import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
 
-/// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01).
-/// Implementa los pasos 1 al 3: Sucursal, Fecha, Duración y Personas.
+/// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01, HU13, HU14).
+/// Implementa los pasos: Sucursal, Fecha, Duración, Personas, Mesa, Horario,
+/// Resumen y Datos de contacto.
 class ReservationFlowView extends StatefulWidget {
   final RestaurantModel restaurant;
   final RestaurantService? restaurantService;
@@ -52,6 +54,15 @@ class ReservationFlowView extends StatefulWidget {
   /// Permite sobrescribir el id del usuario autenticado (útil para pruebas).
   final String? currentUserId;
 
+  /// Activa el paso 7 (Datos de contacto, HU13/HU14). Por defecto desactivado
+  /// para no alterar el flujo existente de HU11/HU12.
+  final bool enableContactStep;
+
+  /// Se invoca al terminar el paso de datos, con el borrador y la contraseña
+  /// (solo si el visitante pidió crear cuenta; si no, es null).
+  final void Function(ReservationDraftModel draft, String? password)?
+      onContactSubmitted;
+
   const ReservationFlowView({
     super.key,
     required this.restaurant,
@@ -66,6 +77,8 @@ class ReservationFlowView extends StatefulWidget {
     this.createReservationOnConfirm = false,
     this.bookingService,
     this.currentUserId,
+    this.enableContactStep = false,
+    this.onContactSubmitted,
   });
 
   @override
@@ -285,6 +298,30 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     label: 'Horario',
                     value: draft.formattedTimeRange,
                   ),
+                  if (draft.contactoNombre.isNotEmpty) ...[
+                    const Divider(height: 18),
+                    _buildSummaryRow(
+                      icon: Icons.person_outline,
+                      label: 'Nombre',
+                      value: draft.contactoNombre,
+                    ),
+                  ],
+                  if (draft.contactoCorreo.isNotEmpty) ...[
+                    const Divider(height: 18),
+                    _buildSummaryRow(
+                      icon: Icons.email_outlined,
+                      label: 'Correo',
+                      value: draft.contactoCorreo,
+                    ),
+                  ],
+                  if (draft.contactoTelefono.isNotEmpty) ...[
+                    const Divider(height: 18),
+                    _buildSummaryRow(
+                      icon: Icons.phone_outlined,
+                      label: 'Teléfono',
+                      value: draft.contactoTelefono,
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -451,7 +488,16 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildStepperBar(int currentStep) {
-    final steps = ['Fecha', 'Duración', 'Personas', 'Mesa', 'Horario', 'Resumen'];
+    // HU13-RF01: el stepper incluye el paso "Datos" al final.
+    final steps = [
+      'Fecha',
+      'Duración',
+      'Personas',
+      'Mesa',
+      'Horario',
+      'Resumen',
+      'Datos',
+    ];
 
     return Container(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
@@ -507,14 +553,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                                           size: 15, color: Colors.white)
                                       : Text(
                                           '$stepNumber',
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: isActive
-                                              ? Colors.white
-                                              : mutedText,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: isActive
+                                                ? Colors.white
+                                                : mutedText,
+                                          ),
                                         ),
-                                      ),
                                 ),
                               ),
                               if (hasNextLine)
@@ -581,6 +627,8 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         return _buildStep5HorarioSelection();
       case 6:
         return _buildStep6ResumenSelection();
+      case 7:
+        return _buildStep7Contacto();
       default:
         return const SizedBox.shrink();
     }
@@ -596,10 +644,86 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       onEditStep: _viewModel.goToStep,
       onConfirm: _handleConfirmOrContinue,
       isProcessing: _isProcessing,
-      isAuthenticated: _isAuthenticated,
+      // Con el paso de contacto activo, el visitante sin sesión también avanza a Datos (HU13).
+      isAuthenticated: _isAuthenticated || widget.enableContactStep,
       onRequireAuth: _handleRequireAuth,
       confirmButtonText: widget.confirmButtonText,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // PASO 7: DATOS DE CONTACTO (HU13-RF01, HU13-RF02, HU14-RF01)
+  // ---------------------------------------------------------------------------
+  Widget _buildStep7Contacto() {
+    final draft = _viewModel.draft;
+    return ContactFormStep(
+      key: const ValueKey('step_contacto'),
+      draft: draft,
+      isAuthenticated: _isAuthenticated,
+      initialPassword: _viewModel.password,
+      initialConfirmPassword: _viewModel.confirmPassword,
+      onNameChanged: _viewModel.setContactName,
+      onEmailChanged: _viewModel.setContactEmail,
+      onPhoneChanged: _viewModel.setContactPhone,
+      onCreateAccountChanged: _viewModel.setCreateAccount,
+      onPasswordChanged: _viewModel.setPassword,
+      onConfirmPasswordChanged: _viewModel.setConfirmPassword,
+      phoneDigits: _viewModel.phoneDigits,
+    );
+  }
+
+  /// HU13-RF01: si hay sesión, prellena los campos (siguen siendo editables)
+  /// y abre el paso de datos.
+  void _goToContactStep() {
+    final user = _authService.currentUser;
+    if (_isAuthenticated) {
+      _viewModel.setCreateAccount(false);
+      _viewModel.prefillContact(
+        nombre: user?.displayName,
+        correo: user?.email,
+        telefono: user?.phoneNumber, // ajusta si tu UserModel guarda el teléfono en Firestore
+      );
+    }
+    _viewModel.goToStep(7);
+  }
+
+  /// Entrega el borrador (y la contraseña solo si pidió cuenta) al llamador,
+  /// o confirma la reserva si createReservationOnConfirm es true.
+  Future<void> _submitContact() async {
+    if (!_viewModel.canContinueFromContact) return;
+    final draft = _viewModel.draft;
+    final password = draft.crearCuenta ? _viewModel.password : null;
+    if (widget.onContactSubmitted != null) {
+      widget.onContactSubmitted!(draft, password);
+      return;
+    }
+
+    if (widget.createReservationOnConfirm) {
+      if (!_isAuthenticated &&
+          draft.crearCuenta &&
+          password != null &&
+          password.isNotEmpty) {
+        setState(() => _isProcessing = true);
+        try {
+          await _authService.registerVisitor(
+            nombre: draft.contactoNombre,
+            correo: draft.contactoCorreo,
+            telefono: draft.contactoTelefono,
+            password: password,
+          );
+        } catch (e) {
+          if (!mounted) return;
+          setState(() => _isProcessing = false);
+          _showFlowMessage(
+            'Error al crear la cuenta: ${e.toString().replaceAll("Exception: ", "")}',
+          );
+          return;
+        }
+      }
+      await _bookReservation();
+    } else {
+      _showFlowMessage('Datos de contacto guardados.');
+    }
   }
 
   void _handleRequireAuth() {
@@ -687,12 +811,24 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     setState(() => _isProcessing = true);
     try {
       final user = _authService.currentUser;
+      final draft = _viewModel.draft;
       final result = await _bookingService.confirm(
         restaurant: widget.restaurant,
-        draft: _viewModel.draft,
-        usuarioId: widget.currentUserId ?? user?.uid ?? '',
-        contactoNombre: user?.displayName ?? '',
-        contactoCorreo: user?.email ?? '',
+        draft: draft,
+        usuarioId: widget.currentUserId ??
+            user?.uid ??
+            (draft.crearCuenta
+                ? ''
+                : 'invitado_${draft.contactoCorreo.isNotEmpty ? draft.contactoCorreo : "anon"}'),
+        contactoNombre: draft.contactoNombre.isNotEmpty
+            ? draft.contactoNombre
+            : (user?.displayName ?? ''),
+        contactoCorreo: draft.contactoCorreo.isNotEmpty
+            ? draft.contactoCorreo
+            : (user?.email ?? ''),
+        contactoTelefono: draft.contactoTelefono.isNotEmpty
+            ? draft.contactoTelefono
+            : (user?.phoneNumber ?? ''),
       );
       if (!mounted) return;
 
@@ -783,6 +919,13 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Future<void> _handleConfirmOrContinue() async {
+    // HU13: con el paso de contacto activo (y sin callback propio), el resumen
+    // lleva al formulario de datos, con o sin sesión iniciada.
+    if (widget.enableContactStep && widget.onProceedToContact == null) {
+      _goToContactStep();
+      return;
+    }
+
     if (!_isAuthenticated) {
       _handleRequireAuth();
       return;
@@ -1931,7 +2074,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       );
     }
 
-    // Pasos 1 a 6: Botón Continuar / Ver mesas disponibles / Confirmar reserva
+    // Pasos 1 a 7: Botón Continuar / Ver mesas disponibles / Confirmar reserva
     final isSummaryStep = step == 6;
     final buttonText = step == 3
         ? 'Ver mesas disponibles'
@@ -1959,6 +2102,8 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           ? () {
               if (step == 5) {
                 _revalidateThenAdvance();
+              } else if (step == 7) {
+                _submitContact();
               } else if (step < 6) {
                 _viewModel.nextStep();
               } else {
@@ -2022,7 +2167,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   child: filledButton,
                 ),
               )
-            : filledButton,
+            : (step == 7
+                ? KeyedSubtree(
+                    key: const ValueKey('btn_continuar_contacto'),
+                    child: filledButton,
+                  )
+                : filledButton),
       ),
     );
   }

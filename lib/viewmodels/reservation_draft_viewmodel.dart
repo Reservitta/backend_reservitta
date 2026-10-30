@@ -7,9 +7,10 @@ import '../repositories/table_repository.dart';
 import '../services/availability_service.dart';
 import '../services/restaurant_service.dart';
 import '../utils/schedule_utils.dart';
+import '../utils/validators.dart';
 
-/// ViewModel que orquesta el flujo de reserva y la gestión del borrador (HU07, HU08, HU09).
-/// Administra el estado incremental de sucursal, fecha, duración y personas.
+/// ViewModel que orquesta el flujo de reserva y la gestión del borrador (HU07, HU08, HU09, HU13, HU14).
+/// Administra el estado incremental de sucursal, fecha, duración, personas y contacto.
 class ReservationDraftViewModel extends ChangeNotifier {
   final RestaurantModel restaurant;
   final RestaurantService? restaurantService;
@@ -17,8 +18,11 @@ class ReservationDraftViewModel extends ChangeNotifier {
   final DateTime Function() _clock;
   final int maxAnticipacionDias;
 
+  /// Número de dígitos exigidos al teléfono de contacto (HU13-RF01, configurable).
+  final int phoneDigits;
+
   ReservationDraftModel _draft;
-  int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas, 4: Mesa, 5: Horario, 6: Resumen
+  int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas, 4: Mesa, 5: Horario, 6: Resumen, 7: Datos
   int? _maxFromTables; // Mayor grupo que las mesas reales pueden sentar
   List<BranchModel> _branches = [];
   bool _isLoadingBranches = false;
@@ -43,6 +47,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
     this.tableRepository,
     DateTime Function()? clock,
     this.maxAnticipacionDias = 60,
+    this.phoneDigits = 10,
   })  : _clock = clock ?? DateTime.now,
         _draft = ReservationDraftModel(
           restaurant: restaurant,
@@ -353,6 +358,80 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // HU13 / HU14: datos de contacto y creación de cuenta (Paso 7)
+  // ---------------------------------------------------------------------------
+  // La contraseña NO se guarda en el borrador: solo en memoria (HU14-RF01).
+  String _password = '';
+  String _confirmPassword = '';
+
+  String get password => _password;
+  String get confirmPassword => _confirmPassword;
+
+  String? get nameError => AppValidators.validateName(_draft.contactoNombre);
+  String? get emailError => AppValidators.validateEmail(_draft.contactoCorreo);
+  String? get phoneError =>
+      AppValidators.validatePhone(_draft.contactoTelefono, digits: phoneDigits);
+  String? get passwordError => AppValidators.validateNewPassword(_password);
+  String? get confirmPasswordError =>
+      AppValidators.validateConfirmPassword(_password, _confirmPassword);
+
+  /// Los tres campos son obligatorios y válidos (HU13-RF01).
+  bool get isContactInfoValid =>
+      nameError == null && emailError == null && phoneError == null;
+
+  /// Si se quiere cuenta, además se exige contraseña válida y confirmada (HU14-RF01).
+  bool get canContinueFromContact =>
+      isContactInfoValid &&
+      (!_draft.crearCuenta ||
+          (passwordError == null && confirmPasswordError == null));
+
+  void setContactName(String v) {
+    _draft = _draft.copyWith(contactoNombre: v);
+    notifyListeners();
+  }
+
+  void setContactEmail(String v) {
+    _draft = _draft.copyWith(contactoCorreo: v);
+    notifyListeners();
+  }
+
+  void setContactPhone(String v) {
+    _draft = _draft.copyWith(contactoTelefono: v);
+    notifyListeners();
+  }
+
+  /// Prellena solo los campos vacíos, para no pisar lo que el usuario ya escribió (HU13-RF01).
+  void prefillContact({String? nombre, String? correo, String? telefono}) {
+    _draft = _draft.copyWith(
+      contactoNombre: _draft.contactoNombre.isEmpty ? nombre : null,
+      contactoCorreo: _draft.contactoCorreo.isEmpty ? correo : null,
+      contactoTelefono: _draft.contactoTelefono.isEmpty ? telefono : null,
+    );
+    notifyListeners();
+  }
+
+  /// HU13-RF02 / HU14-RF01: al desmarcar se descartan las contraseñas.
+  void setCreateAccount(bool value) {
+    if (_draft.crearCuenta == value) return;
+    if (!value) {
+      _password = '';
+      _confirmPassword = '';
+    }
+    _draft = _draft.copyWith(crearCuenta: value);
+    notifyListeners();
+  }
+
+  void setPassword(String v) {
+    _password = v;
+    notifyListeners();
+  }
+
+  void setConfirmPassword(String v) {
+    _confirmPassword = v;
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
   // Navegación de pasos y retención / descarte del borrador (HU07-RF01)
   // ---------------------------------------------------------------------------
   bool get canAdvanceCurrentStep {
@@ -371,6 +450,8 @@ class ReservationDraftViewModel extends ChangeNotifier {
         return canContinueFromTime;
       case 6:
         return canContinueFromSummary;
+      case 7:
+        return canContinueFromContact;
       default:
         return false;
     }
@@ -395,7 +476,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   void goToStep(int step) {
-    if (step >= 0 && step <= 6) {
+    if (step >= 0 && step <= 7) {
       _currentStep = step;
       notifyListeners();
     }
@@ -405,6 +486,8 @@ class ReservationDraftViewModel extends ChangeNotifier {
   void discardDraft() {
     _draft = _draft.clear();
     _currentStep = 0;
+    _password = '';
+    _confirmPassword = '';
     notifyListeners();
   }
 }
