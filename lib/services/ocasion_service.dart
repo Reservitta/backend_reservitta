@@ -3,7 +3,7 @@ import '../models/experiencia_model.dart';
 import '../models/ocasion_model.dart';
 
 /// Servicio de gestión de Ocasiones Especiales y Experiencias
-/// Implementa HU33-RF01 (Administración) y soporte para HU18-RF01 (Consulta).
+/// Implementa HU33-RF01 y HU33-RF02 (Administración) y soporte para HU18-RF01 (Consulta).
 class OcasionService {
   final FirebaseFirestore? _firestoreInstance;
 
@@ -20,7 +20,7 @@ class OcasionService {
         .collection('ocasiones');
   }
 
-  /// Valida los datos requeridos para la creación de una ocasión y sus experiencias (HU33-RF01 Criterios 1, 2 y 4)
+  /// Valida los datos requeridos para la creación o edición de una ocasión y sus experiencias (HU33-RF01 y HU33-RF02)
   static void validarOcasion({
     required String restaurantId,
     required String nombre,
@@ -73,7 +73,7 @@ class OcasionService {
         (OcasionModel.nombresPredefinidos.contains(nombre) ? nombre : 'Otro');
     final iconoFinal = icono ?? OcasionModel.iconoPorNombre(tipoFinal);
 
-    // 2. Procesar experiencias garantizando que si precio == 0 se marque como Gratis (Criterio 3)
+    // 2. Procesar experiencias garantizando que si precio <= 0 se marque como Gratis (Criterio 3)
     final experienciasProcesadas = <ExperienciaModel>[];
     for (int i = 0; i < experiencias.length; i++) {
       final exp = experiencias[i];
@@ -114,7 +114,105 @@ class OcasionService {
     return ocasionId;
   }
 
-  /// Stream en tiempo real de ocasiones del restaurante (HU33-RF01 Criterio 7)
+  /// Actualiza una ocasión especial existente y sus experiencias (HU33-RF02 Criterios 1, 2 y 5).
+  /// Permite editar nombre, ícono, descripción y precio/gratuidad de las experiencias.
+  Future<void> actualizarOcasion({
+    required String restaurantId,
+    required String ocasionId,
+    required String nombre,
+    String? tipoPredefinido,
+    String descripcion = '',
+    String? icono,
+    required List<ExperienciaModel> experiencias,
+  }) async {
+    validarOcasion(
+      restaurantId: restaurantId,
+      nombre: nombre,
+      experiencias: experiencias,
+    );
+
+    final ocasionesRef = _getOcasionesRef(restaurantId);
+    final ocasionDocRef = ocasionesRef.doc(ocasionId);
+
+    final tipoFinal = tipoPredefinido ??
+        (OcasionModel.nombresPredefinidos.contains(nombre) ? nombre : 'Otro');
+    final iconoFinal = icono ?? OcasionModel.iconoPorNombre(tipoFinal);
+
+    // Procesar experiencias recalculando esGratis según precio (HU33-RF02 Criterio 2)
+    final experienciasProcesadas = <ExperienciaModel>[];
+    for (int i = 0; i < experiencias.length; i++) {
+      final exp = experiencias[i];
+      final expId = exp.id.isNotEmpty && !exp.id.startsWith('temp_')
+          ? exp.id
+          : '${ocasionId}_exp_${i + 1}';
+      final esGratisCalculado = exp.precio <= 0.0;
+      final procesada = exp.copyWith(
+        id: expId,
+        esGratis: esGratisCalculado,
+        orden: exp.orden > 0 ? exp.orden : i + 1,
+      );
+      experienciasProcesadas.add(procesada);
+    }
+
+    final batch = _firestore.batch();
+    batch.update(ocasionDocRef, {
+      'nombre': nombre.trim(),
+      'tipoPredefinido': tipoFinal,
+      'descripcion': descripcion.trim(),
+      'icono': iconoFinal,
+      'experiencias': experienciasProcesadas.map((e) => e.toMap()..['id'] = e.id).toList(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    // Sincronizar subcolección de experiencias
+    final subColeccion = await ocasionDocRef.collection('experiencias').get();
+    final idsActuales = experienciasProcesadas.map((e) => e.id).toSet();
+    for (final doc in subColeccion.docs) {
+      if (!idsActuales.contains(doc.id)) {
+        batch.delete(doc.reference);
+      }
+    }
+    for (final exp in experienciasProcesadas) {
+      final expDoc = ocasionDocRef.collection('experiencias').doc(exp.id);
+      batch.set(expDoc, exp.toMap());
+    }
+
+    await batch.commit();
+  }
+
+  /// Elimina una experiencia individual de una ocasión (HU33-RF02 Criterio 3 y 4).
+  /// Las reservas confirmadas que ya la seleccionaron conservan su snapshot histórico intacto.
+  Future<void> eliminarExperienciaIndividual({
+    required String restaurantId,
+    required String ocasionId,
+    required String experienciaId,
+  }) async {
+    final ocasionDocRef = _getOcasionesRef(restaurantId).doc(ocasionId);
+    final docSnapshot = await ocasionDocRef.get();
+    if (!docSnapshot.exists) return;
+
+    final data = docSnapshot.data() ?? {};
+    final rawList = data['experiencias'] as List<dynamic>? ?? [];
+    final filtradas = rawList.where((it) {
+      if (it is Map) {
+        return it['id'] != experienciaId;
+      }
+      return true;
+    }).toList();
+
+    final batch = _firestore.batch();
+    batch.update(ocasionDocRef, {
+      'experiencias': filtradas,
+      'updatedAt': FieldValue.serverTimestamp(),
+    });
+
+    final expDoc = ocasionDocRef.collection('experiencias').doc(experienciaId);
+    batch.delete(expDoc);
+
+    await batch.commit();
+  }
+
+  /// Stream en tiempo real de ocasiones del restaurante (HU33-RF01 Criterio 7, HU33-RF02 Criterio 5)
   Stream<List<OcasionModel>> getOcasionesStream(String restaurantId) {
     if (restaurantId.trim().isEmpty) {
       return Stream.value(<OcasionModel>[]);
@@ -145,7 +243,8 @@ class OcasionService {
     return result;
   }
 
-  /// Elimina una ocasión especial del restaurante
+  /// Elimina una ocasión especial del restaurante (HU33-RF01, HU33-RF02 Criterio 3 y 4).
+  /// Las reservas existentes conservan su dato histórico intacto en el documento de reservación.
   Future<void> eliminarOcasion({
     required String restaurantId,
     required String ocasionId,

@@ -435,6 +435,44 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   // ---------------------------------------------------------------------------
+  // HU15-RF02 / HU16: Métodos de Personalización de Visita
+  // ---------------------------------------------------------------------------
+  void setPreordenItems(List<Map<String, dynamic>> items) {
+    _draft = _draft.copyWith(preordenItems: items);
+    notifyListeners();
+  }
+
+  void setAlergias(List<String> alergias, {String? notas}) {
+    _draft = _draft.copyWith(
+      alergias: alergias,
+      notasAlergias: notas ?? _draft.notasAlergias,
+    );
+    notifyListeners();
+  }
+
+  void setOcasionEspecial(
+    Map<String, dynamic>? ocasion,
+    List<Map<String, dynamic>> experiencias,
+  ) {
+    _draft = _draft.copyWith(
+      ocasionEspecial: () => ocasion,
+      experiencias: experiencias,
+    );
+    notifyListeners();
+  }
+
+  void clearPersonalizacion() {
+    _draft = _draft.copyWith(
+      preordenItems: const [],
+      alergias: const [],
+      notasAlergias: '',
+      ocasionEspecial: () => null,
+      experiencias: const [],
+    );
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
   // Navegación de pasos y retención / descarte del borrador (HU07-RF01)
   // ---------------------------------------------------------------------------
   bool get canAdvanceCurrentStep {
@@ -455,6 +493,8 @@ class ReservationDraftViewModel extends ChangeNotifier {
         return canContinueFromSummary;
       case 7:
         return canContinueFromContact;
+      case 8:
+        return true;
       default:
         return false;
     }
@@ -463,7 +503,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   bool get canContinueFromSummary => _draft.isReadyForSummary;
 
   void nextStep() {
-    if (canAdvanceCurrentStep && _currentStep < 6) {
+    if (canAdvanceCurrentStep && _currentStep < 8) {
       _currentStep++;
       notifyListeners();
     }
@@ -479,7 +519,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   }
 
   void goToStep(int step) {
-    if (step >= 0 && step <= 7) {
+    if (step >= 0 && step <= 8) {
       _currentStep = step;
       notifyListeners();
     }

@@ -1,23 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../../models/experiencia_model.dart';
 import '../../models/ocasion_model.dart';
 import '../../viewmodels/ocasion_viewmodel.dart';
 
-/// Modal para crear una ocasión especial y sus experiencias (HU33-RF01)
+/// Modal para crear o editar una ocasión especial y sus experiencias (HU33-RF01 y HU33-RF02)
 class OcasionFormDialog extends StatefulWidget {
   final OcasionViewModel viewModel;
+  final OcasionModel? ocasionAEditar;
 
   const OcasionFormDialog({
     super.key,
     required this.viewModel,
+    this.ocasionAEditar,
   });
 
-  static Future<bool?> show(BuildContext context, {required OcasionViewModel viewModel}) {
-    viewModel.resetFormulario();
+  static Future<bool?> show(
+    BuildContext context, {
+    required OcasionViewModel viewModel,
+    OcasionModel? ocasionAEditar,
+  }) {
+    if (ocasionAEditar != null) {
+      viewModel.cargarOcasionParaEdicion(ocasionAEditar);
+    } else {
+      viewModel.resetFormulario();
+    }
+
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => OcasionFormDialog(viewModel: viewModel),
+      builder: (_) => OcasionFormDialog(
+        viewModel: viewModel,
+        ocasionAEditar: ocasionAEditar,
+      ),
     );
   }
 
@@ -27,12 +42,19 @@ class OcasionFormDialog extends StatefulWidget {
 
 class _OcasionFormDialogState extends State<OcasionFormDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nombrePersonalizadoCtrl = TextEditingController();
-  final _descripcionCtrl = TextEditingController();
+  late final TextEditingController _nombrePersonalizadoCtrl;
+  late final TextEditingController _descripcionCtrl;
 
   static const Color _primaryTerracotta = Color(0xFFB34A26);
   static const Color _lightBg = Color(0xFFFBF8F4);
   static const Color _cardBorder = Color(0xFFEDE4D8);
+
+  @override
+  void initState() {
+    super.initState();
+    _nombrePersonalizadoCtrl = TextEditingController(text: widget.viewModel.nombrePersonalizado);
+    _descripcionCtrl = TextEditingController(text: widget.viewModel.descripcion);
+  }
 
   @override
   void dispose() {
@@ -41,25 +63,31 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
     super.dispose();
   }
 
-  Future<void> _abrirModalNuevaExperiencia() async {
-    final expNombreCtrl = TextEditingController();
-    final expDescCtrl = TextEditingController();
-    final expPrecioCtrl = TextEditingController(text: '0');
-    bool esGratisLive = true;
+  Future<void> _abrirModalNuevaExperiencia({int? indexParaEditar, ExperienciaModel? expExistente}) async {
+    final expNombreCtrl = TextEditingController(text: expExistente?.nombre ?? '');
+    final expDescCtrl = TextEditingController(text: expExistente?.descripcionCorta ?? '');
+    final expPrecioCtrl = TextEditingController(
+      text: expExistente != null ? expExistente.precio.toStringAsFixed(2) : '0',
+    );
+    bool esGratisLive = expExistente != null ? expExistente.esGratis : true;
 
-    final agregada = await showDialog<bool>(
+    final resultado = await showDialog<bool>(
       context: context,
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final esEdicion = expExistente != null;
             return AlertDialog(
-              key: const ValueKey('dialogo_nueva_experiencia'),
+              key: ValueKey(esEdicion ? 'dialogo_editar_experiencia' : 'dialogo_nueva_experiencia'),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.stars_rounded, color: _primaryTerracotta),
-                  SizedBox(width: 8),
-                  Text('Agregar Experiencia', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Icon(Icons.stars_rounded, color: _primaryTerracotta),
+                  const SizedBox(width: 8),
+                  Text(
+                    esEdicion ? 'Editar Experiencia' : 'Agregar Experiencia',
+                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
                 ],
               ),
               content: SingleChildScrollView(
@@ -91,7 +119,10 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                               color: Colors.green.shade100,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Text('Gratis', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                            child: const Text(
+                              'Gratis',
+                              style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12),
+                            ),
                           ),
                       ],
                     ),
@@ -158,16 +189,26 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                       return;
                     }
 
-                    final ok = widget.viewModel.agregarExperienciaTemporal(
-                      nombre: nombre,
-                      descripcionCorta: expDescCtrl.text.trim(),
-                      precio: precio,
-                    );
-                    if (ok) {
+                    if (esEdicion && indexParaEditar != null) {
+                      widget.viewModel.actualizarExperienciaTemporal(
+                        indexParaEditar,
+                        nombre: nombre,
+                        descripcionCorta: expDescCtrl.text.trim(),
+                        precio: precio,
+                      );
                       Navigator.pop(ctx, true);
+                    } else {
+                      final ok = widget.viewModel.agregarExperienciaTemporal(
+                        nombre: nombre,
+                        descripcionCorta: expDescCtrl.text.trim(),
+                        precio: precio,
+                      );
+                      if (ok) {
+                        Navigator.pop(ctx, true);
+                      }
                     }
                   },
-                  child: const Text('Agregar'),
+                  child: Text(esEdicion ? 'Guardar' : 'Agregar'),
                 ),
               ],
             );
@@ -176,7 +217,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
       },
     );
 
-    if (agregada == true && mounted) {
+    if (resultado == true && mounted) {
       setState(() {});
     }
   }
@@ -200,9 +241,10 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
       builder: (context, _) {
         final vm = widget.viewModel;
         final esOtro = vm.nombrePredefinidoSeleccionado == OcasionModel.tipoOtro;
+        final esEdicion = vm.esModoEdicion;
 
         return Dialog(
-          key: const ValueKey('dialogo_crear_ocasion'),
+          key: ValueKey(esEdicion ? 'dialogo_editar_ocasion' : 'dialogo_crear_ocasion'),
           backgroundColor: _lightBg,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           child: ConstrainedBox(
@@ -227,17 +269,19 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                           child: const Icon(Icons.celebration, color: _primaryTerracotta, size: 24),
                         ),
                         const SizedBox(width: 12),
-                        const Expanded(
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Nueva Ocasión Especial',
-                                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                esEdicion ? 'Editar Ocasión Especial' : 'Nueva Ocasión Especial',
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               Text(
-                                'Configura una ocasión y agrega una o más experiencias para tus comensales.',
-                                style: TextStyle(fontSize: 12, color: Colors.grey),
+                                esEdicion
+                                    ? 'Modifica los datos y experiencias de esta ocasión.'
+                                    : 'Configura una ocasión y agrega una o más experiencias para tus comensales.',
+                                style: const TextStyle(fontSize: 12, color: Colors.grey),
                               ),
                             ],
                           ),
@@ -277,7 +321,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                       child: ListView(
                         shrinkWrap: true,
                         children: [
-                          // 1. Selector de Nombres Predefinidos (HU33-RF01 Criterio 1)
+                          // 1. Selector de Nombres Predefinidos (HU33-RF01 Criterio 1, HU33-RF02)
                           const Text(
                             'Tipo / Nombre de la ocasión *',
                             style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
@@ -285,7 +329,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                           const SizedBox(height: 6),
                           DropdownButtonFormField<String>(
                             key: const ValueKey('dropdown_nombre_ocasion'),
-                            initialValue: vm.nombrePredefinidoSeleccionado,
+                            value: vm.nombrePredefinidoSeleccionado,
                             decoration: const InputDecoration(
                               border: OutlineInputBorder(),
                               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -293,11 +337,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                             items: OcasionModel.nombresPredefinidos.map((n) {
                               return DropdownMenuItem(
                                 value: n,
-                                child: Row(
-                                  children: [
-                                    Text(n),
-                                  ],
-                                ),
+                                child: Text(n),
                               );
                             }).toList(),
                             onChanged: (val) {
@@ -347,7 +387,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                           ),
                           const SizedBox(height: 16),
 
-                          // 2. Sección de Experiencias (HU33-RF01 Criterios 2, 3, 4 y 6)
+                          // 2. Sección de Experiencias (HU33-RF01 y HU33-RF02)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -375,11 +415,11 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                                   foregroundColor: _primaryTerracotta,
                                   side: const BorderSide(color: _primaryTerracotta),
                                 ),
-                                onPressed: _abrirModalNuevaExperiencia,
+                                onPressed: () => _abrirModalNuevaExperiencia(),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 10),
+                          const SizedBox(height: 8),
 
                           if (vm.experienciasTemporales.isEmpty)
                             Container(
@@ -390,13 +430,13 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                                 borderRadius: BorderRadius.circular(10),
                                 border: Border.all(color: Colors.amber.shade200),
                               ),
-                              child: const Row(
+                              child: Row(
                                 children: [
-                                  Icon(Icons.info_outline, color: Colors.amber, size: 20),
-                                  SizedBox(width: 10),
-                                  Expanded(
+                                  Icon(Icons.info_outline, color: Colors.amber.shade900, size: 20),
+                                  const SizedBox(width: 8),
+                                  const Expanded(
                                     child: Text(
-                                      'Añade al menos una experiencia con su precio (ej. Pastel de cortesía, Decoración con velas, etc.).',
+                                      'Debes agregar al menos una experiencia para poder guardar esta ocasión especial.',
                                       style: TextStyle(fontSize: 12),
                                     ),
                                   ),
@@ -404,89 +444,107 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                               ),
                             )
                           else
-                            ...vm.experienciasTemporales.asMap().entries.map((entry) {
-                              final idx = entry.key;
-                              final exp = entry.value;
-                              return Card(
-                                key: ValueKey('card_experiencia_temporal_$idx'),
-                                margin: const EdgeInsets.only(bottom: 8),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  side: const BorderSide(color: _cardBorder),
-                                ),
-                                child: ListTile(
-                                  leading: CircleAvatar(
-                                    backgroundColor: exp.esGratis
-                                        ? Colors.green.shade100
-                                        : _primaryTerracotta.withAlpha(20),
-                                    child: Icon(
-                                      exp.esGratis ? Icons.card_giftcard : Icons.room_service,
-                                      color: exp.esGratis ? Colors.green : _primaryTerracotta,
-                                      size: 18,
-                                    ),
+                            ListView.separated(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              itemCount: vm.experienciasTemporales.length,
+                              separatorBuilder: (_, __) => const SizedBox(height: 6),
+                              itemBuilder: (context, i) {
+                                final exp = vm.experienciasTemporales[i];
+                                return Container(
+                                  key: ValueKey('item_experiencia_temp_$i'),
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(10),
+                                    border: Border.all(color: _cardBorder),
                                   ),
-                                  title: Text(exp.nombre, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
-                                  subtitle: exp.descripcionCorta.isNotEmpty
-                                      ? Text(exp.descripcionCorta, style: const TextStyle(fontSize: 12), maxLines: 1, overflow: TextOverflow.ellipsis)
-                                      : null,
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                  child: Row(
                                     children: [
+                                      const Icon(Icons.stars, color: _primaryTerracotta, size: 20),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              exp.nombre,
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                                            ),
+                                            if (exp.descripcionCorta.isNotEmpty)
+                                              Text(
+                                                exp.descripcionCorta,
+                                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                              ),
+                                          ],
+                                        ),
+                                      ),
                                       Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                         decoration: BoxDecoration(
-                                          color: exp.esGratis ? Colors.green.shade50 : Colors.grey.shade100,
-                                          borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(
-                                            color: exp.esGratis ? Colors.green.shade300 : Colors.grey.shade300,
-                                          ),
+                                          color: exp.esGratis ? Colors.green.shade100 : Colors.amber.shade100,
+                                          borderRadius: BorderRadius.circular(6),
                                         ),
                                         child: Text(
                                           exp.precioFormateado,
                                           style: TextStyle(
+                                            fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            fontSize: 12,
-                                            color: exp.esGratis ? Colors.green.shade800 : Colors.black87,
+                                            color: exp.esGratis ? Colors.green.shade900 : Colors.brown.shade900,
                                           ),
                                         ),
                                       ),
+                                      const SizedBox(width: 4),
                                       IconButton(
-                                        key: ValueKey('boton_eliminar_experiencia_$idx'),
+                                        key: ValueKey('boton_editar_exp_temp_$i'),
+                                        icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
+                                        tooltip: 'Editar experiencia',
+                                        onPressed: () => _abrirModalNuevaExperiencia(
+                                          indexParaEditar: i,
+                                          expExistente: exp,
+                                        ),
+                                      ),
+                                      IconButton(
+                                        key: ValueKey('boton_remover_exp_temp_$i'),
                                         icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
-                                        onPressed: () => vm.removerExperienciaTemporal(idx),
                                         tooltip: 'Eliminar experiencia',
+                                        onPressed: () => vm.removerExperienciaTemporal(i),
                                       ),
                                     ],
                                   ),
-                                ),
-                              );
-                            }),
+                                );
+                              },
+                            ),
                         ],
                       ),
                     ),
 
                     const Divider(height: 24),
-                    // Acciones inferiores
+
+                    // Botones inferiores
                     Row(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
                         TextButton(
+                          key: const ValueKey('boton_cancelar_ocasion'),
                           onPressed: () => Navigator.pop(context, false),
                           child: const Text('Cancelar'),
                         ),
-                        const SizedBox(width: 10),
-                        FilledButton.icon(
+                        const SizedBox(width: 12),
+                        FilledButton(
                           key: const ValueKey('boton_guardar_ocasion'),
-                          style: FilledButton.styleFrom(backgroundColor: _primaryTerracotta),
-                          icon: vm.isLoading
+                          style: FilledButton.styleFrom(
+                            backgroundColor: _primaryTerracotta,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          ),
+                          onPressed: vm.puedeGuardar ? _guardarOcasion : null,
+                          child: vm.isLoading
                               ? const SizedBox(
-                                  width: 16,
-                                  height: 16,
+                                  width: 18,
+                                  height: 18,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                                 )
-                              : const Icon(Icons.check),
-                          label: const Text('Guardar ocasión'),
-                          onPressed: vm.puedeGuardar ? _guardarOcasion : null,
+                              : Text(esEdicion ? 'Guardar cambios' : 'Crear ocasión'),
                         ),
                       ],
                     ),

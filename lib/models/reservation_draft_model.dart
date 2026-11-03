@@ -8,6 +8,9 @@ import 'restaurant_model.dart';
 /// sucursal, fecha, duración, cantidad de personas, mesa(s), horario
 /// y datos de contacto (HU13).
 ///
+/// Además soporta personalización de la visita (HU15-RF01, HU15-RF02, HU16):
+/// preorden de platillos, especificación de alergias y ocasión especial.
+///
 /// La contraseña NO forma parte del borrador (HU14-RF01): solo vive en memoria
 /// en el ViewModel hasta que se crea la cuenta.
 class ReservationDraftModel {
@@ -28,6 +31,13 @@ class ReservationDraftModel {
   // HU13-RF02: el visitante quiere crear una cuenta (no marcado por defecto)
   final bool crearCuenta;
 
+  // HU15-RF02 / HU16: Datos opcionales de personalización de la visita
+  final List<Map<String, dynamic>> preordenItems;
+  final List<String> alergias;
+  final String notasAlergias;
+  final Map<String, dynamic>? ocasionEspecial;
+  final List<Map<String, dynamic>> experiencias;
+
   const ReservationDraftModel({
     required this.restaurant,
     this.branch,
@@ -41,6 +51,11 @@ class ReservationDraftModel {
     this.contactoCorreo = '',
     this.contactoTelefono = '',
     this.crearCuenta = false,
+    this.preordenItems = const [],
+    this.alergias = const [],
+    this.notasAlergias = '',
+    this.ocasionEspecial,
+    this.experiencias = const [],
   });
 
   /// Crea una copia inmutable actualizando únicamente los campos provistos.
@@ -57,6 +72,11 @@ class ReservationDraftModel {
     String? contactoCorreo,
     String? contactoTelefono,
     bool? crearCuenta,
+    List<Map<String, dynamic>>? preordenItems,
+    List<String>? alergias,
+    String? notasAlergias,
+    Map<String, dynamic>? Function()? ocasionEspecial,
+    List<Map<String, dynamic>>? experiencias,
   }) {
     return ReservationDraftModel(
       restaurant: restaurant ?? this.restaurant,
@@ -71,6 +91,11 @@ class ReservationDraftModel {
       contactoCorreo: contactoCorreo ?? this.contactoCorreo,
       contactoTelefono: contactoTelefono ?? this.contactoTelefono,
       crearCuenta: crearCuenta ?? this.crearCuenta,
+      preordenItems: preordenItems ?? this.preordenItems,
+      alergias: alergias ?? this.alergias,
+      notasAlergias: notasAlergias ?? this.notasAlergias,
+      ocasionEspecial: ocasionEspecial != null ? ocasionEspecial() : this.ocasionEspecial,
+      experiencias: experiencias ?? this.experiencias,
     );
   }
 
@@ -86,6 +111,11 @@ class ReservationDraftModel {
       mesaIds: const [],
       mesasNombres: const [],
       horario: null,
+      preordenItems: const [],
+      alergias: const [],
+      notasAlergias: '',
+      ocasionEspecial: null,
+      experiencias: const [],
     );
   }
 
@@ -109,6 +139,35 @@ class ReservationDraftModel {
   /// Indica si el borrador cuenta con todos los datos necesarios para el resumen (HU12-RF01).
   bool get isReadyForSummary =>
       hasDate && hasDuration && hasPeople && hasTables && hasTime;
+
+  // HU15-RF02 / HU16: Getters de personalización
+  bool get tienePersonalizacion =>
+      preordenItems.isNotEmpty ||
+      alergias.isNotEmpty ||
+      notasAlergias.trim().isNotEmpty ||
+      ocasionEspecial != null ||
+      experiencias.isNotEmpty;
+
+  double get subtotalPreorden {
+    return preordenItems.fold<double>(0.0, (acc, item) {
+      final total = (item['total'] as num?)?.toDouble();
+      if (total != null) return acc + total;
+      final precio = (item['precio'] as num?)?.toDouble() ?? 0.0;
+      final cantidad = (item['cantidad'] as num?)?.toInt() ?? 1;
+      return acc + (precio * cantidad);
+    });
+  }
+
+  double get totalExperiencias {
+    return experiencias.fold<double>(0.0, (acc, exp) {
+      final esGratis = exp['esGratis'] == true;
+      if (esGratis) return acc;
+      final precio = (exp['precio'] as num?)?.toDouble() ?? 0.0;
+      return acc + precio;
+    });
+  }
+
+  double get totalPersonalizacion => subtotalPreorden + totalExperiencias;
 
   /// Inicio de la visita: fecha elegida más hora de inicio (HU11-RF02). Si el
   /// restaurante cierra de madrugada y la hora es anterior a la apertura, el
@@ -188,6 +247,6 @@ class ReservationDraftModel {
 
   @override
   String toString() {
-    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, crearCuenta: $crearCuenta)';
+    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, tienePersonalizacion: $tienePersonalizacion)';
   }
 }

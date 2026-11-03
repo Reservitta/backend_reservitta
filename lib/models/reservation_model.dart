@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Modelo inmutable de Reservación para gestión de reservaciones, disponibilidad y bloqueo de mesas
-/// Implementación de HU08-RF02 y HU03-RF01.
+/// Implementación de HU08-RF02, HU03-RF01, HU15-RF02 y HU16.
 class ReservationModel {
   // Constantes de estado (HU08-RF02 Criterio 1)
   static const String estadoPendiente = 'pendiente';
@@ -48,6 +48,13 @@ class ReservationModel {
   final String estado; // 'pendiente', 'confirmada', 'cancelada'
   final DateTime? creadaEn;
 
+  // HU15-RF02 y HU16: Datos opcionales de personalización
+  final List<Map<String, dynamic>> preordenItems;
+  final List<String> alergias;
+  final String notasAlergias;
+  final Map<String, dynamic>? ocasionEspecial;
+  final List<Map<String, dynamic>> experiencias;
+
   const ReservationModel({
     required this.id,
     required this.restauranteId,
@@ -65,6 +72,11 @@ class ReservationModel {
     this.mesasNombres = const [],
     this.estado = estadoConfirmada,
     this.creadaEn,
+    this.preordenItems = const [],
+    this.alergias = const [],
+    this.notasAlergias = '',
+    this.ocasionEspecial,
+    this.experiencias = const [],
   });
 
   /// Constructor factoría para instanciación con cálculo automático de hora de fin (Criterio 2)
@@ -85,6 +97,11 @@ class ReservationModel {
     List<String> mesasNombres = const [],
     String estado = estadoPendiente,
     DateTime? creadaEn,
+    List<Map<String, dynamic>> preordenItems = const [],
+    List<String> alergias = const [],
+    String notasAlergias = '',
+    Map<String, dynamic>? ocasionEspecial,
+    List<Map<String, dynamic>> experiencias = const [],
   }) {
     final effectiveFin = fin ??
         (inicio != null
@@ -108,6 +125,11 @@ class ReservationModel {
       mesasNombres: mesasNombres,
       estado: estado,
       creadaEn: creadaEn,
+      preordenItems: preordenItems,
+      alergias: alergias,
+      notasAlergias: notasAlergias,
+      ocasionEspecial: ocasionEspecial,
+      experiencias: experiencias,
     );
   }
 
@@ -131,6 +153,36 @@ class ReservationModel {
 
   /// Indica si el estado actual es 'cancelada'
   bool get isCancelada => estado.trim().toLowerCase() == estadoCancelada;
+
+  /// Getters de personalización
+  bool get tienePreorden => preordenItems.isNotEmpty;
+  bool get tienePersonalizacion =>
+      preordenItems.isNotEmpty ||
+      alergias.isNotEmpty ||
+      notasAlergias.trim().isNotEmpty ||
+      ocasionEspecial != null ||
+      experiencias.isNotEmpty;
+
+  double get subtotalPreorden {
+    return preordenItems.fold<double>(0.0, (acc, item) {
+      final total = (item['total'] as num?)?.toDouble();
+      if (total != null) return acc + total;
+      final precio = (item['precio'] as num?)?.toDouble() ?? 0.0;
+      final cantidad = (item['cantidad'] as num?)?.toInt() ?? 1;
+      return acc + (precio * cantidad);
+    });
+  }
+
+  double get totalExperiencias {
+    return experiencias.fold<double>(0.0, (acc, exp) {
+      final esGratis = exp['esGratis'] == true;
+      if (esGratis) return acc;
+      final precio = (exp['precio'] as num?)?.toDouble() ?? 0.0;
+      return acc + precio;
+    });
+  }
+
+  double get totalPersonalizacion => subtotalPreorden + totalExperiencias;
 
   /// Retorna la hora de inicio efectiva
   DateTime get effectiveStart {
@@ -268,6 +320,52 @@ class ReservationModel {
     // Cantidad de personas (soporta 'personas' o 'cantidadPersonas')
     final personasCount = (data['personas'] ?? data['cantidadPersonas'] ?? data['cantidad_personas'] as num?)?.toInt() ?? 2;
 
+    // Preorden
+    final rawPreorden = data['preorden'] as Map<String, dynamic>?;
+    final List<Map<String, dynamic>> preordenList = [];
+    if (rawPreorden != null && rawPreorden['items'] is List) {
+      for (final item in rawPreorden['items']) {
+        if (item is Map) {
+          preordenList.add(Map<String, dynamic>.from(item));
+        }
+      }
+    } else if (data['preordenItems'] is List) {
+      for (final item in data['preordenItems']) {
+        if (item is Map) {
+          preordenList.add(Map<String, dynamic>.from(item));
+        }
+      }
+    }
+
+    // Alergias
+    final rawAlergias = data['alergias'] as List<dynamic>? ?? [];
+    final alergiasList = rawAlergias.map((e) => e.toString()).toList();
+    final notasAlergias = (data['notasAlergias'] as String?) ?? '';
+
+    // Ocasión
+    Map<String, dynamic>? ocasionMap;
+    final rawOcasion = data['ocasion'] as Map<String, dynamic>? ??
+        data['ocasionEspecial'] as Map<String, dynamic>?;
+    if (rawOcasion != null) {
+      ocasionMap = Map<String, dynamic>.from(rawOcasion);
+    }
+
+    // Experiencias
+    final List<Map<String, dynamic>> experienciasList = [];
+    if (rawOcasion != null && rawOcasion['experiencias'] is List) {
+      for (final exp in rawOcasion['experiencias']) {
+        if (exp is Map) {
+          experienciasList.add(Map<String, dynamic>.from(exp));
+        }
+      }
+    } else if (data['experiencias'] is List) {
+      for (final exp in data['experiencias']) {
+        if (exp is Map) {
+          experienciasList.add(Map<String, dynamic>.from(exp));
+        }
+      }
+    }
+
     return ReservationModel(
       id: id,
       restauranteId: restId,
@@ -285,6 +383,11 @@ class ReservationModel {
       mesasNombres: List<String>.from(data['mesasNombres'] as List<dynamic>? ?? []),
       estado: (data['estado'] as String?) ?? estadoConfirmada,
       creadaEn: parseTimestamp(data['creadaEn']),
+      preordenItems: preordenList,
+      alergias: alergiasList,
+      notasAlergias: notasAlergias,
+      ocasionEspecial: ocasionMap,
+      experiencias: experienciasList,
     );
   }
 
@@ -295,7 +398,7 @@ class ReservationModel {
             ? calculateEndTime(inicio: inicio!, duracionMin: duracionMin)
             : null);
 
-    return {
+    final map = <String, dynamic>{
       'restauranteId': restauranteId,
       'usuarioId': usuarioId,
       'restauranteNombre': restauranteNombre,
@@ -316,7 +419,38 @@ class ReservationModel {
       'creadaEn': creadaEn != null
           ? Timestamp.fromDate(creadaEn!)
           : FieldValue.serverTimestamp(),
+      'tienePreorden': preordenItems.isNotEmpty,
+      'tieneObservaciones': notasAlergias.trim().isNotEmpty,
+      'alergias': alergias,
+      'notasAlergias': notasAlergias,
     };
+
+    if (preordenItems.isNotEmpty) {
+      map['preorden'] = {
+        'items': preordenItems,
+        'estado': 'pendiente',
+        'subtotalPreorden': subtotalPreorden,
+        'estadoActualizadoEn': FieldValue.serverTimestamp(),
+      };
+    }
+
+    if (ocasionEspecial != null) {
+      map['ocasion'] = {
+        'ocasionId': ocasionEspecial!['ocasionId'] ?? ocasionEspecial!['id'] ?? '',
+        'nombre': ocasionEspecial!['nombre'] ?? '',
+        'experiencias': experiencias,
+      };
+    }
+
+    if (preordenItems.isNotEmpty || experiencias.isNotEmpty) {
+      map['totales'] = {
+        'subtotalPreorden': subtotalPreorden,
+        'totalExperiencias': totalExperiencias,
+        'total': totalPersonalizacion,
+      };
+    }
+
+    return map;
   }
 
   ReservationModel copyWith({
@@ -336,6 +470,11 @@ class ReservationModel {
     List<String>? mesasNombres,
     String? estado,
     DateTime? creadaEn,
+    List<Map<String, dynamic>>? preordenItems,
+    List<String>? alergias,
+    String? notasAlergias,
+    Map<String, dynamic>? Function()? ocasionEspecial,
+    List<Map<String, dynamic>>? experiencias,
   }) {
     return ReservationModel(
       id: id ?? this.id,
@@ -354,6 +493,11 @@ class ReservationModel {
       mesasNombres: mesasNombres ?? this.mesasNombres,
       estado: estado ?? this.estado,
       creadaEn: creadaEn ?? this.creadaEn,
+      preordenItems: preordenItems ?? this.preordenItems,
+      alergias: alergias ?? this.alergias,
+      notasAlergias: notasAlergias ?? this.notasAlergias,
+      ocasionEspecial: ocasionEspecial != null ? ocasionEspecial() : this.ocasionEspecial,
+      experiencias: experiencias ?? this.experiencias,
     );
   }
 }

@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import '../models/experiencia_model.dart';
 import '../models/ocasion_model.dart';
 import '../services/ocasion_service.dart';
 import '../viewmodels/ocasion_viewmodel.dart';
 import 'widgets/ocasion_form_dialog.dart';
 
-/// Pantalla de gestión de Ocasiones Especiales y Experiencias para Administradores (HU33-RF01)
+/// Pantalla de gestión de Ocasiones Especiales y Experiencias para Administradores (HU33-RF01 y HU33-RF02)
 class OcasionListView extends StatefulWidget {
   final String restaurantId;
   final OcasionService? ocasionService;
@@ -82,13 +84,31 @@ class _OcasionListViewState extends State<OcasionListView> {
     }
   }
 
+  Future<void> _abrirDialogoEditar(OcasionModel ocasion) async {
+    final editado = await OcasionFormDialog.show(
+      context,
+      viewModel: _viewModel,
+      ocasionAEditar: ocasion,
+    );
+    if (editado == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(_viewModel.successMessage ?? 'Ocasión especial actualizada correctamente.'),
+          backgroundColor: Colors.green.shade700,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
   Future<void> _confirmarEliminar(OcasionModel ocasion) async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('¿Eliminar ocasión especial?'),
         content: Text(
-          'Se eliminará la ocasión "${ocasion.nombre}" y sus ${ocasion.experiencias.length} experiencia(s) asociadas.',
+          'Se eliminará la ocasión "${ocasion.nombre}" y sus ${ocasion.experiencias.length} experiencia(s) asociadas.\n\n'
+          'Las reservas que ya la tenían seleccionada conservarán su dato histórico intacto, pero dejará de estar disponible para nuevas reservas.',
         ),
         actions: [
           TextButton(
@@ -112,6 +132,178 @@ class _OcasionListViewState extends State<OcasionListView> {
             content: Text('Ocasión eliminada correctamente.'),
             duration: Duration(seconds: 3),
           ),
+        );
+      }
+    }
+  }
+
+  Future<void> _confirmarEliminarExperiencia(OcasionModel ocasion, ExperienciaModel exp) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('¿Eliminar experiencia?'),
+        content: Text(
+          'Se eliminará la experiencia "${exp.nombre}" de la ocasión "${ocasion.nombre}".\n\n'
+          'Las reservas existentes conservarán su dato histórico intacto, pero dejará de ofrecerse a nuevas reservas.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar experiencia'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true && mounted) {
+      final ok = await _viewModel.eliminarExperienciaIndividual(
+        ocasionId: ocasion.id,
+        experienciaId: exp.id,
+      );
+      if (ok && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Experiencia "${exp.nombre}" eliminada.'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _abrirDialogoEditarExperienciaDirecta(OcasionModel ocasion, ExperienciaModel exp) async {
+    final nombreCtrl = TextEditingController(text: exp.nombre);
+    final descCtrl = TextEditingController(text: exp.descripcionCorta);
+    final precioCtrl = TextEditingController(text: exp.precio.toStringAsFixed(2));
+    bool esGratisLive = exp.esGratis;
+
+    final guardado = await showDialog<bool>(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              key: const ValueKey('dialogo_editar_experiencia_individual'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: const Text('Editar Experiencia', style: TextStyle(fontWeight: FontWeight.bold)),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Nombre *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      key: const ValueKey('input_edit_directo_nombre_exp'),
+                      controller: nombreCtrl,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                    ),
+                    const SizedBox(height: 12),
+
+                    Row(
+                      children: [
+                        const Text('Precio (MXN) *', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                        const Spacer(),
+                        if (esGratisLive)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.green.shade100,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Text('Gratis', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      key: const ValueKey('input_edit_directo_precio_exp'),
+                      controller: precioCtrl,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(RegExp(r'^\d*\.?\d{0,2}')),
+                      ],
+                      decoration: const InputDecoration(
+                        prefixText: '\$ ',
+                        hintText: '0.00',
+                        helperText: 'Ingresa \$0 para volverla gratuita, o un valor mayor para asignarle precio.',
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        final parsed = double.tryParse(val) ?? 0.0;
+                        setDialogState(() {
+                          esGratisLive = parsed <= 0.0;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 12),
+
+                    const Text('Descripción corta', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    const SizedBox(height: 4),
+                    TextFormField(
+                      key: const ValueKey('input_edit_directo_desc_exp'),
+                      controller: descCtrl,
+                      maxLines: 2,
+                      decoration: const InputDecoration(border: OutlineInputBorder()),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  key: const ValueKey('boton_confirmar_guardar_exp_individual'),
+                  style: FilledButton.styleFrom(backgroundColor: _primaryTerracotta),
+                  onPressed: () {
+                    final n = nombreCtrl.text.trim();
+                    if (n.isEmpty) return;
+                    Navigator.pop(ctx, true);
+                  },
+                  child: const Text('Guardar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (guardado == true && mounted) {
+      final nuevoPrecio = double.tryParse(precioCtrl.text.trim()) ?? 0.0;
+      final nuevasExperiencias = ocasion.experiencias.map((e) {
+        if (e.id == exp.id) {
+          return e.copyWith(
+            nombre: nombreCtrl.text.trim(),
+            descripcionCorta: descCtrl.text.trim(),
+            precio: nuevoPrecio,
+            esGratis: nuevoPrecio <= 0.0,
+          );
+        }
+        return e;
+      }).toList();
+
+      final service = widget.ocasionService ?? OcasionService();
+      await service.actualizarOcasion(
+        restaurantId: widget.restaurantId,
+        ocasionId: ocasion.id,
+        nombre: ocasion.nombre,
+        tipoPredefinido: ocasion.tipoPredefinido,
+        descripcion: ocasion.descripcion,
+        icono: ocasion.icono,
+        experiencias: nuevasExperiencias,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Experiencia actualizada correctamente.')),
         );
       }
     }
@@ -329,6 +521,14 @@ class _OcasionListViewState extends State<OcasionListView> {
                     ],
                   ),
                 ),
+                // Botón editar ocasión (HU33-RF02)
+                IconButton(
+                  key: ValueKey('boton_editar_ocasion_${ocasion.id}'),
+                  icon: const Icon(Icons.edit_outlined, color: _primaryTerracotta, size: 20),
+                  tooltip: 'Editar ocasión',
+                  onPressed: () => _abrirDialogoEditar(ocasion),
+                ),
+                // Botón eliminar ocasión (HU33-RF01 y HU33-RF02)
                 IconButton(
                   key: ValueKey('boton_eliminar_ocasion_${ocasion.id}'),
                   icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 20),
@@ -341,7 +541,7 @@ class _OcasionListViewState extends State<OcasionListView> {
             const Divider(height: 1),
             const SizedBox(height: 12),
 
-            // Lista de experiencias
+            // Lista de experiencias (HU33-RF02)
             Row(
               children: [
                 const Icon(Icons.stars_rounded, size: 16, color: _primaryTerracotta),
@@ -358,11 +558,11 @@ class _OcasionListViewState extends State<OcasionListView> {
             ),
             const SizedBox(height: 8),
 
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
+            Column(
               children: ocasion.experiencias.map((exp) {
                 return Container(
+                  key: ValueKey('card_experiencia_${exp.id}'),
+                  margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
                     color: _lightBg,
@@ -370,11 +570,22 @@ class _OcasionListViewState extends State<OcasionListView> {
                     border: Border.all(color: _cardBorder),
                   ),
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        exp.nombre,
-                        style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              exp.nombre,
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                            ),
+                            if (exp.descripcionCorta.isNotEmpty)
+                              Text(
+                                exp.descripcionCorta,
+                                style: const TextStyle(fontSize: 11, color: _textMuted),
+                              ),
+                          ],
+                        ),
                       ),
                       const SizedBox(width: 8),
                       Container(
@@ -391,6 +602,28 @@ class _OcasionListViewState extends State<OcasionListView> {
                             color: exp.esGratis ? Colors.green.shade900 : Colors.brown.shade900,
                           ),
                         ),
+                      ),
+                      const SizedBox(width: 4),
+                      // Botón editar experiencia individual (HU33-RF02)
+                      IconButton(
+                        key: ValueKey('boton_editar_experiencia_${exp.id}'),
+                        icon: const Icon(Icons.edit_outlined, size: 18, color: Colors.blueGrey),
+                        tooltip: 'Editar experiencia',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => _abrirDialogoEditarExperienciaDirecta(ocasion, exp),
+                      ),
+                      const SizedBox(width: 6),
+                      // Botón eliminar experiencia individual (HU33-RF02)
+                      IconButton(
+                        key: ValueKey('boton_eliminar_experiencia_${exp.id}'),
+                        icon: const Icon(Icons.delete_outline, size: 18, color: Colors.redAccent),
+                        tooltip: 'Eliminar experiencia',
+                        visualDensity: VisualDensity.compact,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: () => _confirmarEliminarExperiencia(ocasion, exp),
                       ),
                     ],
                   ),

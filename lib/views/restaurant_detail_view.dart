@@ -11,6 +11,7 @@ import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'reservation_flow_view.dart';
 // import 'widgets/preorden_item_dialog.dart';
+import 'widgets/platillo_menu_card.dart';
 import 'widgets/preorden_resumen_sheet.dart';
 
 /// Pantalla pública de detalle del restaurante (HU01-RF03, HU05)
@@ -501,6 +502,13 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
   }
 
   Widget _buildDishTile(ThemeData theme, PlatilloModel p) {
+    return PlatilloMenuCard(
+      platillo: p,
+      mode: PlatilloCardMode.readOnly,
+    );
+  }
+
+  Widget _oldBuildDishTile(ThemeData theme, PlatilloModel p) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
