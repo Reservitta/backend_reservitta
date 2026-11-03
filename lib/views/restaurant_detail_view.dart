@@ -133,6 +133,8 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
       MaterialPageRoute(
         builder: (_) => ReservationFlowView(
           restaurant: widget.restaurant,
+          createReservationOnConfirm: true,
+          enableContactStep: true,
         ),
       ),
     );

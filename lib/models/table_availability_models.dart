@@ -17,6 +17,41 @@ enum AvailabilityFailure {
   sinDisponibilidad,
 }
 
+/// Resultado de validar una fecha contra el calendario del restaurante (HU07-RF03).
+class DateValidationResult {
+  final bool isValid;
+  final AvailabilityFailure? reason;
+
+  const DateValidationResult.valid() : isValid = true, reason = null;
+
+  const DateValidationResult.invalid(AvailabilityFailure this.reason)
+    : isValid = false;
+
+  /// Mensaje listo para mostrar al visitante.
+  String? get message {
+    switch (reason) {
+      case AvailabilityFailure.restauranteInactivo:
+        return 'El restaurante no está recibiendo reservaciones.';
+      case AvailabilityFailure.fechaPasada:
+        return 'Selecciona una fecha de hoy en adelante.';
+      case AvailabilityFailure.fechaMuyLejana:
+        return 'Aún no se aceptan reservaciones para una fecha tan lejana.';
+      case AvailabilityFailure.sinHorariosHoy:
+        return 'Ya no hay horarios disponibles el día de hoy.';
+      case AvailabilityFailure.cierreEspecial:
+        return 'El restaurante permanecerá cerrado ese día.';
+      case AvailabilityFailure.diaCerrado:
+        return 'El restaurante no abre ese día de la semana.';
+      case AvailabilityFailure.fueraDeHorario:
+        return 'El horario elegido queda fuera del horario de atención.';
+      case AvailabilityFailure.sinDisponibilidad:
+        return 'No hay disponibilidad en el horario elegido.';
+      case null:
+        return null;
+    }
+  }
+}
+
 /// Horario de inicio disponible con su hora de fin (HU11-RF01).
 class TimeSlot {
   final DateTime inicio;

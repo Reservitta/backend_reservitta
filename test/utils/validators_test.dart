@@ -99,4 +99,25 @@ void main() {
       );
     });
   });
+
+  group('HU13/HU14 validators', () {
+    test('validatePhone respects configurable digits', () {
+      expect(AppValidators.validatePhone('5512345678', digits: 10), isNull);
+      expect(AppValidators.validatePhone('55123456', digits: 8), isNull);
+      expect(AppValidators.validatePhone('5512345678', digits: 8), isNotNull);
+    });
+
+    test('validateNewPassword requires 8 chars, a letter and a number', () {
+      expect(AppValidators.validateNewPassword(''), isNotNull);
+      expect(AppValidators.validateNewPassword('abc123'), isNotNull); // < 8
+      expect(AppValidators.validateNewPassword('12345678'), isNotNull); // sin letra
+      expect(AppValidators.validateNewPassword('abcdefgh'), isNotNull); // sin número
+      expect(AppValidators.validateNewPassword('abcd1234'), isNull);
+    });
+
+    test('validateNewPassword does not affect the login password rule', () {
+      // El login conserva el mínimo de 6 caracteres.
+      expect(AppValidators.validatePassword('abc123'), isNull);
+    });
+  });
 }
