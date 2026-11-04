@@ -20,6 +20,25 @@ service cloud.firestore {
           && get(userPath(request.auth.uid)).data.rol == 'admin';
     }
 
+    function isVisitorProfile() {
+      return hasReservittaProfile()
+          && get(userPath(request.auth.uid)).data.rol == 'visitante';
+    }
+
+    // HU26-RF01 Criterio 4: Garantiza que un administrador solo vea y gestione
+    // las reservas que pertenecen a su propio restaurante autenticado.
+    function isAdminOfReservationRestaurant(reservationData) {
+      let userData = get(userPath(request.auth.uid)).data;
+      let restId = reservationData.restauranteId;
+      return hasReservittaProfile()
+          && userData.rol == 'admin'
+          && (
+            userData.restauranteId == restId
+            || (restId is string
+                && userData.restauranteId == /databases/$(database)/documents/restaurants/$(restId))
+          );
+    }
+
     function isAdminAfterRegistration() {
       return isSignedIn()
           && existsAfter(userPath(request.auth.uid))
@@ -101,8 +120,14 @@ service cloud.firestore {
     }
 
     match /reservations/{reservationId} {
-      // Las reservaciones sí requieren cuenta y estar autenticado (HU01-RF03)
-      allow read, create, update: if hasReservittaProfile();
+      // Las reservaciones sí requieren cuenta y estar autenticado (HU01-RF03).
+      // HU26-RF01 Criterio 4: Las reglas de Firestore garantizan que un
+      // administrador solo vea las reservas de su propio restaurante.
+      allow read: if isAdminOfReservationRestaurant(resource.data)
+                  || isVisitorProfile();
+      allow create: if hasReservittaProfile();
+      allow update: if isAdminOfReservationRestaurant(resource.data)
+                    || isVisitorProfile();
       allow delete: if false;
     }
 
