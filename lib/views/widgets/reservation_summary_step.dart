@@ -288,17 +288,37 @@ class ReservationSummaryStep extends StatelessWidget {
             onEdit: () => onEditStep(5),
           ),
 
-          // 7. Datos de contacto temporales (HU13-RF03)
-          if (draft.hasContactData) ...[
+          if (draft.contactoNombre.isNotEmpty) ...[
             const Divider(height: 1, indent: 56, endIndent: 16),
             _buildSummaryItem(
-              cardKey: const ValueKey('summary_card_contacto'),
+              cardKey: const ValueKey('summary_card_contacto_nombre'),
               icon: Icons.person_outline,
-              label: 'Datos de contacto',
-              value: '${draft.contactoNombre} • ${draft.contactoTelefono}',
-              extraInfo: draft.contactoCorreo,
-              buttonKey: const ValueKey('btn_modificar_contacto'),
-              onEdit: () => onEditStep(6),
+              label: 'Nombre completo',
+              value: draft.contactoNombre,
+              buttonKey: const ValueKey('btn_modificar_contacto_nombre'),
+              onEdit: () => onEditStep(7),
+            ),
+          ],
+          if (draft.contactoCorreo.isNotEmpty) ...[
+            const Divider(height: 1, indent: 56, endIndent: 16),
+            _buildSummaryItem(
+              cardKey: const ValueKey('summary_card_contacto_correo'),
+              icon: Icons.email_outlined,
+              label: 'Correo electrónico',
+              value: draft.contactoCorreo,
+              buttonKey: const ValueKey('btn_modificar_contacto_correo'),
+              onEdit: () => onEditStep(7),
+            ),
+          ],
+          if (draft.contactoTelefono.isNotEmpty) ...[
+            const Divider(height: 1, indent: 56, endIndent: 16),
+            _buildSummaryItem(
+              cardKey: const ValueKey('summary_card_contacto_telefono'),
+              icon: Icons.phone_outlined,
+              label: 'Teléfono',
+              value: draft.contactoTelefono,
+              buttonKey: const ValueKey('btn_modificar_contacto_telefono'),
+              onEdit: () => onEditStep(7),
             ),
           ],
         ],
@@ -472,4 +492,3 @@ class ReservationSummaryStep extends StatelessWidget {
     );
   }
 }
-

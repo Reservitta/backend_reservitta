@@ -4,9 +4,6 @@ class AppValidators {
   /// RegEx estándar para validación estricta de correo electrónico
   static final RegExp _emailRegExp = RegExp(r'^[\w.-]+@([\w-]+\.)+[\w-]{2,}$');
 
-  /// RegEx estricto para teléfono mexicano / estándar: exactamente 10 dígitos numéricos
-  static final RegExp _digitsOnlyRegExp = RegExp(r'^[0-9]{10}$');
-
   /// Valida campo obligatorio genérico
   static String? validateRequired(String? value, String fieldName) {
     if (value == null || value.trim().isEmpty) {
@@ -138,8 +135,9 @@ class AppValidators {
     return null;
   }
 
-  /// Valida Número de Teléfono estricto: solo números, sin espacios, exactamente 10 dígitos
-  static String? validatePhone(String? value) {
+  /// Valida teléfono: solo dígitos, sin espacios, exactamente [digits]
+  /// (10 por defecto, configurable, HU13-RF01).
+  static String? validatePhone(String? value, {int digits = 10}) {
     if (value == null || value.trim().isEmpty) {
       return 'Por favor ingresa un número de teléfono.';
     }
@@ -150,22 +148,37 @@ class AppValidators {
     if (RegExp(r'[^\d]').hasMatch(cleanPhone)) {
       return 'El teléfono solo debe contener dígitos numéricos, sin letras ni símbolos.';
     }
-    if (cleanPhone.length != 10) {
-      return 'El teléfono debe tener exactamente 10 dígitos (tienes ${cleanPhone.length}).';
-    }
-    if (!_digitsOnlyRegExp.hasMatch(cleanPhone)) {
-      return 'Ingresa un teléfono válido de 10 dígitos.';
+    if (cleanPhone.length != digits) {
+      return 'El teléfono debe tener exactamente $digits dígitos (tienes ${cleanPhone.length}).';
     }
     return null;
   }
 
-  /// Valida Contraseña según política mínima (mínimo 6 caracteres)
+  /// Valida Contraseña según política mínima de inicio de sesión (mínimo 6 caracteres)
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
       return 'Por favor ingresa tu contraseña.';
     }
     if (value.length < 6) {
       return 'La contraseña debe tener al menos 6 caracteres.';
+    }
+    return null;
+  }
+
+  /// Contraseña para cuentas nuevas: mínimo 8 caracteres, al menos una letra
+  /// y un número (HU14-RF01).
+  static String? validateNewPassword(String? value) {
+    if (value == null || value.isEmpty) {
+      return 'Por favor ingresa una contraseña.';
+    }
+    if (value.length < 8) {
+      return 'La contraseña debe tener al menos 8 caracteres.';
+    }
+    if (!RegExp(r'[A-Za-z]').hasMatch(value)) {
+      return 'La contraseña debe incluir al menos una letra.';
+    }
+    if (!RegExp(r'[0-9]').hasMatch(value)) {
+      return 'La contraseña debe incluir al menos un número.';
     }
     return null;
   }
@@ -201,7 +214,7 @@ class AppValidators {
     return null;
   }
 
-  /// Valida Nombre de Categoría 
+  /// Valida Nombre de Categoría
   static String? validateCategoryName(String? value) {
     if (value == null || value.trim().isEmpty) {
       return 'Por favor ingresa el nombre de la categoría.';
