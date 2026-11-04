@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/restaurant_model.dart';
 import '../viewmodels/home_viewmodel.dart';
+import 'admin_reservations_view.dart';
 import 'categoria_list_view.dart';
 import 'ocasion_list_view.dart';
 import 'platillo_list_view.dart';
@@ -472,6 +473,12 @@ class _HomeViewState extends State<HomeView> {
         return _buildDashboardView(currentRest);
 
       case AdminSection.reservas:
+        // HU26-RF02: Pantalla de listado de reservas del restaurante
+        return AdminReservationsView(
+          restaurantId: currentRest.id,
+          showAppBar: false,
+        );
+
       case AdminSection.pedidos:
       case AdminSection.mesas:
         return _buildProximamenteView(_obtenerTituloSeccion(_seccionActual));

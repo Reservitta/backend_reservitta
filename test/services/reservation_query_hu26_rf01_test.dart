@@ -18,18 +18,16 @@ class _FakeUser implements User {
 }
 
 class _FakeAuthService extends AuthService {
-  final User? _user;
-  final UserModel? _profile;
+  final User? user;
+  final UserModel? profile;
 
-  _FakeAuthService({User? user, UserModel? profile})
-      : _user = user,
-        _profile = profile;
+  _FakeAuthService({this.user, this.profile});
 
   @override
-  User? get currentUser => _user;
+  User? get currentUser => user;
 
   @override
-  Future<UserModel?> getUserProfile(String uid) async => _profile;
+  Future<UserModel?> getUserProfile(String uid) async => profile;
 }
 
 void main() {
