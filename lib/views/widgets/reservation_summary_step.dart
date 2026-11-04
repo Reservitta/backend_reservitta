@@ -287,6 +287,7 @@ class ReservationSummaryStep extends StatelessWidget {
             buttonKey: const ValueKey('btn_modificar_horario'),
             onEdit: () => onEditStep(5),
           ),
+
           if (draft.contactoNombre.isNotEmpty) ...[
             const Divider(height: 1, indent: 56, endIndent: 16),
             _buildSummaryItem(
@@ -491,4 +492,3 @@ class ReservationSummaryStep extends StatelessWidget {
     );
   }
 }
-

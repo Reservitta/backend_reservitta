@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'branch_model.dart';
+import 'reservation_contact_model.dart';
 import '../utils/schedule_utils.dart';
 import 'restaurant_model.dart';
 
-/// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01).
+/// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01 y HU13-RF03).
 /// Guarda de forma incremental los datos elegidos por el usuario:
 /// sucursal, fecha, duración, cantidad de personas, mesa(s), horario
 /// y datos de contacto (HU13).
@@ -23,13 +24,12 @@ class ReservationDraftModel {
   final List<String> mesasNombres;
   final TimeOfDay? horario;
 
-  // HU13-RF01: datos de contacto
-  final String contactoNombre;
-  final String contactoCorreo;
-  final String contactoTelefono;
-
-  // HU13-RF02: el visitante quiere crear una cuenta (no marcado por defecto)
-  final bool crearCuenta;
+  // HU13: Datos de contacto (soporta modelo de objeto o campos primitivos)
+  final ReservationContactModel? _explicitContactData;
+  final String _contactoNombre;
+  final String _contactoCorreo;
+  final String _contactoTelefono;
+  final bool _crearCuenta;
 
   // HU15-RF02 / HU16: Datos opcionales de personalización de la visita
   final List<Map<String, dynamic>> preordenItems;
@@ -47,16 +47,55 @@ class ReservationDraftModel {
     this.mesaIds = const [],
     this.mesasNombres = const [],
     this.horario,
-    this.contactoNombre = '',
-    this.contactoCorreo = '',
-    this.contactoTelefono = '',
-    this.crearCuenta = false,
+    ReservationContactModel? contactData,
+    String contactoNombre = '',
+    String contactoCorreo = '',
+    String contactoTelefono = '',
+    bool crearCuenta = false,
     this.preordenItems = const [],
     this.alergias = const [],
     this.notasAlergias = '',
     this.ocasionEspecial,
     this.experiencias = const [],
-  });
+  })  : _explicitContactData = contactData,
+        _contactoNombre = contactoNombre,
+        _contactoCorreo = contactoCorreo,
+        _contactoTelefono = contactoTelefono,
+        _crearCuenta = crearCuenta;
+
+  /// Retorna los datos de contacto estructurados
+  ReservationContactModel? get contactData {
+    if (_explicitContactData != null) return _explicitContactData;
+    if (_contactoNombre.isNotEmpty || _contactoCorreo.isNotEmpty || _contactoTelefono.isNotEmpty) {
+      return ReservationContactModel(
+        nombre: _contactoNombre,
+        correo: _contactoCorreo,
+        telefono: _contactoTelefono,
+        solicitaCrearCuenta: _crearCuenta,
+      );
+    }
+    return null;
+  }
+
+  // Getters de conveniencia y compatibilidad con HU13-RF01 / HU13-RF03
+  String get contactoNombre => _explicitContactData?.nombre ?? _contactoNombre;
+  String get contactoCorreo => _explicitContactData?.correo ?? _contactoCorreo;
+  String get contactoTelefono => _explicitContactData?.telefono ?? _contactoTelefono;
+  String get contactoNotas => _explicitContactData?.notas ?? '';
+  bool get crearCuenta => _explicitContactData?.solicitaCrearCuenta ?? _crearCuenta;
+  bool get solicitaCrearCuenta => crearCuenta;
+
+  // HU13-RF01: getters y alias de datos de contacto
+  String get contactNombre => contactoNombre;
+  String get contactCorreo => contactoCorreo;
+  String get contactTelefono => contactoTelefono;
+  bool get hasValidContactData =>
+      contactoNombre.trim().isNotEmpty &&
+      contactoCorreo.trim().isNotEmpty &&
+      contactoTelefono.trim().isNotEmpty;
+  bool get hasContactData =>
+      (_explicitContactData != null && _explicitContactData!.isNotEmpty) ||
+      hasValidContactData;
 
   /// Crea una copia inmutable actualizando únicamente los campos provistos.
   ReservationDraftModel copyWith({
@@ -68,6 +107,7 @@ class ReservationDraftModel {
     List<String>? mesaIds,
     List<String>? mesasNombres,
     TimeOfDay? Function()? horario,
+    ReservationContactModel? Function()? contactData,
     String? contactoNombre,
     String? contactoCorreo,
     String? contactoTelefono,
@@ -78,6 +118,8 @@ class ReservationDraftModel {
     Map<String, dynamic>? Function()? ocasionEspecial,
     List<Map<String, dynamic>>? experiencias,
   }) {
+    final nextContact = contactData != null ? contactData() : _explicitContactData;
+
     return ReservationDraftModel(
       restaurant: restaurant ?? this.restaurant,
       branch: branch != null ? branch() : this.branch,
@@ -87,10 +129,11 @@ class ReservationDraftModel {
       mesaIds: mesaIds ?? this.mesaIds,
       mesasNombres: mesasNombres ?? this.mesasNombres,
       horario: horario != null ? horario() : this.horario,
-      contactoNombre: contactoNombre ?? this.contactoNombre,
-      contactoCorreo: contactoCorreo ?? this.contactoCorreo,
-      contactoTelefono: contactoTelefono ?? this.contactoTelefono,
-      crearCuenta: crearCuenta ?? this.crearCuenta,
+      contactData: nextContact,
+      contactoNombre: contactoNombre ?? (nextContact?.nombre ?? this.contactoNombre),
+      contactoCorreo: contactoCorreo ?? (nextContact?.correo ?? this.contactoCorreo),
+      contactoTelefono: contactoTelefono ?? (nextContact?.telefono ?? this.contactoTelefono),
+      crearCuenta: crearCuenta ?? (nextContact?.solicitaCrearCuenta ?? this.crearCuenta),
       preordenItems: preordenItems ?? this.preordenItems,
       alergias: alergias ?? this.alergias,
       notasAlergias: notasAlergias ?? this.notasAlergias,
@@ -111,6 +154,11 @@ class ReservationDraftModel {
       mesaIds: const [],
       mesasNombres: const [],
       horario: null,
+      contactData: null,
+      contactoNombre: '',
+      contactoCorreo: '',
+      contactoTelefono: '',
+      crearCuenta: false,
       preordenItems: const [],
       alergias: const [],
       notasAlergias: '',
@@ -126,15 +174,6 @@ class ReservationDraftModel {
   bool get hasPeople => personas >= 1;
   bool get hasTables => mesaIds.isNotEmpty;
   bool get hasTime => horario != null;
-
-  // HU13-RF01: getters y alias de datos de contacto
-  String get contactNombre => contactoNombre;
-  String get contactCorreo => contactoCorreo;
-  String get contactTelefono => contactoTelefono;
-  bool get hasValidContactData =>
-      contactoNombre.trim().isNotEmpty &&
-      contactoCorreo.trim().isNotEmpty &&
-      contactoTelefono.trim().isNotEmpty;
 
   /// Indica si el borrador cuenta con todos los datos necesarios para el resumen (HU12-RF01).
   bool get isReadyForSummary =>
@@ -210,8 +249,9 @@ class ReservationDraftModel {
 
   /// Formato legible para pantalla de la fecha elegida (ej. "S, 31 de Octubre")
   String get formattedDate {
-    if (fecha == null) return '';
-    const dias = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
+    final d = fecha;
+    if (d == null) return '';
+    const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     const meses = [
       'Enero',
       'Febrero',
@@ -226,7 +266,6 @@ class ReservationDraftModel {
       'Noviembre',
       'Diciembre'
     ];
-    final d = fecha!;
     final diaSemana = dias[d.weekday - 1];
     final mes = meses[d.month - 1];
     return '$diaSemana, ${d.day} de $mes';
@@ -247,6 +286,6 @@ class ReservationDraftModel {
 
   @override
   String toString() {
-    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, tienePersonalizacion: $tienePersonalizacion)';
+    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, contact: $contactData, tienePersonalizacion: $tienePersonalizacion)';
   }
 }

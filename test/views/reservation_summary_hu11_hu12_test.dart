@@ -5,7 +5,6 @@ import 'package:reservitta/models/mesa_model.dart';
 import 'package:reservitta/models/reservation_draft_model.dart';
 import 'package:reservitta/models/reservation_model.dart';
 import 'package:reservitta/models/restaurant_model.dart';
-import 'package:reservitta/models/table_availability_models.dart';
 import 'package:reservitta/repositories/reservation_repository.dart';
 import 'package:reservitta/services/availability_service.dart';
 import 'package:reservitta/viewmodels/reservation_draft_viewmodel.dart';
