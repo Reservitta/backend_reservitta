@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'branch_model.dart';
+import 'reservation_contact_model.dart';
 import 'restaurant_model.dart';
 
-/// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01).
+/// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01 y HU13-RF03).
 /// Guarda de forma incremental los datos elegidos por el usuario:
-/// sucursal, fecha, duración, cantidad de personas, mesa(s) y horario.
+/// sucursal, fecha, duración, cantidad de personas, mesa(s), horario y datos de contacto temporales.
 class ReservationDraftModel {
   final RestaurantModel restaurant;
   final BranchModel? branch;
@@ -14,6 +15,7 @@ class ReservationDraftModel {
   final List<String> mesaIds;
   final List<String> mesasNombres;
   final TimeOfDay? horario;
+  final ReservationContactModel? contactData;
 
   const ReservationDraftModel({
     required this.restaurant,
@@ -24,6 +26,7 @@ class ReservationDraftModel {
     this.mesaIds = const [],
     this.mesasNombres = const [],
     this.horario,
+    this.contactData,
   });
 
   /// Crea una copia inmutable actualizando únicamente los campos provistos.
@@ -36,6 +39,7 @@ class ReservationDraftModel {
     List<String>? mesaIds,
     List<String>? mesasNombres,
     TimeOfDay? Function()? horario,
+    ReservationContactModel? Function()? contactData,
   }) {
     return ReservationDraftModel(
       restaurant: restaurant ?? this.restaurant,
@@ -46,6 +50,7 @@ class ReservationDraftModel {
       mesaIds: mesaIds ?? this.mesaIds,
       mesasNombres: mesasNombres ?? this.mesasNombres,
       horario: horario != null ? horario() : this.horario,
+      contactData: contactData != null ? contactData() : this.contactData,
     );
   }
 
@@ -60,6 +65,7 @@ class ReservationDraftModel {
       mesaIds: const [],
       mesasNombres: const [],
       horario: null,
+      contactData: null,
     );
   }
 
@@ -70,6 +76,14 @@ class ReservationDraftModel {
   bool get hasPeople => personas >= 1;
   bool get hasTables => mesaIds.isNotEmpty;
   bool get hasTime => horario != null;
+  bool get hasContactData => contactData != null && contactData!.isNotEmpty;
+
+  // Getters de conveniencia para datos de contacto (HU13-RF03)
+  String get contactoNombre => contactData?.nombre ?? '';
+  String get contactoCorreo => contactData?.correo ?? '';
+  String get contactoTelefono => contactData?.telefono ?? '';
+  String get contactoNotas => contactData?.notas ?? '';
+  bool get solicitaCrearCuenta => contactData?.solicitaCrearCuenta ?? false;
 
   /// Indica si el borrador cuenta con todos los datos necesarios para el resumen (HU12-RF01).
   bool get isReadyForSummary =>
@@ -98,8 +112,9 @@ class ReservationDraftModel {
 
   /// Formato legible para pantalla de la fecha elegida (ej. "S, 31 de Octubre")
   String get formattedDate {
-    if (fecha == null) return '';
-    const dias = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
+    final d = fecha;
+    if (d == null) return '';
+    const dias = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
     const meses = [
       'Enero',
       'Febrero',
@@ -114,7 +129,6 @@ class ReservationDraftModel {
       'Noviembre',
       'Diciembre'
     ];
-    final d = fecha!;
     final diaSemana = dias[d.weekday - 1];
     final mes = meses[d.month - 1];
     return '$diaSemana, ${d.day} de $mes';
@@ -135,6 +149,6 @@ class ReservationDraftModel {
 
   @override
   String toString() {
-    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas)';
+    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, contact: $contactData)';
   }
 }

@@ -287,6 +287,20 @@ class ReservationSummaryStep extends StatelessWidget {
             buttonKey: const ValueKey('btn_modificar_horario'),
             onEdit: () => onEditStep(5),
           ),
+
+          // 7. Datos de contacto temporales (HU13-RF03)
+          if (draft.hasContactData) ...[
+            const Divider(height: 1, indent: 56, endIndent: 16),
+            _buildSummaryItem(
+              cardKey: const ValueKey('summary_card_contacto'),
+              icon: Icons.person_outline,
+              label: 'Datos de contacto',
+              value: '${draft.contactoNombre} • ${draft.contactoTelefono}',
+              extraInfo: draft.contactoCorreo,
+              buttonKey: const ValueKey('btn_modificar_contacto'),
+              onEdit: () => onEditStep(6),
+            ),
+          ],
         ],
       ),
     );
