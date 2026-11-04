@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/restaurant_model.dart';
 import '../viewmodels/home_viewmodel.dart';
 import 'categoria_list_view.dart';
+import 'ocasion_list_view.dart';
 import 'platillo_list_view.dart';
 import 'restaurant_profile_view.dart';
 
@@ -14,6 +15,7 @@ enum AdminSection {
   mesas,
   menu,
   categorias,
+  ocasiones,
   configuracion,
 }
 
@@ -181,6 +183,8 @@ class _HomeViewState extends State<HomeView> {
         return 'Menú';
       case AdminSection.categorias:
         return 'Categorías';
+      case AdminSection.ocasiones:
+        return 'Ocasiones Especiales';
       case AdminSection.configuracion:
         return 'Configuración';
     }
@@ -289,6 +293,12 @@ class _HomeViewState extends State<HomeView> {
                   seccion: AdminSection.categorias,
                   icono: Icons.category_outlined,
                   titulo: 'Categorías',
+                  isDrawer: isDrawer,
+                ),
+                _buildSidebarItem(
+                  seccion: AdminSection.ocasiones,
+                  icono: Icons.celebration_outlined,
+                  titulo: 'Ocasiones',
                   isDrawer: isDrawer,
                 ),
 
@@ -427,6 +437,13 @@ class _HomeViewState extends State<HomeView> {
       case AdminSection.categorias:
         // HU24-RF02: Gestión de categorías
         return CategoriaListView(
+          restaurantId: currentRest.id,
+          showAppBar: false,
+        );
+
+      case AdminSection.ocasiones:
+        // HU33-RF01: Crear ocasión especial y sus experiencias
+        return OcasionListView(
           restaurantId: currentRest.id,
           showAppBar: false,
         );

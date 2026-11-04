@@ -10,7 +10,8 @@ import '../services/preorden_cache_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'reservation_flow_view.dart';
-import 'widgets/preorden_item_dialog.dart';
+// import 'widgets/preorden_item_dialog.dart';
+import 'widgets/platillo_menu_card.dart';
 import 'widgets/preorden_resumen_sheet.dart';
 
 /// Pantalla pública de detalle del restaurante (HU01-RF03, HU05)
@@ -68,6 +69,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
     );
   }
 
+  /*
   void _procesarPreordenItem(Map<String, dynamic> item) {
     _preordenCacheService.agregarItem(widget.restaurant.id, item);
     final obs = (item['observacion'] as String? ?? '').trim();
@@ -89,6 +91,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
       ),
     );
   }
+  */
 
   /// HU01-RF03 Criterio 3: Las acciones que sí requieren cuenta (como reservar)
   /// redirigen a login o registro.
@@ -499,6 +502,13 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
   }
 
   Widget _buildDishTile(ThemeData theme, PlatilloModel p) {
+    return PlatilloMenuCard(
+      platillo: p,
+      mode: PlatilloCardMode.readOnly,
+    );
+  }
+
+  Widget _oldBuildDishTile(ThemeData theme, PlatilloModel p) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,

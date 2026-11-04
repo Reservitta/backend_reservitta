@@ -6,8 +6,14 @@ import '../repositories/reservation_repository.dart';
 import '../utils/schedule_utils.dart';
 import 'availability_service.dart';
 
-/// Confirma una reserva a partir del borrador (HU11-RF04): revalida la selección,
+/// Confirma una reserva a partir del borrador (HU11-RF04, HU15-RF02): revalida la selección,
 /// guarda la reservación en una transacción y traduce los fallos a mensajes claros.
+///
+/// REUTILIZACIÓN DE ENDPOINTS (HU15-RF02):
+/// Tanto el camino de "Solo reservar" como el de "Personalizar visita" consumen este mismo
+/// método y endpoint de creación de reserva. El camino de personalización únicamente aporta
+/// los datos adicionales en el payload (preorden, alergias y ocasión especial con experiencias).
+/// No se duplica la lógica de verificación ni la validación de disponibilidad.
 class ReservationBookingService {
   final AvailabilityService _availability;
   final ReservationRepository _reservations;
@@ -69,6 +75,11 @@ class ReservationBookingService {
       mesaIds: draft.mesaIds,
       mesasNombres: draft.mesasNombres,
       estado: estadoInicial,
+      preordenItems: draft.preordenItems,
+      alergias: draft.alergias,
+      notasAlergias: draft.notasAlergias,
+      ocasionEspecial: draft.ocasionEspecial,
+      experiencias: draft.experiencias,
     );
 
     try {
@@ -79,7 +90,7 @@ class ReservationBookingService {
       return BookingConfirmed(guardada);
     } on ReservationConflictException catch (e) {
       return BookingConflict(
-        message: _conflictMessage(draft, e.mesaIds),
+        message: _conflictMessage(draft, e.mesaIds.toList()),
         mesasEnConflicto: e.mesaIds,
         alternativas: await _safeAlternatives(restaurant, draft, inicio),
       );
@@ -98,17 +109,11 @@ class ReservationBookingService {
     }
   }
 
-  String _conflictMessage(ReservationDraftModel draft, Set<String> mesaIds) {
-    final nombres = <String>[];
-    for (var i = 0; i < draft.mesaIds.length; i++) {
-      if (mesaIds.contains(draft.mesaIds[i])) {
-        nombres.add(i < draft.mesasNombres.length
-            ? draft.mesasNombres[i]
-            : draft.mesaIds[i]);
-      }
-    }
-    final cuales = nombres.isEmpty ? 'La mesa elegida' : nombres.join(', ');
-    return '$cuales acaba de ser reservada por otra persona en ese horario.';
+  String _conflictMessage(ReservationDraftModel draft, List<String> mesas) {
+    final nombre = draft.mesasNombres.isNotEmpty
+        ? draft.mesasNombres.join(', ')
+        : (mesas.length <= 1 ? 'La mesa' : 'Una de las mesas');
+    return '$nombre acaba de ser reservada por otra persona para este horario.';
   }
 
   Future<List<TimeSlot>> _safeAlternatives(
@@ -123,6 +128,7 @@ class ReservationBookingService {
         duracionMin: draft.duracionMin,
         mesaIds: draft.mesaIds,
         cercaDe: inicio,
+        max: 3,
       );
     } catch (_) {
       return const [];

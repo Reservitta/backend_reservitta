@@ -14,6 +14,11 @@ import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'reservation_confirmation_view.dart';
 import 'widgets/contact_form_step.dart';
+import 'widgets/prepare_visit_step.dart';
+import 'personalize_visit_view.dart';
+import '../services/categoria_service.dart';
+import '../services/platillo_service.dart';
+import '../services/ocasion_service.dart';
 import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
@@ -63,6 +68,11 @@ class ReservationFlowView extends StatefulWidget {
   final void Function(ReservationDraftModel draft, String? password)?
       onContactSubmitted;
 
+  final CategoriaService? categoriaService;
+  final PlatilloService? platilloService;
+  final OcasionService? ocasionService;
+  final bool enablePrepareVisitStep;
+
   const ReservationFlowView({
     super.key,
     required this.restaurant,
@@ -79,6 +89,10 @@ class ReservationFlowView extends StatefulWidget {
     this.currentUserId,
     this.enableContactStep = false,
     this.onContactSubmitted,
+    this.categoriaService,
+    this.platilloService,
+    this.ocasionService,
+    this.enablePrepareVisitStep = true,
   });
 
   @override
@@ -629,6 +643,8 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         return _buildStep6ResumenSelection();
       case 7:
         return _buildStep7Contacto();
+      case 8:
+        return _buildStep8PrepararVisita();
       default:
         return const SizedBox.shrink();
     }
@@ -670,6 +686,47 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       onConfirmPasswordChanged: _viewModel.setConfirmPassword,
       phoneDigits: _viewModel.phoneDigits,
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // PASO 8: PREPARAR VISITA (HU15-RF01, HU15-RF02)
+  // ---------------------------------------------------------------------------
+  Widget _buildStep8PrepararVisita() {
+    final draft = _viewModel.draft;
+    return PrepareVisitStep(
+      draft: draft,
+      isProcessing: _isProcessing,
+      onSoloReservar: _bookReservation,
+      onPersonalizarVisita: _navegarAPersonalizarVisita,
+    );
+  }
+
+  Future<void> _navegarAPersonalizarVisita() async {
+    final result = await Navigator.of(context).push<ReservationDraftModel>(
+      MaterialPageRoute(
+        builder: (_) => PersonalizeVisitView(
+          restaurant: widget.restaurant,
+          draft: _viewModel.draft,
+          categoriaService: widget.categoriaService,
+          platilloService: widget.platilloService,
+          ocasionService: widget.ocasionService,
+          onConfirm: (updatedDraft) async {
+            _viewModel.setPreordenItems(updatedDraft.preordenItems);
+            _viewModel.setAlergias(updatedDraft.alergias, notas: updatedDraft.notasAlergias);
+            _viewModel.setOcasionEspecial(updatedDraft.ocasionEspecial, updatedDraft.experiencias);
+            Navigator.of(context).pop();
+            await _bookReservation();
+          },
+        ),
+      ),
+    );
+
+    if (result != null && mounted) {
+      _viewModel.setPreordenItems(result.preordenItems);
+      _viewModel.setAlergias(result.alergias, notas: result.notasAlergias);
+      _viewModel.setOcasionEspecial(result.ocasionEspecial, result.experiencias);
+      await _bookReservation();
+    }
   }
 
   /// HU13-RF01: si hay sesión, prellena los campos (siguen siendo editables)
@@ -720,7 +777,11 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           return;
         }
       }
-      await _bookReservation();
+      if (widget.enablePrepareVisitStep) {
+        _viewModel.goToStep(8);
+      } else {
+        await _bookReservation();
+      }
     } else {
       _showFlowMessage('Datos de contacto guardados.');
     }
@@ -2010,6 +2071,10 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   // BARRA INFERIOR DE ACCIÓN (CONTINUAR / COMENZAR)
   // ---------------------------------------------------------------------------
   Widget _buildBottomActionBar(int step) {
+    if (step == 8) {
+      return const SizedBox.shrink();
+    }
+
     final canAdvance = _viewModel.canAdvanceCurrentStep;
 
     if (step == 0) {
