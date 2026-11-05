@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/categoria_model.dart';
 import '../models/experiencia_model.dart';
 import '../models/ocasion_model.dart';
 import '../models/platillo_model.dart';
@@ -53,11 +54,14 @@ class PersonalizeVisitView extends StatefulWidget {
 
 class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
     with SingleTickerProviderStateMixin {
+  late final CategoriaService _categoriaService;
   late final PlatilloService _platilloService;
   late final OcasionService _ocasionService;
   late final PedidoViewModel _pedidoViewModel;
   late final bool _isExternalPedidoViewModel;
   late final AuthService _authService;
+
+  String _categoriaSeleccionadaId = 'todas';
 
   bool get _hasSession =>
       widget.isAuthenticated ??
@@ -97,6 +101,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   void initState() {
     super.initState();
     _authService = widget.authService ?? AuthService();
+    _categoriaService = widget.categoriaService ?? CategoriaService();
     _platilloService = widget.platilloService ?? PlatilloService();
     _ocasionService = widget.ocasionService ?? OcasionService();
     _isExternalPedidoViewModel = widget.pedidoViewModel != null;
@@ -107,6 +112,17 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
 
     _alergiasSeleccionadas.addAll(widget.draft.alergias);
     _notasAlergiasCtrl.text = widget.draft.notasAlergias;
+  }
+
+  Stream<List<CategoriaModel>> _getCategoriasStream() {
+    if (widget.categoriaService != null) {
+      return widget.categoriaService!.getCategoriasStream(widget.restaurant.id);
+    }
+    try {
+      return _categoriaService.getCategoriasStream(widget.restaurant.id);
+    } catch (_) {
+      return Stream.value(const []);
+    }
   }
 
   @override
@@ -360,90 +376,203 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   }
 
   // ---------------------------------------------------------------------------
-  // TAB 1: PREORDEN (HU16-RF02, HU16-RF04, HU16-RF05, HU17-RF01)
+  // TAB 1: PREORDEN (HU16-RF02, HU16-RF03, HU16-RF04, HU16-RF05, HU17-RF01)
   // ---------------------------------------------------------------------------
   Widget _buildPreordenTab() {
-    return StreamBuilder<List<PlatilloModel>>(
-      stream: _platilloService.getPlatillosActivosStream(widget.restaurant.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: _primaryTerracotta),
-          );
-        }
+    return StreamBuilder<List<CategoriaModel>>(
+      stream: _getCategoriasStream(),
+      builder: (context, catSnap) {
+        final categorias = catSnap.data ?? [];
 
-        final platillos = snapshot.data ?? [];
-        for (final p in platillos) {
-          _catalogoPorId[p.id] = p;
-        }
+        return StreamBuilder<List<PlatilloModel>>(
+          stream: _platilloService.getPlatillosActivosStream(widget.restaurant.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: _primaryTerracotta),
+              );
+            }
 
-        if (platillos.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.menu_book, size: 48, color: _textMuted),
-                  SizedBox(height: 12),
-                  Text(
-                    'No hay platillos disponibles para preordenar.',
-                    style: TextStyle(color: _textMuted, fontSize: 14),
+            final platillos = snapshot.data ?? [];
+            for (final p in platillos) {
+              _catalogoPorId[p.id] = p;
+            }
+
+            if (platillos.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.menu_book, size: 48, color: _textMuted),
+                      SizedBox(height: 12),
+                      Text(
+                        'No hay platillos disponibles para preordenar.',
+                        style: TextStyle(color: _textMuted, fontSize: 14),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        }
+                ),
+              );
+            }
 
-        return ListView(
-          key: const ValueKey('lista_preorden_platillos'),
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Botón "Ver mi pedido (n platillos)" (HU16-RF06 Criterio 1 - solo con sesión)
-            if (_hasSession && _pedidoViewModel.isNotEmpty) ...[
-              Container(
-                key: const ValueKey('container_btn_ver_mi_pedido'),
-                margin: const EdgeInsets.only(bottom: 12),
-                width: double.infinity,
-                child: FilledButton.icon(
-                  key: const ValueKey('btn_ver_mi_pedido'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _primaryTerracotta,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            // Construir lista de categorías para las pestañas (HU16-RF03 Criterio 1)
+            final categoriasTabs = <CategoriaModel>[];
+            if (categorias.isNotEmpty) {
+              categoriasTabs.addAll(categorias);
+            } else {
+              final uniqueCatIds = platillos
+                  .map((p) => p.categoriaId)
+                  .where((id) => id.isNotEmpty)
+                  .toSet()
+                  .toList();
+              for (var i = 0; i < uniqueCatIds.length; i++) {
+                final id = uniqueCatIds[i];
+                final nombre = id.replaceAll('cat_', '').replaceAll('_', ' ');
+                final nombreCapitalizado = nombre.isNotEmpty
+                    ? '${nombre[0].toUpperCase()}${nombre.substring(1)}'
+                    : id;
+                categoriasTabs.add(CategoriaModel(
+                  id: id,
+                  nombre: nombreCapitalizado,
+                  nombreNormalizado: CategoriaModel.normalizarNombre(nombreCapitalizado),
+                  orden: i + 1,
+                ));
+              }
+            }
+
+            final todasLasTabs = [
+              const CategoriaModel(
+                id: 'todas',
+                nombre: 'Todas',
+                nombreNormalizado: 'todas',
+                orden: 0,
+              ),
+              ...categoriasTabs,
+            ];
+
+            // Filtrar platillos según la pestaña seleccionada
+            final platillosFiltrados = _categoriaSeleccionadaId == 'todas'
+                ? platillos
+                : platillos.where((p) => p.categoriaId == _categoriaSeleccionadaId).toList();
+
+            final initialIndex = todasLasTabs.indexWhere((c) => c.id == _categoriaSeleccionadaId);
+            final activeIndex = initialIndex >= 0 ? initialIndex : 0;
+
+            final content = ListView(
+              key: const ValueKey('lista_preorden_platillos'),
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Botón "Ver mi pedido (n platillos)" (HU16-RF06 Criterio 1 - solo con sesión)
+                if (_hasSession && _pedidoViewModel.isNotEmpty) ...[
+                  Container(
+                    key: const ValueKey('container_btn_ver_mi_pedido'),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      key: const ValueKey('btn_ver_mi_pedido'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _primaryTerracotta,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                      label: Text(
+                        'Ver mi pedido (${_pedidoViewModel.totalCantidad} ${_pedidoViewModel.totalCantidad == 1 ? "platillo" : "platillos"})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      onPressed: _navegarAMiPedidoView,
                     ),
                   ),
-                  icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-                  label: Text(
-                    'Ver mi pedido (${_pedidoViewModel.totalCantidad} ${_pedidoViewModel.totalCantidad == 1 ? "platillo" : "platillos"})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ],
+                // Sección "Mi pedido" reflejada de inmediato (HU16-RF05 Criterio 4 / HU17-RF01 Criterio 3)
+                if (_pedidoViewModel.isNotEmpty) ...[
+                  _buildMiPedidoSection(),
+                  const SizedBox(height: 16),
+                ],
+                // Pestañas por categoría (HU16-RF03 Criterio 1)
+                if (categoriasTabs.isNotEmpty) ...[
+                  Container(
+                    key: const ValueKey('container_categorias_preorden'),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: TabBar(
+                      key: const ValueKey('tabbar_categorias_preorden'),
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      labelColor: _primaryTerracotta,
+                      unselectedLabelColor: _textMuted,
+                      indicatorColor: _primaryTerracotta,
+                      indicatorWeight: 3.0,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13.5),
+                      tabs: todasLasTabs.map((cat) {
+                        return Tab(
+                          key: ValueKey('tab_categoria_${cat.id}'),
+                          text: cat.nombre,
+                        );
+                      }).toList(),
+                      onTap: (index) {
+                        setState(() {
+                          _categoriaSeleccionadaId = todasLasTabs[index].id;
+                        });
+                      },
+                    ),
                   ),
-                  onPressed: _navegarAMiPedidoView,
-                ),
-              ),
-            ],
-            // Sección "Mi pedido" reflejada de inmediato (HU16-RF05 Criterio 4 / HU17-RF01 Criterio 3)
-            if (_pedidoViewModel.isNotEmpty) ...[
-              _buildMiPedidoSection(),
-              const SizedBox(height: 16),
-            ],
-            ...platillos.map((p) {
-              final cantidad = _pedidoViewModel.cantidadDePlatillo(p.id);
-              final observacion = _pedidoViewModel.observacionDePlatillo(p.id);
+                ],
+                if (platillosFiltrados.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.restaurant_outlined, size: 40, color: _textMuted),
+                          SizedBox(height: 10),
+                          Text(
+                            'No hay platillos disponibles en esta categoría.',
+                            style: TextStyle(color: _textMuted, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...platillosFiltrados.map((p) {
+                    final cantidad = _pedidoViewModel.cantidadDePlatillo(p.id);
+                    final observacion = _pedidoViewModel.observacionDePlatillo(p.id);
 
-              return PlatilloMenuCard(
-                platillo: p,
-                mode: PlatilloCardMode.preorden,
-                cantidad: cantidad,
-                observacion: observacion,
-                onAgregar: () => _abrirDetallePlatillo(p),
-                onEditar: () => _abrirDetallePlatillo(p),
-                onTap: () => _abrirDetallePlatillo(p),
+                    return PlatilloMenuCard(
+                      platillo: p,
+                      mode: PlatilloCardMode.preorden,
+                      cantidad: cantidad,
+                      observacion: observacion,
+                      onAgregar: () => _abrirDetallePlatillo(p),
+                      onEditar: () => _abrirDetallePlatillo(p),
+                      onTap: () => _abrirDetallePlatillo(p),
+                    );
+                  }),
+              ],
+            );
+
+            if (categoriasTabs.isNotEmpty) {
+              return DefaultTabController(
+                key: ValueKey('cat_tab_ctrl_${todasLasTabs.map((e) => e.id).join("_")}_$activeIndex'),
+                length: todasLasTabs.length,
+                initialIndex: activeIndex,
+                child: content,
               );
-            }),
-          ],
+            }
+
+            return content;
+          },
         );
       },
     );

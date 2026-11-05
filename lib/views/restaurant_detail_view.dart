@@ -164,6 +164,8 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
           restaurant: widget.restaurant,
           createReservationOnConfirm: true,
           enableContactStep: true,
+          categoriaService: _categoriaService,
+          platilloService: _platilloService,
         ),
       ),
     );
