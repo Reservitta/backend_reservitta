@@ -567,13 +567,18 @@ class AvailabilityService {
     final vistos = <String>{};
     final result = <ReservationModel>[];
     for (final f in fechas) {
-      final delDia = await _reservations
-          .getActiveReservationsByRestaurantAndDate(
-            restauranteId: restauranteId,
-            fechaLocal: f,
-          );
-      for (final r in delDia) {
-        if (r.id.isEmpty || vistos.add(r.id)) result.add(r);
+      try {
+        final delDia = await _reservations
+            .getActiveReservationsByRestaurantAndDate(
+              restauranteId: restauranteId,
+              fechaLocal: f,
+            );
+        for (final r in delDia) {
+          if (r.id.isEmpty || vistos.add(r.id)) result.add(r);
+        }
+      } catch (_) {
+        // En caso de que no haya permisos de lectura sobre reservas existentes o
+        // falle la consulta remota, no bloquear el flujo de disponibilidad de mesas.
       }
     }
     return result;
@@ -691,14 +696,22 @@ class AvailabilityService {
   Future<List<MesaModel>> _loadMesas(RestaurantModel restaurant) async {
     final repo = _tables;
     if (repo == null) return restaurant.mesas;
-    final desdeRepo = await repo.getMesas(restaurant.id);
-    return desdeRepo.isNotEmpty ? desdeRepo : restaurant.mesas;
+    try {
+      final desdeRepo = await repo.getMesas(restaurant.id);
+      return desdeRepo.isNotEmpty ? desdeRepo : restaurant.mesas;
+    } catch (_) {
+      return restaurant.mesas;
+    }
   }
 
   Future<List<ZonaModel>> _loadZonas(String restaurantId) async {
     final repo = _tables;
     if (repo == null) return const [];
-    return repo.getZonas(restaurantId);
+    try {
+      return await repo.getZonas(restaurantId);
+    } catch (_) {
+      return const [];
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -812,21 +825,26 @@ class AvailabilityService {
     final result = <ReservationModel>[];
     final vistos = <String>{};
     for (final fecha in fechas) {
-      final delDia = await _reservations
-          .getActiveReservationsByRestaurantAndDate(
-            restauranteId: restauranteId,
-            fechaLocal: fecha,
-          );
-      for (final res in delDia) {
-        if (res.id.isNotEmpty && !vistos.add(res.id)) continue;
-        if (intervalsOverlap(
-          inicio,
-          fin,
-          res.effectiveStart,
-          res.effectiveEnd.add(Duration(minutes: margenLimpiezaMin)),
-        )) {
-          result.add(res);
+      try {
+        final delDia = await _reservations
+            .getActiveReservationsByRestaurantAndDate(
+              restauranteId: restauranteId,
+              fechaLocal: fecha,
+            );
+        for (final res in delDia) {
+          if (res.id.isNotEmpty && !vistos.add(res.id)) continue;
+          if (intervalsOverlap(
+            inicio,
+            fin,
+            res.effectiveStart,
+            res.effectiveEnd.add(Duration(minutes: margenLimpiezaMin)),
+          )) {
+            result.add(res);
+          }
         }
+      } catch (_) {
+        // En caso de que no haya permisos sobre reservas de terceros o falle la consulta,
+        // no fallar la revalidación.
       }
     }
     return result;

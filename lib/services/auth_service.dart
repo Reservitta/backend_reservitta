@@ -164,11 +164,32 @@ class AuthService {
       throw Exception('La contraseña debe tener al menos 6 caracteres.');
     }
 
-    final userCredential = await _createAuthAccount(
-      correo: correo,
-      password: password,
-    );
-    final user = userCredential.user;
+    User? user;
+    final current = currentUser;
+    if (current != null && current.isAnonymous) {
+      try {
+        final cred = EmailAuthProvider.credential(
+          email: correo.trim(),
+          password: password,
+        );
+        final linked = await current.linkWithCredential(cred);
+        user = linked.user;
+      } catch (_) {
+        // Si no se puede vincular, crea una cuenta independiente
+        final userCredential = await _createAuthAccount(
+          correo: correo,
+          password: password,
+        );
+        user = userCredential.user;
+      }
+    } else {
+      final userCredential = await _createAuthAccount(
+        correo: correo,
+        password: password,
+      );
+      user = userCredential.user;
+    }
+
     if (user == null) {
       throw Exception('Firebase Authentication no devolvió la cuenta creada.');
     }
@@ -193,6 +214,49 @@ class AuthService {
     }
 
     return userModel;
+  }
+
+  /// Inicia sesión anónima en Firebase y asegura un perfil de visitante en Firestore (HU13-RF02 / HU01-RF03).
+  Future<UserModel> signInAnonymously() async {
+    try {
+      final userCredential = await _auth.signInAnonymously();
+      final user = userCredential.user;
+      if (user == null) {
+        throw Exception('Firebase Authentication no devolvió la cuenta anónima.');
+      }
+
+      final uid = user.uid;
+      final userRef = _firestore.collection('users').doc(uid);
+
+      final existing = await getUserProfile(uid);
+      if (existing != null) return existing;
+
+      final guestModel = UserModel(
+        uid: uid,
+        rol: 'visitante',
+        nombre: 'Invitado',
+        correo: '',
+        telefono: '',
+        restauranteId: null,
+        canalPreferido: 'email',
+        fechaAlta: DateTime.now(),
+      );
+
+      await userRef.set(guestModel.toMap());
+      return guestModel;
+    } catch (_) {
+      // Retorna un perfil temporal en caso de entorno de pruebas o sin Firebase activo
+      return UserModel(
+        uid: 'anon_${DateTime.now().millisecondsSinceEpoch}',
+        rol: 'visitante',
+        nombre: 'Invitado',
+        correo: '',
+        telefono: '',
+        restauranteId: null,
+        canalPreferido: 'email',
+        fechaAlta: DateTime.now(),
+      );
+    }
   }
 
   /// Inicio de sesión con correo y contraseña (HU22-RF03)

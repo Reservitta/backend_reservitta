@@ -283,6 +283,7 @@ void main() {
               child: ContactFormStep(
                 draft: vm.draft,
                 isAuthenticated: true,
+                allowEditingWhenAuthenticated: true,
                 onNameChanged: vm.setContactName,
                 onEmailChanged: vm.setContactEmail,
                 onPhoneChanged: vm.setContactPhone,
@@ -299,13 +300,69 @@ void main() {
       expect(find.text('carlos@test.com'), findsOneWidget);
       expect(find.text('4187654321'), findsOneWidget);
 
-      // Son editables
+      // Son editables cuando allowEditingWhenAuthenticated es true
       await tester.enterText(
         find.byKey(const ValueKey('input_contact_nombre')),
         'Carlos Santana Editado',
       );
       await tester.pumpAndSettle();
       expect(vm.draft.contactoNombre, equals('Carlos Santana Editado'));
+    });
+
+    testWidgets('Si el visitante tiene sesión iniciada, por defecto los campos son de solo lectura y bloqueados',
+        (tester) async {
+      setLargeScreen(tester);
+      final vm = createReadyViewModel();
+      vm.prefillContact(
+        nombre: 'Carlos Santana',
+        correo: 'carlos@test.com',
+        telefono: '4187654321',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ContactFormStep(
+                draft: vm.draft,
+                isAuthenticated: true,
+                onNameChanged: vm.setContactName,
+                onEmailChanged: vm.setContactEmail,
+                onPhoneChanged: vm.setContactPhone,
+                onCreateAccountChanged: vm.setCreateAccount,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Muestra banner informativo de datos bloqueados
+      expect(find.byKey(const ValueKey('banner_datos_cuenta_bloqueados')), findsOneWidget);
+
+      // Los campos tienen readOnly activado en su EditableText
+      final nombreEditable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const ValueKey('input_contact_nombre')),
+          matching: find.byType(EditableText),
+        ),
+      );
+      final correoEditable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const ValueKey('input_contact_correo')),
+          matching: find.byType(EditableText),
+        ),
+      );
+      final telefonoEditable = tester.widget<EditableText>(
+        find.descendant(
+          of: find.byKey(const ValueKey('input_contact_telefono')),
+          matching: find.byType(EditableText),
+        ),
+      );
+
+      expect(nombreEditable.readOnly, isTrue);
+      expect(correoEditable.readOnly, isTrue);
+      expect(telefonoEditable.readOnly, isTrue);
     });
 
     testWidgets('Los datos se guardan en el borrador de reserva', (tester) async {

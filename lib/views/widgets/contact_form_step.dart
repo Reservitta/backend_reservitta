@@ -24,6 +24,13 @@ class ContactFormStep extends StatefulWidget {
   /// Controla si se muestran los campos de contraseña al marcar crear cuenta (HU14-RF01).
   final bool showPasswordFields;
 
+  /// Si es true, exige la creación de cuenta para continuar (obligatorio para reservas sin sesión previa).
+  final bool forceAccountCreation;
+
+  /// Si es false, los campos de contacto son de solo lectura cuando el visitante
+  /// tiene sesión iniciada (no pueden modificarse en el formulario).
+  final bool allowEditingWhenAuthenticated;
+
   /// Valores en memoria de las contraseñas (no viven en el borrador).
   final String initialPassword;
   final String initialConfirmPassword;
@@ -46,6 +53,8 @@ class ContactFormStep extends StatefulWidget {
     this.onPasswordChanged,
     this.onConfirmPasswordChanged,
     this.showPasswordFields = true,
+    this.forceAccountCreation = false,
+    this.allowEditingWhenAuthenticated = false,
     this.phoneDigits = 10,
     this.initialPassword = '',
     this.initialConfirmPassword = '',
@@ -85,6 +94,12 @@ class _ContactFormStepState extends State<ContactFormStep> {
     _passwordCtrl = TextEditingController(text: widget.initialPassword);
     _confirmPasswordCtrl =
         TextEditingController(text: widget.initialConfirmPassword);
+
+    if (widget.forceAccountCreation && !d.crearCuenta) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onCreateAccountChanged(true);
+      });
+    }
   }
 
   @override
@@ -93,6 +108,12 @@ class _ContactFormStepState extends State<ContactFormStep> {
     _sync(_nombreCtrl, widget.draft.contactoNombre);
     _sync(_correoCtrl, widget.draft.contactoCorreo);
     _sync(_telefonoCtrl, widget.draft.contactoTelefono);
+
+    if (widget.forceAccountCreation && !widget.draft.crearCuenta) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onCreateAccountChanged(true);
+      });
+    }
 
     // HU14-RF01: al desmarcar el checkbox, se descartan las contraseñas.
     if (!widget.draft.crearCuenta) {
@@ -128,12 +149,15 @@ class _ContactFormStepState extends State<ContactFormStep> {
   @override
   Widget build(BuildContext context) {
     final showAccountOption = !widget.isAuthenticated; // HU13-RF02 criterio 2
+    final isAccountMandatory = widget.forceAccountCreation && !widget.isAuthenticated;
     final showPasswords = widget.showPasswordFields &&
         showAccountOption &&
-        widget.draft.crearCuenta; // HU14-RF01
+        (widget.draft.crearCuenta || isAccountMandatory); // HU14-RF01
     final phoneExample = '4181234567'
         .padRight(widget.phoneDigits, '0')
         .substring(0, widget.phoneDigits);
+
+    final isReadOnly = widget.isAuthenticated && !widget.allowEditingWhenAuthenticated;
 
     return Form(
       key: _formKey,
@@ -154,11 +178,43 @@ class _ContactFormStepState extends State<ContactFormStep> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            'Completa tus datos de contacto para confirmar la reserva.',
-            style: TextStyle(fontSize: 13, color: ContactFormStep.mutedText),
+          Text(
+            isReadOnly
+                ? 'Datos obtenidos de tu cuenta activa. No son modificables.'
+                : 'Completa tus datos de contacto para confirmar la reserva.',
+            style: const TextStyle(fontSize: 13, color: ContactFormStep.mutedText),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 16),
+
+          // Mensaje informativo cuando está autenticado
+          if (isReadOnly) ...[
+            Container(
+              key: const ValueKey('banner_datos_cuenta_bloqueados'),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFBF4ED),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: ContactFormStep.terracotta.withAlpha(80)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.lock_outline, size: 18, color: ContactFormStep.terracotta),
+                  SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Tus datos están vinculados a tu sesión y no pueden ser modificados para esta reserva.',
+                      style: TextStyle(
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                        color: ContactFormStep.darkText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
 
           // Tarjeta de campos
           Container(
@@ -184,11 +240,13 @@ class _ContactFormStepState extends State<ContactFormStep> {
                 TextFormField(
                   key: const ValueKey('input_contact_nombre'),
                   controller: _nombreCtrl,
+                  readOnly: isReadOnly,
                   textCapitalization: TextCapitalization.words,
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(
                     hint: 'Ej. María López García',
                     prefixIcon: Icons.person_outline,
+                    readOnly: isReadOnly,
                   ),
                   validator: AppValidators.validateName,
                   onChanged: widget.onNameChanged,
@@ -201,11 +259,13 @@ class _ContactFormStepState extends State<ContactFormStep> {
                 TextFormField(
                   key: const ValueKey('input_contact_correo'),
                   controller: _correoCtrl,
+                  readOnly: isReadOnly,
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: _inputDecoration(
                     hint: 'Ej. maria@correo.com',
                     prefixIcon: Icons.email_outlined,
+                    readOnly: isReadOnly,
                   ),
                   validator: AppValidators.validateEmail,
                   onChanged: widget.onEmailChanged,
@@ -218,6 +278,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                 TextFormField(
                   key: const ValueKey('input_contact_telefono'),
                   controller: _telefonoCtrl,
+                  readOnly: isReadOnly,
                   keyboardType: TextInputType.number,
                   textInputAction: TextInputAction.done,
                   maxLength: widget.phoneDigits,
@@ -225,6 +286,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   decoration: _inputDecoration(
                     hint: 'Ej. $phoneExample',
                     prefixIcon: Icons.phone_outlined,
+                    readOnly: isReadOnly,
                   ),
                   validator: (v) => AppValidators.validatePhone(
                     v,
@@ -272,6 +334,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   }
 
   Widget _buildCreateAccountCheckbox() {
+    final isAccountMandatory = widget.forceAccountCreation && !widget.isAuthenticated;
     return Container(
       key: const ValueKey('container_crear_cuenta'),
       decoration: BoxDecoration(
@@ -284,8 +347,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
         borderRadius: BorderRadius.circular(16),
         child: CheckboxListTile(
           key: const ValueKey('checkbox_crear_cuenta'),
-          value: widget.draft.crearCuenta,
-          onChanged: _handleCheckboxChanged,
+          value: isAccountMandatory ? true : widget.draft.crearCuenta,
+          onChanged: isAccountMandatory ? null : _handleCheckboxChanged,
           activeColor: ContactFormStep.terracotta,
           checkboxShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4),
@@ -298,9 +361,11 @@ class _ContactFormStepState extends State<ContactFormStep> {
               color: ContactFormStep.darkText,
             ),
           ),
-          subtitle: const Text(
-            'Podrás ver el historial de tus reservas en cualquier momento.',
-            style: TextStyle(fontSize: 12, color: ContactFormStep.mutedText),
+          subtitle: Text(
+            isAccountMandatory
+                ? 'Requerido para confirmar y guardar tu reserva en Reservitta.'
+                : 'Podrás ver el historial de tus reservas en cualquier momento.',
+            style: const TextStyle(fontSize: 12, color: ContactFormStep.mutedText),
           ),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
@@ -585,6 +650,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
     required String hint,
     required IconData prefixIcon,
     Widget? suffixIcon,
+    bool readOnly = false,
   }) {
     return InputDecoration(
       hintText: hint,
@@ -593,9 +659,15 @@ class _ContactFormStepState extends State<ContactFormStep> {
         color: Color(0xFFB0A59A),
       ),
       prefixIcon: Icon(prefixIcon, color: ContactFormStep.mutedText, size: 20),
-      suffixIcon: suffixIcon,
+      suffixIcon: suffixIcon ??
+          (readOnly
+              ? const Tooltip(
+                  message: 'Dato de tu cuenta (no modificable)',
+                  child: Icon(Icons.lock_outline, size: 18, color: ContactFormStep.mutedText),
+                )
+              : null),
       filled: true,
-      fillColor: ContactFormStep.creamBg,
+      fillColor: readOnly ? const Color(0xFFF3EFEA) : ContactFormStep.creamBg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
@@ -607,7 +679,10 @@ class _ContactFormStepState extends State<ContactFormStep> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: ContactFormStep.terracotta, width: 1.5),
+        borderSide: BorderSide(
+          color: readOnly ? ContactFormStep.cardBorder : ContactFormStep.terracotta,
+          width: readOnly ? 1.0 : 1.5,
+        ),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),

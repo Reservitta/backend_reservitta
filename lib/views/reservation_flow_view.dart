@@ -108,6 +108,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   bool get _isAuthenticated =>
       widget.isAuthenticated ?? (_authService.currentUser != null);
 
+  bool get _hasRealSession {
+    if (widget.isAuthenticated != null) return widget.isAuthenticated!;
+    final u = _authService.currentUser;
+    return u != null && !u.isAnonymous;
+  }
+
   AvailabilityService? _availability;
 
   AvailabilityService get _availabilityService => _availability ??=
@@ -148,6 +154,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
 
     final now = _viewModel.clockNow;
     _visibleMonth = DateTime(now.year, now.month, 1);
+
+    if (_authService.currentUser == null) {
+      _authService.signInAnonymously();
+    } else {
+      _prefillIfAuthenticated();
+    }
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -675,7 +687,9 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     return ContactFormStep(
       key: const ValueKey('step_contacto'),
       draft: draft,
-      isAuthenticated: _isAuthenticated,
+      isAuthenticated: _hasRealSession,
+      allowEditingWhenAuthenticated: false,
+      forceAccountCreation: !_hasRealSession && widget.createReservationOnConfirm,
       initialPassword: _viewModel.password,
       initialConfirmPassword: _viewModel.confirmPassword,
       onNameChanged: _viewModel.setContactName,
@@ -710,6 +724,8 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           categoriaService: widget.categoriaService,
           platilloService: widget.platilloService,
           ocasionService: widget.ocasionService,
+          authService: _authService,
+          isAuthenticated: _hasRealSession,
           onConfirm: (updatedDraft) async {
             _viewModel.setPreordenItems(updatedDraft.preordenItems);
             _viewModel.setAlergias(updatedDraft.alergias, notas: updatedDraft.notasAlergias);
@@ -729,17 +745,40 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     }
   }
 
-  /// HU13-RF01: si hay sesión, prellena los campos (siguen siendo editables)
-  /// y abre el paso de datos.
-  void _goToContactStep() {
-    final user = _authService.currentUser;
-    if (_isAuthenticated) {
-      _viewModel.setCreateAccount(false);
-      _viewModel.prefillContact(
-        nombre: user?.displayName,
-        correo: user?.email,
-        telefono: user?.phoneNumber, // ajusta si tu UserModel guarda el teléfono en Firestore
-      );
+  Future<void> _prefillIfAuthenticated() async {
+    if (_hasRealSession) {
+      final user = _authService.currentUser;
+      String nombre = user?.displayName ?? '';
+      String correo = user?.email ?? '';
+      String telefono = user?.phoneNumber ?? '';
+
+      if (user != null && (nombre.isEmpty || telefono.isEmpty)) {
+        try {
+          final profile = await _authService.getUserProfile(user.uid);
+          if (profile != null) {
+            if (nombre.isEmpty && profile.nombre.isNotEmpty) nombre = profile.nombre;
+            if (correo.isEmpty && profile.correo.isNotEmpty) correo = profile.correo;
+            if (telefono.isEmpty && profile.telefono.isNotEmpty) telefono = profile.telefono;
+          }
+        } catch (_) {}
+      }
+
+      if (mounted) {
+        _viewModel.setCreateAccount(false);
+        _viewModel.prefillContact(
+          nombre: nombre.isNotEmpty ? nombre : _viewModel.draft.contactoNombre,
+          correo: correo.isNotEmpty ? correo : _viewModel.draft.contactoCorreo,
+          telefono: telefono.isNotEmpty ? telefono : _viewModel.draft.contactoTelefono,
+        );
+      }
+    }
+  }
+
+  /// Con sesión iniciada, recupera los datos de cuenta y los muestra no editables en Datos.
+  Future<void> _goToContactStep() async {
+    await _prefillIfAuthenticated();
+    if (!_hasRealSession && widget.createReservationOnConfirm) {
+      _viewModel.setCreateAccount(true);
     }
     _viewModel.goToStep(7);
   }
@@ -756,10 +795,11 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     }
 
     if (widget.createReservationOnConfirm) {
-      if (!_isAuthenticated &&
-          draft.crearCuenta &&
-          password != null &&
-          password.isNotEmpty) {
+      if (!_hasRealSession) {
+        if (password == null || password.isEmpty) {
+          _showFlowMessage('Crea una contraseña para tu cuenta antes de continuar.');
+          return;
+        }
         setState(() => _isProcessing = true);
         try {
           await _authService.registerVisitor(
@@ -813,13 +853,16 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   // HU12-RF02: revalidación antes del resumen · HU11-RF04: confirmación
   // ---------------------------------------------------------------------------
   void _showFlowMessage(String message, {SnackBarAction? action}) {
+    if (!mounted) return;
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
       ..showSnackBar(
         SnackBar(
           key: const ValueKey('snack_flow_message'),
           content: Text(message),
-          duration: const Duration(seconds: 5),
+          duration: const Duration(seconds: 4),
+          behavior: SnackBarBehavior.floating,
+          dismissDirection: DismissDirection.horizontal,
           action: action,
         ),
       );
@@ -873,14 +916,16 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     try {
       final user = _authService.currentUser;
       final draft = _viewModel.draft;
+      final uid = widget.currentUserId ?? user?.uid ?? '';
+      if (uid.isEmpty) {
+        _showFlowMessage('Crea tu cuenta en el paso de datos para confirmar tu reserva.');
+        _viewModel.goToStep(7);
+        return;
+      }
       final result = await _bookingService.confirm(
         restaurant: widget.restaurant,
         draft: draft,
-        usuarioId: widget.currentUserId ??
-            user?.uid ??
-            (draft.crearCuenta
-                ? ''
-                : 'invitado_${draft.contactoCorreo.isNotEmpty ? draft.contactoCorreo : "anon"}'),
+        usuarioId: uid,
         contactoNombre: draft.contactoNombre.isNotEmpty
             ? draft.contactoNombre
             : (user?.displayName ?? ''),

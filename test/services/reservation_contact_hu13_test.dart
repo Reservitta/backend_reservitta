@@ -40,6 +40,16 @@ class SpyReservationRepository implements ReservationRepository {
   }
 
   @override
+  Future<ReservationModel> createReservationVerified(
+    ReservationModel reservation, {
+    int margenLimpiezaMin = 0,
+  }) async {
+    createCalls++;
+    persistedReservations.add(reservation);
+    return reservation.copyWith(id: 'res_test_${persistedReservations.length}');
+  }
+
+  @override
   Future<List<ReservationModel>> getActiveReservationsByRestaurantAndDate({
     required String restauranteId,
     required String fechaLocal,

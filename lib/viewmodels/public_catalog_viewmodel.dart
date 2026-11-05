@@ -20,9 +20,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
     RestaurantService? restaurantService,
     AuthService? authService,
     LocationService? locationService,
+    bool? isAuthenticated,
+    String? currentUserName,
   })  : _restaurantService = restaurantService ?? RestaurantService(),
         _authService = authService ?? AuthService(),
-        _locationService = locationService ?? LocationService();
+        _locationService = locationService ?? LocationService(),
+        _isAuthenticatedOverride = isAuthenticated,
+        _currentUserNameOverride = currentUserName;
+
+  final bool? _isAuthenticatedOverride;
+  final String? _currentUserNameOverride;
 
   // Estados de datos
   List<RestaurantModel> _rawRestaurants = [];
@@ -124,11 +131,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
   }
 
   /// Indica si el usuario actual cuenta con una sesión iniciada
-  bool get isUserAuthenticated => _authService.currentUser != null;
+  bool get isUserAuthenticated {
+    if (_isAuthenticatedOverride != null) return _isAuthenticatedOverride!;
+    final u = _authService.currentUser;
+    return u != null && !u.isAnonymous;
+  }
 
   /// Nombre del usuario autenticado si existe sesión
   String? get currentUserName =>
-      _authService.currentUser?.displayName ?? _authService.currentUser?.email;
+      _currentUserNameOverride ??
+      (_authService.currentUser?.displayName ?? _authService.currentUser?.email);
 
   /// Carga inicial del catálogo y servicios
   Future<void> init() async {
