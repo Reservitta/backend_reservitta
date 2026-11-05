@@ -6,26 +6,28 @@ enum PlatilloCardMode {
   /// Modo de solo consulta (HU06-RF03): visualiza información básica, foto y precio sin controles de adición.
   readOnly,
 
-  /// Modo de preorden (HU16-RF02): incluye controles de cantidad y botón "Agregar" para armar la preorden.
+  /// Modo de preorden (HU16-RF02, HU16-RF04, HU16-RF05): incluye controles de adición/edición y badge de cantidad.
   preorden,
 }
 
 /// Componente visual reutilizable para tarjetas de platillos en el menú.
 ///
-/// RELACIÓN ARQUITECTÓNICA DEL SISTEMA (HU16-RF02 Criterio 3):
+/// RELACIÓN ARQUITECTÓNICA DEL SISTEMA (HU16-RF02 Criterio 3, HU16-RF05):
 /// El catálogo del menú se define y administra una única vez por el administrador
 /// del restaurante (HU24) utilizando los modelos [PlatilloModel] y [CategoriaModel]
 /// guardados en Firebase Firestore (`restaurants/{id}/platillos`).
 ///
-/// Este mismo componente visual y los mismos servicios de catálogo se consumen
-/// desde dos flujos independientes sin duplicar consultas ni crear estructuras de datos separadas:
-/// 1. Flujo de consulta pública del restaurante (HU06-RF03): se utiliza en [PlatilloCardMode.readOnly].
-/// 2. Flujo de preparación y preorden de la reserva (HU16-RF02): se utiliza en [PlatilloCardMode.preorden].
+/// En modo [PlatilloCardMode.preorden]:
+/// - Cuando `cantidad == 0`: muestra el botón `"Agregar"` (HU16-RF04).
+/// - Cuando `cantidad > 0`: muestra un badge con la cantidad sobre la imagen del platillo
+///   y el botón cambia de `"Agregar"` a `"Editar"` (HU16-RF05 Criterio 1).
 class PlatilloMenuCard extends StatelessWidget {
   final PlatilloModel platillo;
   final PlatilloCardMode mode;
   final int cantidad;
+  final String observacion;
   final VoidCallback? onAgregar;
+  final VoidCallback? onEditar;
   final VoidCallback? onIncrementar;
   final VoidCallback? onDecrementar;
   final VoidCallback? onTap;
@@ -39,16 +41,22 @@ class PlatilloMenuCard extends StatelessWidget {
     required this.platillo,
     this.mode = PlatilloCardMode.readOnly,
     this.cantidad = 0,
+    this.observacion = '',
     this.onAgregar,
+    this.onEditar,
     this.onIncrementar,
     this.onDecrementar,
     this.onTap,
   });
 
+  bool get _usaStepperInlineLegacy =>
+      onEditar == null && (onIncrementar != null || onDecrementar != null);
+
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final isPreorden = mode == PlatilloCardMode.preorden;
+    final mostrarBadgeSobreImagen =
+        isPreorden && cantidad > 0 && !_usaStepperInlineLegacy;
 
     return Card(
       key: ValueKey('card_platillo_${platillo.id}'),
@@ -64,38 +72,77 @@ class PlatilloMenuCard extends StatelessWidget {
       color: Colors.white,
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
-        onTap: onTap,
+        onTap: onTap ?? (cantidad > 0 ? onEditar : onAgregar),
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Imagen o icono representativo
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: _primaryTerracotta.withAlpha(20),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: platillo.imagenUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          platillo.imagenUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => const Icon(
+              // Imagen del platillo con badge de cantidad superpuesto (HU16-RF05 Criterio 1)
+              Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: _primaryTerracotta.withAlpha(20),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: platillo.imagenUrl.isNotEmpty
+                        ? ClipRRect(
+                            borderRadius: BorderRadius.circular(10),
+                            child: Image.network(
+                              platillo.imagenUrl,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) =>
+                                  const Icon(
+                                Icons.fastfood_outlined,
+                                color: _primaryTerracotta,
+                                size: 28,
+                              ),
+                            ),
+                          )
+                        : const Icon(
                             Icons.fastfood_outlined,
                             color: _primaryTerracotta,
                             size: 28,
                           ),
+                  ),
+                  if (mostrarBadgeSobreImagen)
+                    Positioned(
+                      top: -6,
+                      right: -6,
+                      child: Container(
+                        key: ValueKey('badge_cantidad_platillo_${platillo.id}'),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
                         ),
-                      )
-                    : const Icon(
-                        Icons.fastfood_outlined,
-                        color: _primaryTerracotta,
-                        size: 28,
+                        decoration: BoxDecoration(
+                          color: _primaryTerracotta,
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: Colors.white, width: 1.5),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withAlpha(35),
+                              blurRadius: 4,
+                              offset: const Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '$cantidad',
+                          key: ValueKey('txt_cantidad_platillo_${platillo.id}'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
                       ),
+                    ),
+                ],
               ),
               const SizedBox(width: 14),
 
@@ -118,7 +165,10 @@ class PlatilloMenuCard extends StatelessWidget {
                         ),
                         if (platillo.permitePersonalizacion)
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0xFFEBF3FA),
                               borderRadius: BorderRadius.circular(6),
@@ -148,6 +198,49 @@ class PlatilloMenuCard extends StatelessWidget {
                       ),
                     ],
 
+                    if (platillo.etiquetas.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: platillo.etiquetas.map((tag) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _lightBg,
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: _cardBorder),
+                            ),
+                            child: Text(
+                              tag,
+                              style: const TextStyle(
+                                fontSize: 10,
+                                color: Color(0xFF7A6E65),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ],
+
+                    if (isPreorden && observacion.trim().isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        'Observación: ${observacion.trim()}',
+                        key: ValueKey('txt_observacion_platillo_${platillo.id}'),
+                        style: const TextStyle(
+                          fontSize: 11.5,
+                          fontStyle: FontStyle.italic,
+                          color: Color(0xFF1E5288),
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+
                     const SizedBox(height: 8),
 
                     // Fila inferior: Precio y controles (si es preorden)
@@ -164,22 +257,28 @@ class PlatilloMenuCard extends StatelessWidget {
                           ),
                         ),
 
-                        // Controles de adición / cantidad exclusivos de HU16-RF02
+                        // Controles de adición / edición de preorden (HU16-RF02, HU16-RF05)
                         if (isPreorden) ...[
                           if (cantidad <= 0)
                             FilledButton.tonalIcon(
                               key: ValueKey('btn_agregar_platillo_${platillo.id}'),
                               icon: const Icon(Icons.add, size: 16),
-                              label: const Text('Agregar', style: TextStyle(fontSize: 12)),
+                              label: const Text(
+                                'Agregar',
+                                style: TextStyle(fontSize: 12),
+                              ),
                               style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
                                 visualDensity: VisualDensity.compact,
                                 backgroundColor: _primaryTerracotta.withAlpha(25),
                                 foregroundColor: _primaryTerracotta,
                               ),
-                              onPressed: onAgregar,
+                              onPressed: onAgregar ?? onTap,
                             )
-                          else
+                          else if (_usaStepperInlineLegacy)
                             Container(
                               decoration: BoxDecoration(
                                 color: _lightBg,
@@ -190,7 +289,9 @@ class PlatilloMenuCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
-                                    key: ValueKey('btn_decrementar_platillo_${platillo.id}'),
+                                    key: ValueKey(
+                                      'btn_decrementar_platillo_${platillo.id}',
+                                    ),
                                     icon: const Icon(Icons.remove, size: 16),
                                     color: _primaryTerracotta,
                                     visualDensity: VisualDensity.compact,
@@ -199,10 +300,14 @@ class PlatilloMenuCard extends StatelessWidget {
                                     onPressed: onDecrementar,
                                   ),
                                   Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                    ),
                                     child: Text(
                                       '$cantidad',
-                                      key: ValueKey('txt_cantidad_platillo_${platillo.id}'),
+                                      key: ValueKey(
+                                        'txt_cantidad_platillo_${platillo.id}',
+                                      ),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.bold,
                                         fontSize: 13,
@@ -210,7 +315,9 @@ class PlatilloMenuCard extends StatelessWidget {
                                     ),
                                   ),
                                   IconButton(
-                                    key: ValueKey('btn_incrementar_platillo_${platillo.id}'),
+                                    key: ValueKey(
+                                      'btn_incrementar_platillo_${platillo.id}',
+                                    ),
                                     icon: const Icon(Icons.add, size: 16),
                                     color: _primaryTerracotta,
                                     visualDensity: VisualDensity.compact,
@@ -220,6 +327,28 @@ class PlatilloMenuCard extends StatelessWidget {
                                   ),
                                 ],
                               ),
+                            )
+                          else
+                            OutlinedButton.icon(
+                              key: ValueKey('btn_editar_platillo_${platillo.id}'),
+                              icon: const Icon(Icons.edit_outlined, size: 15),
+                              label: const Text(
+                                'Editar',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 4,
+                                ),
+                                visualDensity: VisualDensity.compact,
+                                foregroundColor: _primaryTerracotta,
+                                side: const BorderSide(color: _primaryTerracotta),
+                              ),
+                              onPressed: onEditar ?? onAgregar ?? onTap,
                             ),
                         ],
                       ],
@@ -234,4 +363,3 @@ class PlatilloMenuCard extends StatelessWidget {
     );
   }
 }
-
