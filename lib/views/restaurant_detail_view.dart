@@ -111,23 +111,51 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
             label: 'Iniciar sesión',
             onPressed: () {
               messenger.clearSnackBars();
-              AuthModalDialog.show(context, initialMode: AuthMode.login).then((_) {
+              AuthModalDialog.show<String>(
+                context,
+                initialMode: AuthMode.login,
+                showGuestOption: true,
+              ).then((res) async {
                 if (mounted) {
                   ScaffoldMessenger.of(context).clearSnackBars();
+                  if (_authService.currentUser != null || res == 'guest') {
+                    if (res == 'guest' && _authService.currentUser == null) {
+                      try {
+                        await _authService.signInAnonymously();
+                      } catch (_) {}
+                    }
+                    if (mounted) _iniciarFlujoReserva();
+                  }
                 }
               });
             },
           ),
         ),
       );
-      AuthModalDialog.show(context, initialMode: AuthMode.login).then((_) {
+      AuthModalDialog.show<String>(
+        context,
+        initialMode: AuthMode.login,
+        showGuestOption: true,
+      ).then((res) async {
         if (mounted) {
           ScaffoldMessenger.of(context).clearSnackBars();
+          if (_authService.currentUser != null || res == 'guest') {
+            if (res == 'guest' && _authService.currentUser == null) {
+              try {
+                await _authService.signInAnonymously();
+              } catch (_) {}
+            }
+            if (mounted) _iniciarFlujoReserva();
+          }
         }
       });
       return;
     }
 
+    _iniciarFlujoReserva();
+  }
+
+  void _iniciarFlujoReserva() {
     ScaffoldMessenger.of(context).clearSnackBars();
     Navigator.push(
       context,

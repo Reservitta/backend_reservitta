@@ -198,10 +198,17 @@ class ReservationService implements ReservationRepository {
         : formatDateLocal(DateTime.now());
 
     // Consulta por restaurante y fecha soportada por índice compuesto
-    final querySnap = await _reservationsRef
-        .where('restauranteId', isEqualTo: cleanRestId)
-        .where('fechaLocal', isEqualTo: effectiveFecha)
-        .get();
+    final QuerySnapshot<Map<String, dynamic>> querySnap;
+    try {
+      querySnap = await _reservationsRef
+          .where('restauranteId', isEqualTo: cleanRestId)
+          .where('fechaLocal', isEqualTo: effectiveFecha)
+          .get();
+    } catch (_) {
+      // Si el usuario es invitado sin sesión y las reglas de seguridad restringen
+      // la lectura de reservas de terceros, devuelve lista vacía sin romper el flujo.
+      return [];
+    }
 
     var reservations = querySnap.docs
         .map((doc) => ReservationModel.fromFirestore(doc))

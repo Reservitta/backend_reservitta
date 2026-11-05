@@ -503,7 +503,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   bool get canContinueFromSummary => _draft.isReadyForSummary;
 
   void nextStep() {
-    if (canAdvanceCurrentStep && _currentStep < 8) {
+    if (canAdvanceCurrentStep && _currentStep < 6) {
       _currentStep++;
       notifyListeners();
     }

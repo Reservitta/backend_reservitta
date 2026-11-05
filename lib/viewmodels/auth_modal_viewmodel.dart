@@ -237,6 +237,24 @@ class AuthModalViewModel extends ChangeNotifier {
     }
   }
 
+  /// Inicio de sesión anónima para reservas sin cuenta previa (HU13-RF02 / HU01-RF03).
+  Future<bool> signInAnonymously() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+    try {
+      await _authService.signInAnonymously();
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+  }
+
   // ──────────────────────────────────────────────
   // Acción de Registro
   // ──────────────────────────────────────────────

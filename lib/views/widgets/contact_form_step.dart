@@ -24,6 +24,9 @@ class ContactFormStep extends StatefulWidget {
   /// Controla si se muestran los campos de contraseña al marcar crear cuenta (HU14-RF01).
   final bool showPasswordFields;
 
+  /// Si es true, exige la creación de cuenta para continuar (obligatorio para reservas sin sesión previa).
+  final bool forceAccountCreation;
+
   /// Valores en memoria de las contraseñas (no viven en el borrador).
   final String initialPassword;
   final String initialConfirmPassword;
@@ -46,6 +49,7 @@ class ContactFormStep extends StatefulWidget {
     this.onPasswordChanged,
     this.onConfirmPasswordChanged,
     this.showPasswordFields = true,
+    this.forceAccountCreation = false,
     this.phoneDigits = 10,
     this.initialPassword = '',
     this.initialConfirmPassword = '',
@@ -85,6 +89,12 @@ class _ContactFormStepState extends State<ContactFormStep> {
     _passwordCtrl = TextEditingController(text: widget.initialPassword);
     _confirmPasswordCtrl =
         TextEditingController(text: widget.initialConfirmPassword);
+
+    if (widget.forceAccountCreation && !d.crearCuenta) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onCreateAccountChanged(true);
+      });
+    }
   }
 
   @override
@@ -93,6 +103,12 @@ class _ContactFormStepState extends State<ContactFormStep> {
     _sync(_nombreCtrl, widget.draft.contactoNombre);
     _sync(_correoCtrl, widget.draft.contactoCorreo);
     _sync(_telefonoCtrl, widget.draft.contactoTelefono);
+
+    if (widget.forceAccountCreation && !widget.draft.crearCuenta) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) widget.onCreateAccountChanged(true);
+      });
+    }
 
     // HU14-RF01: al desmarcar el checkbox, se descartan las contraseñas.
     if (!widget.draft.crearCuenta) {
@@ -128,9 +144,10 @@ class _ContactFormStepState extends State<ContactFormStep> {
   @override
   Widget build(BuildContext context) {
     final showAccountOption = !widget.isAuthenticated; // HU13-RF02 criterio 2
+    final isAccountMandatory = widget.forceAccountCreation && !widget.isAuthenticated;
     final showPasswords = widget.showPasswordFields &&
         showAccountOption &&
-        widget.draft.crearCuenta; // HU14-RF01
+        (widget.draft.crearCuenta || isAccountMandatory); // HU14-RF01
     final phoneExample = '4181234567'
         .padRight(widget.phoneDigits, '0')
         .substring(0, widget.phoneDigits);
@@ -272,6 +289,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   }
 
   Widget _buildCreateAccountCheckbox() {
+    final isAccountMandatory = widget.forceAccountCreation && !widget.isAuthenticated;
     return Container(
       key: const ValueKey('container_crear_cuenta'),
       decoration: BoxDecoration(
@@ -284,8 +302,8 @@ class _ContactFormStepState extends State<ContactFormStep> {
         borderRadius: BorderRadius.circular(16),
         child: CheckboxListTile(
           key: const ValueKey('checkbox_crear_cuenta'),
-          value: widget.draft.crearCuenta,
-          onChanged: _handleCheckboxChanged,
+          value: isAccountMandatory ? true : widget.draft.crearCuenta,
+          onChanged: isAccountMandatory ? null : _handleCheckboxChanged,
           activeColor: ContactFormStep.terracotta,
           checkboxShape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(4),
@@ -298,9 +316,11 @@ class _ContactFormStepState extends State<ContactFormStep> {
               color: ContactFormStep.darkText,
             ),
           ),
-          subtitle: const Text(
-            'Podrás ver el historial de tus reservas en cualquier momento.',
-            style: TextStyle(fontSize: 12, color: ContactFormStep.mutedText),
+          subtitle: Text(
+            isAccountMandatory
+                ? 'Requerido para confirmar y guardar tu reserva en Reservitta.'
+                : 'Podrás ver el historial de tus reservas en cualquier momento.',
+            style: const TextStyle(fontSize: 12, color: ContactFormStep.mutedText),
           ),
           controlAffinity: ListTileControlAffinity.leading,
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),

@@ -72,6 +72,16 @@ class FakeReservationRepositoryForHU14 implements ReservationRepository {
   }
 
   @override
+  Future<ReservationModel> createReservationVerified(
+    ReservationModel reservation, {
+    int margenLimpiezaMin = 0,
+  }) async {
+    final withId = reservation.copyWith(id: 'res_${persistedReservations.length + 1}');
+    persistedReservations.add(withId);
+    return withId;
+  }
+
+  @override
   Future<List<ReservationModel>> getActiveReservationsByRestaurantAndDate({
     required String restauranteId,
     required String fechaLocal,
