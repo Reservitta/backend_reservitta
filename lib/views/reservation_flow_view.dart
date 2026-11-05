@@ -710,9 +710,17 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     return PrepareVisitStep(
       draft: draft,
       isProcessing: _isProcessing,
-      onSoloReservar: _bookReservation,
+      onSoloReservar: _reservarSinPersonalizar,
       onPersonalizarVisita: _navegarAPersonalizarVisita,
     );
+  }
+
+  /// "Solo reservar": se descarta cualquier personalización que el borrador aún
+  /// tenga (preorden, alergias, observaciones u ocasión) para que la reserva se
+  /// guarde sin ningún registro de restricciones (HU17-RF02 Criterio 3).
+  Future<void> _reservarSinPersonalizar() async {
+    _viewModel.clearPersonalizacion();
+    await _bookReservation();
   }
 
   Future<void> _navegarAPersonalizarVisita() async {
