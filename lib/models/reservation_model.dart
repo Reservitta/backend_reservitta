@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'preorder_restrictions.dart';
+
 /// Modelo inmutable de Reservación para gestión de reservaciones, disponibilidad,
 /// bloqueo de mesas, consulta administrativa y detalle de visita.
 /// Implementación de HU08-RF02, HU03-RF01, HU15-RF02, HU16, HU26-RF01 y HU28-RF02.
@@ -415,6 +417,16 @@ class ReservationModel {
   bool get tieneRestriccionesOAlergias =>
       alergias.isNotEmpty || notasAlergias.trim().isNotEmpty;
 
+  /// Observaciones que el visitante escribió para un platillo específico del pedido
+  /// (HU17-RF02 Criterios 1 y 2). Solo incluye las líneas que traen observación.
+  List<RestriccionPlatillo> get restriccionesPorPlatillo =>
+      PreorderRestrictions.porPlatillo(preordenItems);
+
+  /// Hay alguna restricción registrada: alergias, notas generales u observaciones
+  /// por platillo. Con "solo reservar" siempre es falso (HU17-RF02 Criterio 3).
+  bool get tieneRestricciones =>
+      tieneRestriccionesOAlergias || restriccionesPorPlatillo.isNotEmpty;
+
   /// Indica si la visita corresponde a una ocasión especial (HU28-RF02 Criterio 3)
   bool get esOcasionEspecial {
     if (ocasionEspecial != null) {
@@ -799,6 +811,14 @@ class ReservationModel {
             ? calculateEndTime(inicio: inicio!, duracionMin: duracionMin)
             : null);
 
+    // HU17-RF02: cada línea del pedido guarda su propia observación, ya limpia.
+    final lineas = PreorderRestrictions.normalizarLineas(preordenItems);
+    final self = copyWith(
+      preordenItems: lineas,
+      alergias: PreorderRestrictions.normalizarAlergias(alergias),
+      notasAlergias: notasAlergias.trim(),
+    );
+
     final map = <String, dynamic>{
       'restauranteId': restauranteId,
       'usuarioId': usuarioId,
@@ -820,17 +840,25 @@ class ReservationModel {
       'creadaEn': creadaEn != null
           ? Timestamp.fromDate(creadaEn!)
           : FieldValue.serverTimestamp(),
-      'tienePreorden': preordenItems.isNotEmpty,
-      'tieneObservaciones': notasAlergias.trim().isNotEmpty,
-      'alergias': alergias,
-      'notasAlergias': notasAlergias,
+      'tienePreorden': lineas.isNotEmpty,
     };
 
-    if (preordenItems.isNotEmpty) {
+    // HU17-RF02 Criterio 3: con "solo reservar" no se genera ningún registro de
+    // restricciones; los campos solo existen cuando traen algo.
+    if (self.alergias.isNotEmpty) map['alergias'] = self.alergias;
+    if (self.notasAlergias.isNotEmpty) {
+      map['notasAlergias'] = self.notasAlergias;
+    }
+    if (self.tieneRestricciones) map['tieneRestricciones'] = true;
+    if (self.notasAlergias.isNotEmpty || self.restriccionesPorPlatillo.isNotEmpty) {
+      map['tieneObservaciones'] = true;
+    }
+
+    if (lineas.isNotEmpty) {
       map['preorden'] = {
-        'items': preordenItems,
+        'items': lineas,
         'estado': estadoPreorden,
-        'subtotalPreorden': subtotalPreorden,
+        'subtotalPreorden': self.subtotalPreorden,
         'estadoActualizadoEn': FieldValue.serverTimestamp(),
       };
     }
@@ -845,11 +873,11 @@ class ReservationModel {
       };
     }
 
-    if (preordenItems.isNotEmpty || experiencias.isNotEmpty) {
+    if (lineas.isNotEmpty || experiencias.isNotEmpty) {
       map['totales'] = {
-        'subtotalPreorden': subtotalPreorden,
+        'subtotalPreorden': self.subtotalPreorden,
         'totalExperiencias': totalExperiencias,
-        'total': totalPersonalizacion,
+        'total': self.totalPersonalizacion,
       };
     }
 
