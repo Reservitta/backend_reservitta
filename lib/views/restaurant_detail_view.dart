@@ -6,8 +6,13 @@ import '../models/restaurant_model.dart';
 import '../services/auth_service.dart';
 import '../services/categoria_service.dart';
 import '../services/platillo_service.dart';
+import '../services/preorden_cache_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
+import 'reservation_flow_view.dart';
+// import 'widgets/preorden_item_dialog.dart';
+import 'widgets/platillo_menu_card.dart';
+import 'widgets/preorden_resumen_sheet.dart';
 
 /// Pantalla pública de detalle del restaurante (HU01-RF03, HU05)
 /// Accesible libremente sin necesidad de iniciar sesión o registrarse.
@@ -16,6 +21,8 @@ class RestaurantDetailView extends StatefulWidget {
   final AuthService? authService;
   final CategoriaService? categoriaService;
   final PlatilloService? platilloService;
+  final PreordenCacheService? preordenCacheService;
+  final bool bypassAuthForTesting;
 
   const RestaurantDetailView({
     super.key,
@@ -23,6 +30,8 @@ class RestaurantDetailView extends StatefulWidget {
     this.authService,
     this.categoriaService,
     this.platilloService,
+    this.preordenCacheService,
+    this.bypassAuthForTesting = false,
   });
 
   @override
@@ -33,6 +42,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
   late final AuthService _authService;
   late final CategoriaService _categoriaService;
   late final PlatilloService _platilloService;
+  late final PreordenCacheService _preordenCacheService;
 
   late Stream<List<CategoriaModel>> _categoriasStream;
   late Stream<List<PlatilloModel>> _platillosStream;
@@ -43,47 +53,118 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
     _authService = widget.authService ?? AuthService();
     _categoriaService = widget.categoriaService ?? CategoriaService();
     _platilloService = widget.platilloService ?? PlatilloService();
+    _preordenCacheService =
+        widget.preordenCacheService ?? PreordenCacheService();
 
     _categoriasStream = _categoriaService.getCategoriasStream(widget.restaurant.id);
     _platillosStream = _platilloService.getPlatillosActivosStream(widget.restaurant.id);
   }
 
+  void _abrirResumenPreorden() {
+    PreordenResumenSheet.show(
+      context,
+      restaurantId: widget.restaurant.id,
+      restaurantNombre: widget.restaurant.nombre,
+      cacheService: _preordenCacheService,
+    );
+  }
+
+  /*
+  void _procesarPreordenItem(Map<String, dynamic> item) {
+    _preordenCacheService.agregarItem(widget.restaurant.id, item);
+    final obs = (item['observacion'] as String? ?? '').trim();
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          obs.isNotEmpty
+              ? 'Agregado a preorden: ${item['nombre']} (${item['cantidad']}x) - "$obs"'
+              : 'Agregado a preorden: ${item['nombre']} (${item['cantidad']}x)',
+        ),
+        backgroundColor: const Color(0xFF2C5E94),
+        behavior: SnackBarBehavior.floating,
+        action: SnackBarAction(
+          label: 'Ver Preorden',
+          textColor: Colors.amber,
+          onPressed: _abrirResumenPreorden,
+        ),
+      ),
+    );
+  }
+  */
+
   /// HU01-RF03 Criterio 3: Las acciones que sí requieren cuenta (como reservar)
   /// redirigen a login o registro.
   void _onReservarPressed() {
     final user = _authService.currentUser;
-    if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
+    if (!widget.bypassAuthForTesting && user == null) {
+      final messenger = ScaffoldMessenger.of(context);
+      messenger.clearSnackBars();
+      messenger.showSnackBar(
         SnackBar(
           content: Text(
             'Para reservar en ${widget.restaurant.nombre} necesitas una cuenta en Reservitta.',
           ),
+          duration: const Duration(seconds: 3),
+          behavior: SnackBarBehavior.floating,
           action: SnackBarAction(
             label: 'Iniciar sesión',
             onPressed: () {
-              AuthModalDialog.show(context, initialMode: AuthMode.login);
+              messenger.clearSnackBars();
+              AuthModalDialog.show<String>(
+                context,
+                initialMode: AuthMode.login,
+                showGuestOption: true,
+              ).then((res) async {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  if (_authService.currentUser != null || res == 'guest') {
+                    if (res == 'guest' && _authService.currentUser == null) {
+                      try {
+                        await _authService.signInAnonymously();
+                      } catch (_) {}
+                    }
+                    if (mounted) _iniciarFlujoReserva();
+                  }
+                }
+              });
             },
           ),
         ),
       );
-      AuthModalDialog.show(context, initialMode: AuthMode.login);
+      AuthModalDialog.show<String>(
+        context,
+        initialMode: AuthMode.login,
+        showGuestOption: true,
+      ).then((res) async {
+        if (mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          if (_authService.currentUser != null || res == 'guest') {
+            if (res == 'guest' && _authService.currentUser == null) {
+              try {
+                await _authService.signInAnonymously();
+              } catch (_) {}
+            }
+            if (mounted) _iniciarFlujoReserva();
+          }
+        }
+      });
       return;
     }
 
-    // Si ya tiene sesión iniciada, muestra feedback del flujo de reserva
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Reservar en ${widget.restaurant.nombre}'),
-        content: Text(
-          '¡Hola! Tu sesión está activa como ${user.email}. El módulo de selección de fecha y mesa (HU07) estará disponible a continuación.',
+    _iniciarFlujoReserva();
+  }
+
+  void _iniciarFlujoReserva() {
+    ScaffoldMessenger.of(context).clearSnackBars();
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReservationFlowView(
+          restaurant: widget.restaurant,
+          createReservationOnConfirm: true,
+          enableContactStep: true,
         ),
-        actions: [
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Entendido'),
-          ),
-        ],
       ),
     );
   }
@@ -104,60 +185,35 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
           tooltip: 'Volver al listado',
           onPressed: () => Navigator.pop(context),
         ),
-      ),
-      bottomNavigationBar: SafeArea(
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-          decoration: BoxDecoration(
-            color: theme.scaffoldBackgroundColor,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(20),
-                blurRadius: 8,
-                offset: const Offset(0, -2),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      r.nombre,
-                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(
-                      r.direccion.isNotEmpty ? r.direccion : 'Consulta disponibilidad',
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+        actions: [
+          // Acceso directo a la preorden en caché desde la barra superior
+          AnimatedBuilder(
+            animation: _preordenCacheService,
+            builder: (context, _) {
+              final count = _preordenCacheService.contarItems(r.id);
+              if (count == 0) return const SizedBox.shrink();
+
+              return IconButton(
+                key: const ValueKey('btn_appbar_preorden_cache'),
+                icon: Badge(
+                  label: Text('$count'),
+                  backgroundColor: const Color(0xFFE4572E),
+                  child: const Icon(Icons.shopping_bag_outlined),
                 ),
-              ),
-              const SizedBox(width: 16),
-              FilledButton.icon(
-                key: const ValueKey('boton_reservar_mesa'),
-                icon: const Icon(Icons.table_restaurant),
-                label: const Text('Reservar Mesa'),
-                style: FilledButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                ),
-                onPressed: _onReservarPressed,
-              ),
-            ],
+                tooltip: 'Ver preorden en caché',
+                onPressed: _abrirResumenPreorden,
+              );
+            },
           ),
-        ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 820),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // Cabecera con imagen o portada
             Container(
               height: 220,
@@ -341,14 +397,47 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                   const SizedBox(height: 16),
 
                   _buildMenuSection(theme),
+
+                  const SizedBox(height: 36),
+
+                  // Botón al final de la información del restaurante: "Haz tu Reserva"
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 8),
+                    child: FilledButton.icon(
+                      key: const ValueKey('boton_reservar_mesa'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFB34A26),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        elevation: 3,
+                      ),
+                      icon: const Icon(Icons.calendar_month_outlined, size: 22),
+                      label: const Text(
+                        'Haz tu Reserva',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      onPressed: _onReservarPressed,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
                 ],
               ),
             ),
           ],
         ),
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildFallbackBanner(ThemeData theme, RestaurantModel r) {
     return Center(
@@ -441,6 +530,13 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
   }
 
   Widget _buildDishTile(ThemeData theme, PlatilloModel p) {
+    return PlatilloMenuCard(
+      platillo: p,
+      mode: PlatilloCardMode.readOnly,
+    );
+  }
+
+  Widget _oldBuildDishTile(ThemeData theme, PlatilloModel p) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
@@ -448,69 +544,120 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(100)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer.withAlpha(50),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: p.imagenUrl.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        p.imagenUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Icon(
-                          Icons.fastfood_outlined,
-                          color: theme.colorScheme.primary,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        // Preordenar reservado para etapas posteriores del flujo de reserva
+        onTap: null,
+        child: Padding(
+          padding: const EdgeInsets.all(12),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 72,
+                height: 72,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primaryContainer.withAlpha(50),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: p.imagenUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          p.imagenUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Icon(
+                            Icons.fastfood_outlined,
+                            color: theme.colorScheme.primary,
+                          ),
                         ),
+                      )
+                    : Icon(
+                        Icons.fastfood_outlined,
+                        color: theme.colorScheme.primary,
                       ),
-                    )
-                  : Icon(
-                      Icons.fastfood_outlined,
-                      color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            p.nombre,
+                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ),
+                        if (p.permitePersonalizacion)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEBF3FA),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Personalizable',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E5288),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    p.nombre,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                  ),
-                  if (p.descripcion.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      p.descripcion,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: theme.colorScheme.onSurfaceVariant,
+                    if (p.descripcion.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        p.descripcion,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    ],
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '\$${p.precio.toStringAsFixed(2)} MXN',
+                          style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.primary,
+                            fontSize: 14,
+                          ),
+                        ),
+                        // NOTA: Botón de preordenar conservado para el formulario de reserva
+                        // (se integrará más adelante en los pasos posteriores actualmente bajo construcción)
+                        /*
+                        OutlinedButton.icon(
+                          key: ValueKey('btn_preordenar_${p.id}'),
+                          icon: const Icon(Icons.add_shopping_cart, size: 14),
+                          label: const Text('Preordenar', style: TextStyle(fontSize: 12)),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          onPressed: () async {
+                            final item = await PreordenItemDialog.show(context, platillo: p);
+                            if (item != null && mounted) {
+                              _procesarPreordenItem(item);
+                            }
+                          },
+                        ),
+                        */
+                      ],
                     ),
                   ],
-                  const SizedBox(height: 6),
-                  Text(
-                    '\$${p.precio.toStringAsFixed(2)} MXN',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                      fontSize: 14,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

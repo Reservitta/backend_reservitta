@@ -10,6 +10,7 @@ class PlatilloModel {
   final String estado; // 'activo' | 'agotado' | 'inactivo'
   final int orden;
   final List<String> etiquetas;
+  final bool permitePersonalizacion;
   final String placeholderObservacion;
   final int limiteCaracteresObs;
 
@@ -36,6 +37,7 @@ class PlatilloModel {
     this.estado = estadoActivo,
     this.orden = 1,
     this.etiquetas = const [],
+    this.permitePersonalizacion = true,
     this.placeholderObservacion = '',
     this.limiteCaracteresObs = 150,
   }) : imagenUrl = (imagenUrl != null && imagenUrl.trim().isNotEmpty)
@@ -90,6 +92,7 @@ class PlatilloModel {
       estado: estadoFinal,
       orden: (data['orden'] as num?)?.toInt() ?? 1,
       etiquetas: List<String>.from(data['etiquetas'] ?? const []),
+      permitePersonalizacion: data['permitePersonalizacion'] as bool? ?? true,
       placeholderObservacion: data['placeholderObservacion'] as String? ?? '',
       limiteCaracteresObs: (data['limiteCaracteresObs'] as num?)?.toInt() ?? 150,
     );
@@ -105,14 +108,17 @@ class PlatilloModel {
       'estado': estado,
       'orden': orden,
       'etiquetas': etiquetas,
+      'permitePersonalizacion': permitePersonalizacion,
       'placeholderObservacion': placeholderObservacion,
       'limiteCaracteresObs': limiteCaracteresObs,
     };
   }
 
   /// Genera una copia histórica congelada (snapshot) del platillo para guardarse
-  /// dentro de `preorden.items` de una reservación confirmada (HU32-RF01).
-  /// Así, futuros cambios de precio, nombre o estado en el menú no alteran reservas ya hechas.
+  /// dentro de `preorden.items` de una reservación confirmada (HU32-RF01 y HU24-RF05).
+  /// Criterio 3: El texto ingresado por el cliente se guarda junto con el ítem
+  /// preordenado en la reservación, no en el catálogo del menú.
+  /// Criterio 4: El campo tiene un límite máximo de caracteres.
   Map<String, dynamic> toPreordenItemSnapshot({
     required int cantidad,
     String observacion = '',
@@ -121,13 +127,24 @@ class PlatilloModel {
     if (cantidad <= 0) {
       throw ArgumentError('La cantidad preseleccionada debe ser mayor a cero.');
     }
+    final trimmedObs = observacion.trim();
+    if (!permitePersonalizacion && trimmedObs.isNotEmpty) {
+      throw ArgumentError(
+        'Este platillo no admite personalizaciones del cliente.',
+      );
+    }
+    if (trimmedObs.length > limiteCaracteresObs) {
+      throw ArgumentError(
+        'La personalización no puede exceder el límite de $limiteCaracteresObs caracteres.',
+      );
+    }
     return {
       'platilloId': id,
       'nombre': nombre,
       'precio': precio,
       'cantidad': cantidad,
       'total': precio * cantidad,
-      'observacion': observacion.trim(),
+      'observacion': trimmedObs,
       'mensajeFelicitacion': mensajeFelicitacion.trim(),
     };
   }
@@ -142,6 +159,7 @@ class PlatilloModel {
     String? estado,
     int? orden,
     List<String>? etiquetas,
+    bool? permitePersonalizacion,
     String? placeholderObservacion,
     int? limiteCaracteresObs,
   }) {
@@ -155,6 +173,8 @@ class PlatilloModel {
       estado: estado ?? this.estado,
       orden: orden ?? this.orden,
       etiquetas: etiquetas ?? this.etiquetas,
+      permitePersonalizacion:
+          permitePersonalizacion ?? this.permitePersonalizacion,
       placeholderObservacion:
           placeholderObservacion ?? this.placeholderObservacion,
       limiteCaracteresObs: limiteCaracteresObs ?? this.limiteCaracteresObs,

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../models/platillo_model.dart';
+import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
+import '../viewmodels/pedido_viewmodel.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'location_filter_sheet.dart';
+import 'mi_pedido_view.dart';
 import 'restaurant_detail_view.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
@@ -125,6 +129,25 @@ class _LandingViewState extends State<LandingView> {
                 ),
               ] else ...[
                 Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Center(
+                    child: ActionChip(
+                      key: const ValueKey('btn_header_mi_pedido'),
+                      avatar: const Icon(Icons.receipt_long, size: 16, color: Colors.white),
+                      label: const Text(
+                        'Mi pedido',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      backgroundColor: const Color(0xFFB34A26),
+                      onPressed: () => _abrirMiPedidoRapido(context),
+                    ),
+                  ),
+                ),
+                Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Center(
                     child: Chip(
@@ -147,39 +170,50 @@ class _LandingViewState extends State<LandingView> {
           ),
           body: RefreshIndicator(
             onRefresh: _viewModel.refresh,
-            child: CustomScrollView(
-              controller: _scrollController,
-              slivers: [
-                // 1. Hero Banner y Buscador
-                SliverToBoxAdapter(
-                  child: _buildHeroSection(theme),
-                ),
-
-                // 2. Filtros de Ubicación y Servicios
-                SliverToBoxAdapter(
-                  child: _buildFiltersBar(theme),
-                ),
-
-                // 3. Barra de Filtros Activos
-                if (_viewModel.hasActiveFilters)
-                  SliverToBoxAdapter(
-                    child: _buildActiveFiltersBar(theme),
-                  ),
-
-                // 4. Lista o Grid de Restaurantes
-                _buildRestaurantsContent(theme),
-
-                // 5. Indicador de carga de más elementos al final
-                if (_viewModel.isLoadingMore)
-                  const SliverToBoxAdapter(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(child: CircularProgressIndicator()),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1080),
+                child: CustomScrollView(
+                  controller: _scrollController,
+                  slivers: [
+                    // 1. Hero Banner y Buscador
+                    SliverToBoxAdapter(
+                      child: _buildHeroSection(theme),
                     ),
-                  ),
 
-                const SliverToBoxAdapter(child: SizedBox(height: 32)),
-              ],
+                    // 1.5. Menú especial de acceso rápido a "Mi pedido" (solo con sesión iniciada)
+                    if (_viewModel.isUserAuthenticated)
+                      SliverToBoxAdapter(
+                        child: _buildAccesoRapidoMiPedido(theme),
+                      ),
+
+                    // 2. Filtros de Ubicación y Servicios
+                    SliverToBoxAdapter(
+                      child: _buildFiltersBar(theme),
+                    ),
+
+                    // 3. Barra de Filtros Activos
+                    if (_viewModel.hasActiveFilters)
+                      SliverToBoxAdapter(
+                        child: _buildActiveFiltersBar(theme),
+                      ),
+
+                    // 4. Lista o Grid de Restaurantes
+                    _buildRestaurantsContent(theme),
+
+                    // 5. Indicador de carga de más elementos al final
+                    if (_viewModel.isLoadingMore)
+                      const SliverToBoxAdapter(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 20),
+                          child: Center(child: CircularProgressIndicator()),
+                        ),
+                      ),
+
+                    const SliverToBoxAdapter(child: SizedBox(height: 32)),
+                  ],
+                ),
+              ),
             ),
           ),
         );
@@ -316,6 +350,114 @@ class _LandingViewState extends State<LandingView> {
           ),
           const SizedBox(width: 8),
 
+          // Control de filtro de fecha y hora (HU03-RF02 Criterios 1, 2, 3)
+          ActionChip(
+            key: const ValueKey('boton_filtro_fecha_hora'),
+            elevation: _viewModel.isDateTimeFilterActive ? 2 : 0,
+            shadowColor: theme.colorScheme.primary.withAlpha(90),
+            avatar: Icon(
+              _viewModel.isDateTimeFilterActive
+                  ? Icons.event_available
+                  : Icons.calendar_today_outlined,
+              size: 18,
+              color: _viewModel.isDateTimeFilterActive
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.primary,
+            ),
+            side: BorderSide(
+              color: _viewModel.isDateTimeFilterActive
+                  ? Colors.transparent
+                  : theme.colorScheme.primary.withAlpha(120),
+              width: 1.2,
+            ),
+            backgroundColor: _viewModel.isDateTimeFilterActive
+                ? theme.colorScheme.primary
+                : theme.colorScheme.primaryContainer.withAlpha(70),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _viewModel.isDateTimeFilterActive
+                      ? _viewModel.selectedDateTimeFormatted!
+                      : 'Fecha y hora',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _viewModel.isDateTimeFilterActive
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                if (_viewModel.isDateTimeFilterActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Colors.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            onPressed: _openNativeDateTimePicker,
+          ),
+          const SizedBox(width: 8),
+
+          // Control de filtro de cantidad de personas (HU04-RF02 Criterios 1, 2, 3)
+          ActionChip(
+            key: const ValueKey('boton_filtro_cantidad_personas'),
+            elevation: _viewModel.isGuestCountFilterActive ? 2 : 0,
+            shadowColor: theme.colorScheme.primary.withAlpha(90),
+            avatar: Icon(
+              _viewModel.isGuestCountFilterActive
+                  ? Icons.group
+                  : Icons.group_outlined,
+              size: 18,
+              color: _viewModel.isGuestCountFilterActive
+                  ? theme.colorScheme.onPrimary
+                  : theme.colorScheme.primary,
+            ),
+            side: BorderSide(
+              color: _viewModel.isGuestCountFilterActive
+                  ? Colors.transparent
+                  : theme.colorScheme.primary.withAlpha(120),
+              width: 1.2,
+            ),
+            backgroundColor: _viewModel.isGuestCountFilterActive
+                ? theme.colorScheme.primary
+                : theme.colorScheme.primaryContainer.withAlpha(70),
+            label: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _viewModel.isGuestCountFilterActive
+                      ? _viewModel.selectedGuestCountFormatted!
+                      : 'Personas',
+                  style: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: _viewModel.isGuestCountFilterActive
+                        ? theme.colorScheme.onPrimary
+                        : theme.colorScheme.primary,
+                  ),
+                ),
+                if (_viewModel.isGuestCountFilterActive) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: const BoxDecoration(
+                      color: Colors.greenAccent,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            onPressed: _openGuestCountPicker,
+          ),
+          const SizedBox(width: 8),
+
           // Chips de servicios disponibles
           ..._viewModel.availableServices.map((s) {
             final isSelected = _viewModel.selectedServiceId == s.id;
@@ -366,6 +508,26 @@ class _LandingViewState extends State<LandingView> {
                 _searchController.clear();
                 _viewModel.setSearchQuery('');
               },
+            ),
+
+          // Chip de Fecha y hora activa con opción para quitar (HU03-RF02 Criterio 3 y 4)
+          if (_viewModel.isDateTimeFilterActive)
+            Chip(
+              key: const ValueKey('chip_filtro_fecha_hora_activo'),
+              avatar: const Icon(Icons.event, size: 16),
+              deleteButtonTooltipMessage: 'Quitar filtro de fecha y hora',
+              label: Text(_viewModel.selectedDateTimeFormatted!),
+              onDeleted: () => _viewModel.clearDateTimeFilter(),
+            ),
+
+          // Chip de Cantidad de personas activa con opción para quitar (HU04-RF02 Criterios 3 y 4)
+          if (_viewModel.isGuestCountFilterActive)
+            Chip(
+              key: const ValueKey('chip_filtro_cantidad_personas_activo'),
+              avatar: const Icon(Icons.group, size: 16),
+              deleteButtonTooltipMessage: 'Quitar filtro de cantidad de personas',
+              label: Text(_viewModel.selectedGuestCountFormatted!),
+              onDeleted: () => _viewModel.clearGuestCountFilter(),
             ),
 
           if (_viewModel.selectedServiceId != null)
@@ -494,6 +656,27 @@ class _LandingViewState extends State<LandingView> {
                     child: const Text('Limpiar filtros'),
                   ),
                 ],
+                // HU03-RF02 Criterio 4: Opción directa de quitar filtro de fecha y hora
+                if (_viewModel.isDateTimeFilterActive) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('boton_quitar_filtro_fecha_hora_vacio'),
+                    icon: const Icon(Icons.event_busy),
+                    label: const Text('Quitar filtro de fecha y hora'),
+                    onPressed: () => _viewModel.clearDateTimeFilter(),
+                  ),
+                ],
+
+                // HU04-RF02 Criterio 4: Opción directa de quitar filtro de personas
+                if (_viewModel.isGuestCountFilterActive) ...[
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    key: const ValueKey('boton_quitar_filtro_personas_vacio'),
+                    icon: const Icon(Icons.group_remove),
+                    label: const Text('Quitar filtro de personas'),
+                    onPressed: () => _viewModel.clearGuestCountFilter(),
+                  ),
+                ],
               ],
             ),
           ),
@@ -506,11 +689,20 @@ class _LandingViewState extends State<LandingView> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
       sliver: SliverLayoutBuilder(
         builder: (context, constraints) {
-          final isWide = constraints.crossAxisExtent > 700;
+          final width = constraints.crossAxisExtent;
+          final int crossAxisCount;
+          if (width > 800) {
+            crossAxisCount = 3;
+          } else if (width > 500) {
+            crossAxisCount = 2;
+          } else {
+            crossAxisCount = 1;
+          }
+
           return SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: isWide ? 2 : 1,
-              mainAxisExtent: 320,
+              crossAxisCount: crossAxisCount,
+              mainAxisExtent: 270,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
             ),
@@ -531,22 +723,6 @@ class _LandingViewState extends State<LandingView> {
                       ),
                     );
                   },
-                  onReservar: () {
-                    // Criterio 3: Redirige a login si no tiene cuenta
-                    final canProceed = _viewModel.requireAuthForAction(
-                      context,
-                      actionName: 'reservar mesa',
-                      restaurantName: restaurant.nombre,
-                    );
-                    if (canProceed) {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => RestaurantDetailView(restaurant: restaurant),
-                        ),
-                      );
-                    }
-                  },
                 );
               },
               childCount: _viewModel.restaurants.length,
@@ -563,6 +739,425 @@ class _LandingViewState extends State<LandingView> {
     }
     return id;
   }
+
+  /// HU03-RF02: Selector nativo de fecha y hora (Criterios 1, 2, 3 y 4)
+  Future<void> _openNativeDateTimePicker() async {
+    final now = DateTime.now();
+
+    // 1. Selector nativo de Fecha (showDatePicker)
+    // Criterio 2: firstDate es la fecha actual (hoy), impidiendo seleccionar fechas pasadas.
+    final initialDate = _viewModel.selectedDateTime != null &&
+            !_viewModel.selectedDateTime!.isBefore(now)
+        ? _viewModel.selectedDateTime!
+        : now;
+
+    final pickedDate = await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: DateTime(now.year, now.month, now.day),
+      lastDate: now.add(const Duration(days: 90)),
+      helpText: 'SELECCIONA LA FECHA DE TU RESERVA',
+      cancelText: 'CANCELAR',
+      confirmText: 'SIGUIENTE (HORA)',
+    );
+
+    if (pickedDate == null || !mounted) return;
+
+    // 2. Selector nativo de Hora (showTimePicker)
+    final initialTime = _viewModel.selectedDateTime != null
+        ? TimeOfDay.fromDateTime(_viewModel.selectedDateTime!)
+        : TimeOfDay.now();
+
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: initialTime,
+      helpText: 'SELECCIONA LA HORA DE TU RESERVA',
+      cancelText: 'CANCELAR',
+      confirmText: 'ACEPTAR',
+    );
+
+    if (pickedTime == null || !mounted) return;
+
+    // 3. Combinar fecha y hora seleccionada
+    final combinedDateTime = DateTime(
+      pickedDate.year,
+      pickedDate.month,
+      pickedDate.day,
+      pickedTime.hour,
+      pickedTime.minute,
+    );
+
+    // Criterio 2: No se permiten fechas ni horas pasadas
+    final isSuccess = _viewModel.setDateTimeFilter(combinedDateTime, now);
+    if (!isSuccess && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          key: ValueKey('aviso_fecha_hora_pasada'),
+          content: Text('No se permiten fechas ni horas pasadas. Elige un horario futuro.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Horario seleccionado: ${_viewModel.selectedDateTimeFormatted}'),
+        action: SnackBarAction(
+          label: 'Deshacer',
+          onPressed: () => _viewModel.clearDateTimeFilter(),
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// HU04-RF02: Selector numérico (stepper) de cantidad de personas (Criterios 1, 2, 3 y 4)
+  Future<void> _openGuestCountPicker() async {
+    int tempCount = _viewModel.selectedGuestCount ?? 2;
+    const minGuests = PublicCatalogViewModel.minGuestCount;
+    const maxGuests = PublicCatalogViewModel.maxGuestCount;
+
+    final selected = await showDialog<int?>(
+      context: context,
+      builder: (dialogCtx) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            final theme = Theme.of(context);
+            return AlertDialog(
+              key: const ValueKey('dialogo_selector_cantidad_personas'),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Row(
+                children: [
+                  Icon(Icons.people_alt_outlined, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Cantidad de personas',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'Selecciona el número de personas para filtrar restaurantes con capacidad disponible:',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(height: 20),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHighest.withAlpha(100),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: theme.colorScheme.outlineVariant),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        IconButton.filledTonal(
+                          key: const ValueKey('boton_decrementar_personas'),
+                          icon: const Icon(Icons.remove),
+                          onPressed: tempCount > minGuests
+                              ? () => setModalState(() => tempCount--)
+                              : null,
+                          tooltip: 'Disminuir personas',
+                        ),
+                        Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$tempCount',
+                              key: const ValueKey('texto_conteo_personas'),
+                              style: TextStyle(
+                                fontSize: 32,
+                                fontWeight: FontWeight.bold,
+                                color: theme.colorScheme.primary,
+                              ),
+                            ),
+                            Text(
+                              tempCount == 1 ? 'persona' : 'personas',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton.filledTonal(
+                          key: const ValueKey('boton_incrementar_personas'),
+                          icon: const Icon(Icons.add),
+                          onPressed: tempCount < maxGuests
+                              ? () => setModalState(() => tempCount++)
+                              : null,
+                          tooltip: 'Aumentar personas',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Mínimo $minGuests y máximo $maxGuests personas.',
+                    style: TextStyle(fontSize: 12, color: theme.colorScheme.outline),
+                  ),
+                ],
+              ),
+              actions: [
+                if (_viewModel.isGuestCountFilterActive)
+                  TextButton(
+                    key: const ValueKey('boton_quitar_filtro_personas_dialogo'),
+                    onPressed: () {
+                      Navigator.pop(dialogCtx, 0); // 0 indica quitar filtro
+                    },
+                    child: const Text('Quitar filtro', style: TextStyle(color: Colors.redAccent)),
+                  ),
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx, null),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  key: const ValueKey('boton_aplicar_filtro_personas'),
+                  onPressed: () => Navigator.pop(dialogCtx, tempCount),
+                  child: const Text('Aplicar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+
+    if (!mounted || selected == null) return;
+
+    if (selected == 0) {
+      _viewModel.clearGuestCountFilter();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Filtro de cantidad de personas eliminado'),
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } else {
+      final success = _viewModel.setGuestCountFilter(selected);
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Filtro aplicado: $selected ${selected == 1 ? 'persona' : 'personas'}',
+            ),
+            action: SnackBarAction(
+              label: 'Deshacer',
+              onPressed: () => _viewModel.clearGuestCountFilter(),
+            ),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // HU16-RF06: ACCESO RÁPIDO A "MI PEDIDO" (SOLO CON SESIÓN INICIADA)
+  // ---------------------------------------------------------------------------
+  Widget _buildAccesoRapidoMiPedido(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: Container(
+        key: const ValueKey('card_acceso_rapido_mi_pedido'),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFEDE4D8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(8),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 600;
+            final content = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.restaurant, size: 18, color: Color(0xFFB34A26)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Acceso Rápido: Mi Pedido',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E241E),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Consulta el resumen de tu visita, gestiona los platillos preordenados y personaliza tu experiencia.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700),
+                ),
+              ],
+            );
+
+            final button = FilledButton.icon(
+              key: const ValueKey('btn_acceso_rapido_mi_pedido'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFB34A26),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.receipt_long, size: 18),
+              label: const Text(
+                'Ver mi pedido (3 platillos)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              onPressed: () => _abrirMiPedidoRapido(context),
+            );
+
+            if (isNarrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  content,
+                  const SizedBox(height: 12),
+                  button,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: content),
+                const SizedBox(width: 16),
+                button,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _abrirMiPedidoRapido(BuildContext context) {
+    final restaurant = _viewModel.restaurants.isNotEmpty
+        ? _viewModel.restaurants.first
+        : const RestaurantModel(
+            id: 'rest_demo',
+            nombre: 'Miel Aurum',
+            estado: 'activo',
+          );
+
+    final draft = ReservationDraftModel(
+      restaurant: restaurant,
+      fecha: DateTime.now().add(const Duration(days: 3)),
+      duracionMin: 90,
+      personas: 2,
+      mesaIds: const ['mesa_1'],
+      mesasNombres: const ['Mesa Terraza 1'],
+      horario: const TimeOfDay(hour: 14, minute: 0),
+    );
+
+    final platillo1 = PlatilloModel(
+      id: 'plat_1',
+      categoriaId: 'cat_cortes',
+      nombre: 'Ribeye a la Leña',
+      descripcion: 'Corte jugoso de 400g a la parrilla con guarnición.',
+      precio: 350.0,
+      imagenUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500',
+      etiquetas: const ['Especialidad', 'Carne'],
+    );
+
+    final platillo2 = PlatilloModel(
+      id: 'plat_2',
+      categoriaId: 'cat_entradas',
+      nombre: 'Ceviche Mixto',
+      descripcion: 'Pescado blanco, camarón, cebolla morada y aguacate fresco.',
+      precio: 180.0,
+      imagenUrl: 'https://images.unsplash.com/photo-1535400255456-984241443b29?w=500',
+      etiquetas: const ['Mariscos', 'Fresco'],
+    );
+
+    final platillo3 = PlatilloModel(
+      id: 'plat_3',
+      categoriaId: 'cat_bebidas',
+      nombre: 'Vino Tinto Reserva',
+      descripcion: 'Copa de vino tinto crianza de la casa.',
+      precio: 120.0,
+      imagenUrl: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=500',
+      etiquetas: const ['Bebidas'],
+    );
+
+    final pedidoVm = PedidoViewModel();
+    pedidoVm.agregarPlatillo(
+      platillo1,
+      cantidad: 1,
+      observacion: 'Término medio, sal de grano',
+    );
+    pedidoVm.agregarPlatillo(
+      platillo2,
+      cantidad: 1,
+      observacion: 'Sin cebolla morada',
+    );
+    pedidoVm.agregarPlatillo(
+      platillo3,
+      cantidad: 1,
+    );
+
+    final catalogo = {
+      platillo1.id: platillo1,
+      platillo2.id: platillo2,
+      platillo3.id: platillo3,
+    };
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MiPedidoView(
+          restaurant: restaurant,
+          draft: draft,
+          pedidoViewModel: pedidoVm,
+          catalogoPorId: catalogo,
+          onAgregarMasPlatillos: () {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Regresando al catálogo de platillos...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          onContinuarOcasion: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Ocasión Especial (HU18)'),
+                content: const Text(
+                  'Avanzando a la personalización de tu experiencia y amenidades.',
+                ),
+                actions: [
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFB34A26),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Aceptar'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
 }
 
 /// Tarjeta visual del restaurante según HU01-RF02 y HU02-RF03
@@ -570,13 +1165,11 @@ class _RestaurantCard extends StatelessWidget {
   final RestaurantModel restaurant;
   final String? distanceFormatted;
   final VoidCallback onTap;
-  final VoidCallback onReservar;
 
   const _RestaurantCard({
     required this.restaurant,
     this.distanceFormatted,
     required this.onTap,
-    required this.onReservar,
   });
 
   @override
@@ -703,31 +1296,23 @@ class _RestaurantCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // Botones de acción
-                  Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          key: ValueKey('boton_ver_detalle_${restaurant.id}'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onPressed: onTap,
-                          child: const Text('Ver Detalle'),
+                  // Botón de acción: sólo Ver Detalle
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      key: ValueKey('boton_ver_detalle_${restaurant.id}'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: FilledButton(
-                          key: ValueKey('boton_reservar_${restaurant.id}'),
-                          style: FilledButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onPressed: onReservar,
-                          child: const Text('Reservar'),
-                        ),
+                      onPressed: onTap,
+                      child: const Text(
+                        'Ver Detalle',
+                        style: TextStyle(fontWeight: FontWeight.bold),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
@@ -737,6 +1322,7 @@ class _RestaurantCard extends StatelessWidget {
       ),
     );
   }
+
 
   Widget _buildRestaurantCoverImage(String rawUrl, ThemeData theme) {
     final trimmedUrl = rawUrl.trim();

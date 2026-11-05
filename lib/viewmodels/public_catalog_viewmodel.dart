@@ -20,9 +20,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
     RestaurantService? restaurantService,
     AuthService? authService,
     LocationService? locationService,
+    bool? isAuthenticated,
+    String? currentUserName,
   })  : _restaurantService = restaurantService ?? RestaurantService(),
         _authService = authService ?? AuthService(),
-        _locationService = locationService ?? LocationService();
+        _locationService = locationService ?? LocationService(),
+        _isAuthenticatedOverride = isAuthenticated,
+        _currentUserNameOverride = currentUserName;
+
+  final bool? _isAuthenticatedOverride;
+  final String? _currentUserNameOverride;
 
   // Estados de datos
   List<RestaurantModel> _rawRestaurants = [];
@@ -44,6 +51,14 @@ class PublicCatalogViewModel extends ChangeNotifier {
   UserLocation? _selectedLocation;
   double? _selectedRadiusKm;
 
+  // Filtro de fecha y hora (HU03-RF02)
+  DateTime? _selectedDateTime;
+
+  // Filtro de cantidad de personas (HU04-RF02)
+  static const int minGuestCount = 1;
+  static const int maxGuestCount = 20;
+  int? _selectedGuestCount;
+
   // Getters
   List<RestaurantModel> get restaurants => _restaurants;
   List<ServiceCatalogModel> get availableServices => _availableServices;
@@ -55,21 +70,77 @@ class PublicCatalogViewModel extends ChangeNotifier {
   String? get selectedServiceId => _selectedServiceId;
   UserLocation? get selectedLocation => _selectedLocation;
   double? get selectedRadiusKm => _selectedRadiusKm;
+  DateTime? get selectedDateTime => _selectedDateTime;
+  int? get selectedGuestCount => _selectedGuestCount;
   LocationService get locationService => _locationService;
 
   /// Indica si el filtro de ubicación por radio está actualmente activo
   bool get isLocationFilterActive => _selectedLocation != null && _selectedRadiusKm != null;
 
-  /// Indica si hay algún filtro activo (texto, servicio o ubicación)
+  /// Indica si el filtro de fecha y hora está actualmente activo (HU03-RF02 Criterio 3)
+  bool get isDateTimeFilterActive => _selectedDateTime != null;
+
+  /// Indica si el filtro de cantidad de personas está actualmente activo (HU04-RF02 Criterio 3)
+  bool get isGuestCountFilterActive => _selectedGuestCount != null;
+
+  /// Indica si hay algún filtro activo (texto, servicio, ubicación, fecha/hora o personas)
   bool get hasActiveFilters =>
-      _searchQuery.isNotEmpty || _selectedServiceId != null || isLocationFilterActive;
+      _searchQuery.isNotEmpty ||
+      _selectedServiceId != null ||
+      isLocationFilterActive ||
+      isDateTimeFilterActive ||
+      isGuestCountFilterActive;
+
+  /// Cantidad de personas formateada legible para la vista principal (HU04-RF02 Criterio 3)
+  String? get selectedGuestCountFormatted {
+    if (_selectedGuestCount == null) return null;
+    return '$_selectedGuestCount ${_selectedGuestCount == 1 ? 'persona' : 'personas'}';
+  }
+
+  static const List<String> _meses = [
+    'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+    'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic',
+  ];
+  static const List<String> _diasSemana = [
+    'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom',
+  ];
+
+  /// Horario formateado visible en pantalla principal (HU03-RF02 Criterio 3)
+  String? get selectedDateTimeFormatted {
+    if (_selectedDateTime == null) return null;
+    final dt = _selectedDateTime!;
+    final now = DateTime.now();
+
+    final hora = dt.hour.toString().padLeft(2, '0');
+    final min = dt.minute.toString().padLeft(2, '0');
+    final timeStr = '$hora:$min';
+
+    final isToday = dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    final tomorrow = now.add(const Duration(days: 1));
+    final isTomorrow = dt.year == tomorrow.year && dt.month == tomorrow.month && dt.day == tomorrow.day;
+
+    if (isToday) {
+      return 'Hoy, $timeStr';
+    } else if (isTomorrow) {
+      return 'Mañana, $timeStr';
+    } else {
+      final diaSemana = _diasSemana[dt.weekday - 1];
+      final mes = _meses[dt.month - 1];
+      return '$diaSemana ${dt.day} $mes, $timeStr';
+    }
+  }
 
   /// Indica si el usuario actual cuenta con una sesión iniciada
-  bool get isUserAuthenticated => _authService.currentUser != null;
+  bool get isUserAuthenticated {
+    if (_isAuthenticatedOverride != null) return _isAuthenticatedOverride!;
+    final u = _authService.currentUser;
+    return u != null && !u.isAnonymous;
+  }
 
   /// Nombre del usuario autenticado si existe sesión
   String? get currentUserName =>
-      _authService.currentUser?.displayName ?? _authService.currentUser?.email;
+      _currentUserNameOverride ??
+      (_authService.currentUser?.displayName ?? _authService.currentUser?.email);
 
   /// Carga inicial del catálogo y servicios
   Future<void> init() async {
@@ -161,7 +232,19 @@ class PublicCatalogViewModel extends ChangeNotifier {
           r.descripcion.toLowerCase().contains(q)).toList();
     }
 
-    // 3. Filtrar por ubicación y radio utilizando la lógica del backend (HU02-RF02)
+    // 3. Filtrar por fecha y hora según horarios de apertura (HU03-RF02 Criterio 3)
+    if (isDateTimeFilterActive) {
+      list = list.where((r) => r.isOpenAt(_selectedDateTime!)).toList();
+    }
+
+    // 4. Filtrar por cantidad de personas (HU04-RF02 Criterio 3)
+    // Se requiere que el restaurante tenga capacidad registrada y sea suficiente
+    if (isGuestCountFilterActive) {
+      list = list.where((r) =>
+          r.tieneCapacidadRegistrada && r.capacidadTotal >= _selectedGuestCount!).toList();
+    }
+
+    // 4. Filtrar por ubicación y radio utilizando la lógica del backend (HU02-RF02)
     if (isLocationFilterActive) {
       list = GeoUtils.filterAndSortByDistance(
         restaurants: list,
@@ -267,12 +350,69 @@ class PublicCatalogViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Restablece todos los filtros activos (incluyendo texto, servicios y ubicación)
+  /// Valida si una fecha y hora es futura (no pasada)
+  /// HU03-RF02 Criterio 2
+  static bool isValidFutureDateTime(DateTime dateTime, [DateTime? referenceNow]) {
+    final now = referenceNow ?? DateTime.now();
+    // Tolerancia de 1 minuto para evitar falsos rechazos en el mismo minuto
+    final threshold = now.subtract(const Duration(minutes: 1));
+    return dateTime.isAfter(threshold);
+  }
+
+  /// Establece el filtro de fecha y hora (HU03-RF02 Criterios 1, 2)
+  /// Retorna false si la fecha y hora es pasada.
+  bool setDateTimeFilter(DateTime dateTime, [DateTime? referenceNow]) {
+    if (!isValidFutureDateTime(dateTime, referenceNow)) {
+      return false;
+    }
+    _selectedDateTime = dateTime;
+    _applyFiltersAndSorting();
+    notifyListeners();
+    return true;
+  }
+
+  /// Quita el filtro de fecha y hora y restablece los resultados (HU03-RF02 Criterio 4)
+  void clearDateTimeFilter() {
+    _selectedDateTime = null;
+    _applyFiltersAndSorting();
+    notifyListeners();
+  }
+
+  /// Valida si una cantidad de personas es admisible (HU04-RF02 Criterios 1 y 2)
+  /// Debe ser un número entero entre [minGuestCount, maxGuestCount], sin permitir
+  /// negativos, cero ni valores no numéricos.
+  static bool isValidGuestCount(dynamic value) {
+    if (value is! int) return false;
+    return value >= minGuestCount && value <= maxGuestCount;
+  }
+
+  /// Establece el filtro de cantidad de personas (HU04-RF02 Criterios 1, 2, 3)
+  /// Retorna false si el valor es menor a 1, no numérico o fuera del rango definido.
+  bool setGuestCountFilter(int count) {
+    if (!isValidGuestCount(count)) {
+      return false;
+    }
+    _selectedGuestCount = count;
+    _applyFiltersAndSorting();
+    notifyListeners();
+    return true;
+  }
+
+  /// Quita el filtro de cantidad de personas y restablece los resultados (HU04-RF02 Criterio 4)
+  void clearGuestCountFilter() {
+    _selectedGuestCount = null;
+    _applyFiltersAndSorting();
+    notifyListeners();
+  }
+
+  /// Restablece todos los filtros activos (incluyendo texto, servicios, ubicación, fecha/hora y personas)
   void clearFilters() {
     _searchQuery = '';
     _selectedServiceId = null;
     _selectedLocation = null;
     _selectedRadiusKm = null;
+    _selectedDateTime = null;
+    _selectedGuestCount = null;
     _fetchFirstPage();
   }
 
@@ -301,12 +441,16 @@ class PublicCatalogViewModel extends ChangeNotifier {
 
     // Si no tiene sesión, redirige al modal de inicio de sesión / registro
     final target = restaurantName != null ? ' en $restaurantName' : '';
-    ScaffoldMessenger.of(context).showSnackBar(
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
       SnackBar(
         content: Text('Para $actionName$target necesitas iniciar sesión o crear una cuenta.'),
+        duration: const Duration(seconds: 3),
         action: SnackBarAction(
           label: 'Iniciar sesión',
           onPressed: () {
+            messenger.hideCurrentSnackBar();
             AuthModalDialog.show(context, initialMode: AuthMode.login);
           },
         ),

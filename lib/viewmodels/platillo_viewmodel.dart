@@ -29,6 +29,8 @@ class PlatilloViewModel extends ChangeNotifier {
   String estadoSeleccionado = PlatilloModel.estadoActivo;
   int ordenSeleccionado = 1;
   List<String> etiquetasSeleccionadas = [];
+  bool permitePersonalizacion = true;
+  int limiteCaracteresObs = 150;
 
   // Lista sincronizada mediante listener en tiempo real (HU32-RF01)
   List<PlatilloModel> platillosEnTiempoReal = [];
@@ -128,6 +130,8 @@ class PlatilloViewModel extends ChangeNotifier {
     descripcionController.text = platillo.descripcion;
     precioController.text = platillo.precio.toStringAsFixed(2);
     placeholderObsController.text = platillo.placeholderObservacion;
+    permitePersonalizacion = platillo.permitePersonalizacion;
+    limiteCaracteresObs = platillo.limiteCaracteresObs;
     categoriaSeleccionadaId = platillo.categoriaId;
     estadoSeleccionado = platillo.estado;
     ordenSeleccionado = platillo.orden;
@@ -144,6 +148,8 @@ class PlatilloViewModel extends ChangeNotifier {
     descripcionController.clear();
     precioController.clear();
     placeholderObsController.clear();
+    permitePersonalizacion = true;
+    limiteCaracteresObs = 150;
     categoriaSeleccionadaId = null;
     estadoSeleccionado = PlatilloModel.estadoActivo;
     ordenSeleccionado = 1;
@@ -189,6 +195,9 @@ class PlatilloViewModel extends ChangeNotifier {
     String? descripcion,
     String? precioTexto,
     String? categoriaId,
+    bool? permitePersonalizacion,
+    String? placeholderObservacion,
+    int? limiteCaracteresObs,
     Uint8List? customImageBytes,
     String? customImageExt,
   }) async {
@@ -222,7 +231,13 @@ class PlatilloViewModel extends ChangeNotifier {
         estado: estadoSeleccionado,
         orden: ordenSeleccionado,
         etiquetas: etiquetasSeleccionadas,
-        placeholderObservacion: placeholderObsController.text.trim(),
+        permitePersonalizacion:
+            permitePersonalizacion ?? this.permitePersonalizacion,
+        placeholderObservacion: (placeholderObservacion ??
+                placeholderObsController.text)
+            .trim(),
+        limiteCaracteresObs:
+            limiteCaracteresObs ?? this.limiteCaracteresObs,
       );
 
       await _platilloService.crearPlatillo(
@@ -252,6 +267,9 @@ class PlatilloViewModel extends ChangeNotifier {
     String? precioTexto,
     String? categoriaId,
     String? nuevoEstado,
+    bool? permitePersonalizacion,
+    String? placeholderObservacion,
+    int? limiteCaracteresObs,
     Uint8List? nuevaImagenBytes,
     String? nuevaImagenExt,
   }) async {
@@ -282,9 +300,16 @@ class PlatilloViewModel extends ChangeNotifier {
         precio: precioNumerico,
         categoriaId: catFinal,
         estado: estadoFinal,
-        orden: ordenSeleccionado,
-        etiquetas: etiquetasSeleccionadas,
-        placeholderObservacion: placeholderObsController.text.trim(),
+        orden: platilloOriginal.orden,
+        etiquetas: etiquetasSeleccionadas.isNotEmpty ? etiquetasSeleccionadas : platilloOriginal.etiquetas,
+        permitePersonalizacion:
+            permitePersonalizacion ?? this.permitePersonalizacion,
+        placeholderObservacion: placeholderObservacion ??
+            (placeholderObsController.text.trim().isNotEmpty
+                ? placeholderObsController.text.trim()
+                : platilloOriginal.placeholderObservacion),
+        limiteCaracteresObs:
+            limiteCaracteresObs ?? this.limiteCaracteresObs,
       );
 
       await _platilloService.actualizarPlatillo(
@@ -377,6 +402,24 @@ class PlatilloViewModel extends ChangeNotifier {
       observacion: observacion,
       mensajeFelicitacion: mensajeFelicitacion,
     );
+  }
+
+  /// 6. Eliminar un platillo definitivamente del menú
+  Future<bool> eliminarPlatillo(String platilloId) async {
+    isLoading = true;
+    errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _platilloService.eliminarPlatillo(restaurantId, platilloId);
+      return true;
+    } catch (e) {
+      errorMessage = 'No se pudo eliminar el platillo.';
+      return false;
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 
   @override

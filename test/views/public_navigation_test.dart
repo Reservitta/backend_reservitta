@@ -298,6 +298,7 @@ void main() {
       // Presionar "Reservar Mesa" sin tener sesión iniciada
       final botonReservar = find.byKey(const ValueKey('boton_reservar_mesa'));
       expect(botonReservar, findsOneWidget);
+      await tester.ensureVisible(botonReservar);
       await tester.tap(botonReservar);
       await tester.pumpAndSettle();
 

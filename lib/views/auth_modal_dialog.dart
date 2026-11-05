@@ -5,15 +5,21 @@ import '../viewmodels/auth_modal_viewmodel.dart';
 
 class AuthModalDialog extends StatefulWidget {
   final AuthMode initialMode;
+  final bool showGuestOption;
 
   const AuthModalDialog({
     super.key,
     this.initialMode = AuthMode.login,
+    this.showGuestOption = false,
   });
 
   /// Abre el modal flotante con animación fluida de escala/opacidad y desenfoque de fondo
-  static Future<void> show(BuildContext context, {AuthMode initialMode = AuthMode.login}) {
-    return showGeneralDialog<void>(
+  static Future<T?> show<T>(
+    BuildContext context, {
+    AuthMode initialMode = AuthMode.login,
+    bool showGuestOption = false,
+  }) {
+    return showGeneralDialog<T>(
       context: context,
       barrierDismissible: true,
       barrierLabel: 'Cerrar modal',
@@ -22,7 +28,10 @@ class AuthModalDialog extends StatefulWidget {
       pageBuilder: (context, animation, secondaryAnimation) {
         return BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-          child: AuthModalDialog(initialMode: initialMode),
+          child: AuthModalDialog(
+            initialMode: initialMode,
+            showGuestOption: showGuestOption,
+          ),
         );
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
@@ -224,6 +233,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                   final navigator = Navigator.of(context);
                   final success = await _viewModel.login();
                   if (success && mounted) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
                     navigator.pop();
                   }
                 },
@@ -250,6 +260,31 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             ),
           ],
         ),
+        if (widget.showGuestOption) ...[
+          const SizedBox(height: 10),
+          const Divider(height: 1),
+          const SizedBox(height: 8),
+          Center(
+            child: TextButton.icon(
+              key: const ValueKey('btn_continuar_como_invitado'),
+              icon: const Icon(Icons.arrow_forward_outlined, size: 16, color: Color(0xFFB34A26)),
+              label: const Text(
+                'Continuar reserva sin cuenta',
+                style: TextStyle(
+                  color: Color(0xFFB34A26),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                ),
+              ),
+              onPressed: () async {
+                await _viewModel.signInAnonymously();
+                if (context.mounted) {
+                  Navigator.of(context).pop('guest');
+                }
+              },
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -470,11 +505,17 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           controller: _viewModel.registerPasswordController,
           obscureText: true,
           decoration: InputDecoration(
-            labelText: 'Contraseña (mínimo 6 caracteres) *',
+            labelText: 'Contraseña (mínimo 8 caracteres) *',
             prefixIcon: const Icon(Icons.lock_outline),
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: fe['password'],
           ),
+          onChanged: (_) => setState(() {}),
+        ),
+        const SizedBox(height: 10),
+        _buildPasswordConstraints(
+          _viewModel.registerPasswordController.text,
+          _viewModel.confirmPasswordController.text,
         ),
         const SizedBox(height: 12),
         TextField(
@@ -486,6 +527,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
             errorText: fe['confirmPassword'],
           ),
+          onChanged: (_) => setState(() {}),
         ),
 
         if (isAdmin) ...[
@@ -525,6 +567,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                   final navigator = Navigator.of(context);
                   final success = await _viewModel.register();
                   if (success && mounted) {
+                    ScaffoldMessenger.of(context).clearSnackBars();
                     navigator.pop();
                   }
                 },
@@ -637,6 +680,86 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildPasswordConstraints(String password, String confirmPassword) {
+    final hasLength = password.length >= 8;
+    final hasLetter = RegExp(r'[A-Za-z]').hasMatch(password);
+    final hasNumber = RegExp(r'[0-9]').hasMatch(password);
+    final passwordsMatch = confirmPassword.isNotEmpty && (password == confirmPassword);
+
+    return Container(
+      key: const ValueKey('modal_password_constraints'),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAF6F0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFEDE4D8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Requisitos de la contraseña:',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF2E241E),
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildConstraintRow(
+            'Mínimo 8 caracteres',
+            hasLength,
+            'constraint_min_length',
+          ),
+          const SizedBox(height: 6),
+          _buildConstraintRow(
+            'Al menos una letra',
+            hasLetter,
+            'constraint_has_letter',
+          ),
+          const SizedBox(height: 6),
+          _buildConstraintRow(
+            'Al menos un número',
+            hasNumber,
+            'constraint_has_number',
+          ),
+          if (confirmPassword.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            _buildConstraintRow(
+              'Las contraseñas coinciden',
+              passwordsMatch,
+              'constraint_passwords_match',
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildConstraintRow(String label, bool isMet, String keySuffix) {
+    final color = isMet ? const Color(0xFF2E7D32) : const Color(0xFF7A6E65);
+    return Row(
+      key: ValueKey(keySuffix),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          isMet ? Icons.check_circle : Icons.radio_button_unchecked,
+          size: 15,
+          color: color,
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            color: color,
+            fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+          ),
+        ),
+      ],
     );
   }
 }
