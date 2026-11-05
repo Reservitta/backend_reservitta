@@ -7,7 +7,9 @@ import '../models/restaurant_model.dart';
 import '../services/categoria_service.dart';
 import '../services/ocasion_service.dart';
 import '../services/platillo_service.dart';
+import '../services/auth_service.dart';
 import '../viewmodels/pedido_viewmodel.dart';
+import 'mi_pedido_view.dart';
 import 'widgets/platillo_detalle_sheet.dart';
 import 'widgets/platillo_menu_card.dart';
 
@@ -28,6 +30,8 @@ class PersonalizeVisitView extends StatefulWidget {
   final CategoriaService? categoriaService;
   final PlatilloService? platilloService;
   final OcasionService? ocasionService;
+  final AuthService? authService;
+  final bool? isAuthenticated;
   final Future<void> Function(ReservationDraftModel updatedDraft)? onConfirm;
 
   const PersonalizeVisitView({
@@ -38,6 +42,8 @@ class PersonalizeVisitView extends StatefulWidget {
     this.categoriaService,
     this.platilloService,
     this.ocasionService,
+    this.authService,
+    this.isAuthenticated,
     this.onConfirm,
   });
 
@@ -51,6 +57,11 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   late final OcasionService _ocasionService;
   late final PedidoViewModel _pedidoViewModel;
   late final bool _isExternalPedidoViewModel;
+  late final AuthService _authService;
+
+  bool get _hasSession =>
+      widget.isAuthenticated ??
+      (_authService.currentUser != null && !_authService.currentUser!.isAnonymous);
 
   late TabController _tabController;
 
@@ -85,6 +96,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   @override
   void initState() {
     super.initState();
+    _authService = widget.authService ?? AuthService();
     _platilloService = widget.platilloService ?? PlatilloService();
     _ocasionService = widget.ocasionService ?? OcasionService();
     _isExternalPedidoViewModel = widget.pedidoViewModel != null;
@@ -127,6 +139,27 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       platillo: p,
       pedidoViewModel: _pedidoViewModel,
     );
+  }
+
+  Future<void> _navegarAMiPedidoView() async {
+    final result = await Navigator.push<String>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MiPedidoView(
+          restaurant: widget.restaurant,
+          draft: widget.draft,
+          pedidoViewModel: _pedidoViewModel,
+          catalogoPorId: _catalogoPorId,
+          onAgregarMasPlatillos: () => Navigator.of(context).pop(),
+          onContinuarOcasion: () {
+            Navigator.of(context).pop('ir_a_ocasion');
+          },
+        ),
+      ),
+    );
+    if (result == 'ir_a_ocasion' && mounted) {
+      _tabController.animateTo(2); // Avanza a Ocasión Especial (HU18)
+    }
   }
 
   Future<void> _editarItemDesdeMiPedido(PedidoItem item) async {
@@ -287,7 +320,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                   ),
                   backgroundColor: Colors.white,
                   side: const BorderSide(color: _primaryTerracotta),
-                  onPressed: _mostrarMiPedidoSheet,
+                  onPressed: _hasSession ? _navegarAMiPedidoView : _mostrarMiPedidoSheet,
                 ),
               ),
             ],
@@ -367,6 +400,30 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
           key: const ValueKey('lista_preorden_platillos'),
           padding: const EdgeInsets.all(16),
           children: [
+            // Botón "Ver mi pedido (n platillos)" (HU16-RF06 Criterio 1 - solo con sesión)
+            if (_hasSession && _pedidoViewModel.isNotEmpty) ...[
+              Container(
+                key: const ValueKey('container_btn_ver_mi_pedido'),
+                margin: const EdgeInsets.only(bottom: 12),
+                width: double.infinity,
+                child: FilledButton.icon(
+                  key: const ValueKey('btn_ver_mi_pedido'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: _primaryTerracotta,
+                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                  label: Text(
+                    'Ver mi pedido (${_pedidoViewModel.totalCantidad} ${_pedidoViewModel.totalCantidad == 1 ? "platillo" : "platillos"})',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  onPressed: _navegarAMiPedidoView,
+                ),
+              ),
+            ],
             // Sección "Mi pedido" reflejada de inmediato (HU16-RF05 Criterio 4 / HU17-RF01 Criterio 3)
             if (_pedidoViewModel.isNotEmpty) ...[
               _buildMiPedidoSection(),
@@ -446,6 +503,25 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
               ),
             ),
           ),
+          if (_hasSession) ...[
+            const SizedBox(height: 6),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                key: const ValueKey('btn_abrir_pantalla_mi_pedido'),
+                icon: const Icon(Icons.fullscreen, size: 18),
+                label: const Text('Ver pantalla completa de mi pedido'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _primaryTerracotta,
+                  side: const BorderSide(color: _primaryTerracotta),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: _navegarAMiPedidoView,
+              ),
+            ),
+          ],
         ],
       ),
     );

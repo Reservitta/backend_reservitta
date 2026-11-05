@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 
+import '../models/platillo_model.dart';
+import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
+import '../viewmodels/pedido_viewmodel.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'location_filter_sheet.dart';
+import 'mi_pedido_view.dart';
 import 'restaurant_detail_view.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
@@ -125,6 +129,25 @@ class _LandingViewState extends State<LandingView> {
                 ),
               ] else ...[
                 Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Center(
+                    child: ActionChip(
+                      key: const ValueKey('btn_header_mi_pedido'),
+                      avatar: const Icon(Icons.receipt_long, size: 16, color: Colors.white),
+                      label: const Text(
+                        'Mi pedido',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      backgroundColor: const Color(0xFFB34A26),
+                      onPressed: () => _abrirMiPedidoRapido(context),
+                    ),
+                  ),
+                ),
+                Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 8),
                   child: Center(
                     child: Chip(
@@ -157,6 +180,12 @@ class _LandingViewState extends State<LandingView> {
                     SliverToBoxAdapter(
                       child: _buildHeroSection(theme),
                     ),
+
+                    // 1.5. Menú especial de acceso rápido a "Mi pedido" (solo con sesión iniciada)
+                    if (_viewModel.isUserAuthenticated)
+                      SliverToBoxAdapter(
+                        child: _buildAccesoRapidoMiPedido(theme),
+                      ),
 
                     // 2. Filtros de Ubicación y Servicios
                     SliverToBoxAdapter(
@@ -926,6 +955,208 @@ class _LandingViewState extends State<LandingView> {
         );
       }
     }
+  }
+
+  // ---------------------------------------------------------------------------
+  // HU16-RF06: ACCESO RÁPIDO A "MI PEDIDO" (SOLO CON SESIÓN INICIADA)
+  // ---------------------------------------------------------------------------
+  Widget _buildAccesoRapidoMiPedido(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 6),
+      child: Container(
+        key: const ValueKey('card_acceso_rapido_mi_pedido'),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFEDE4D8)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withAlpha(8),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isNarrow = constraints.maxWidth < 600;
+            final content = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Row(
+                  children: [
+                    Icon(Icons.restaurant, size: 18, color: Color(0xFFB34A26)),
+                    SizedBox(width: 8),
+                    Text(
+                      'Acceso Rápido: Mi Pedido',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2E241E),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Consulta el resumen de tu visita, gestiona los platillos preordenados y personaliza tu experiencia.',
+                  style: TextStyle(fontSize: 12.5, color: Colors.grey.shade700),
+                ),
+              ],
+            );
+
+            final button = FilledButton.icon(
+              key: const ValueKey('btn_acceso_rapido_mi_pedido'),
+              style: FilledButton.styleFrom(
+                backgroundColor: const Color(0xFFB34A26),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.receipt_long, size: 18),
+              label: const Text(
+                'Ver mi pedido (3 platillos)',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              ),
+              onPressed: () => _abrirMiPedidoRapido(context),
+            );
+
+            if (isNarrow) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  content,
+                  const SizedBox(height: 12),
+                  button,
+                ],
+              );
+            }
+
+            return Row(
+              children: [
+                Expanded(child: content),
+                const SizedBox(width: 16),
+                button,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  void _abrirMiPedidoRapido(BuildContext context) {
+    final restaurant = _viewModel.restaurants.isNotEmpty
+        ? _viewModel.restaurants.first
+        : const RestaurantModel(
+            id: 'rest_demo',
+            nombre: 'Miel Aurum',
+            estado: 'activo',
+          );
+
+    final draft = ReservationDraftModel(
+      restaurant: restaurant,
+      fecha: DateTime.now().add(const Duration(days: 3)),
+      duracionMin: 90,
+      personas: 2,
+      mesaIds: const ['mesa_1'],
+      mesasNombres: const ['Mesa Terraza 1'],
+      horario: const TimeOfDay(hour: 14, minute: 0),
+    );
+
+    final platillo1 = PlatilloModel(
+      id: 'plat_1',
+      categoriaId: 'cat_cortes',
+      nombre: 'Ribeye a la Leña',
+      descripcion: 'Corte jugoso de 400g a la parrilla con guarnición.',
+      precio: 350.0,
+      imagenUrl: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=500',
+      etiquetas: const ['Especialidad', 'Carne'],
+    );
+
+    final platillo2 = PlatilloModel(
+      id: 'plat_2',
+      categoriaId: 'cat_entradas',
+      nombre: 'Ceviche Mixto',
+      descripcion: 'Pescado blanco, camarón, cebolla morada y aguacate fresco.',
+      precio: 180.0,
+      imagenUrl: 'https://images.unsplash.com/photo-1535400255456-984241443b29?w=500',
+      etiquetas: const ['Mariscos', 'Fresco'],
+    );
+
+    final platillo3 = PlatilloModel(
+      id: 'plat_3',
+      categoriaId: 'cat_bebidas',
+      nombre: 'Vino Tinto Reserva',
+      descripcion: 'Copa de vino tinto crianza de la casa.',
+      precio: 120.0,
+      imagenUrl: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?w=500',
+      etiquetas: const ['Bebidas'],
+    );
+
+    final pedidoVm = PedidoViewModel();
+    pedidoVm.agregarPlatillo(
+      platillo1,
+      cantidad: 1,
+      observacion: 'Término medio, sal de grano',
+    );
+    pedidoVm.agregarPlatillo(
+      platillo2,
+      cantidad: 1,
+      observacion: 'Sin cebolla morada',
+    );
+    pedidoVm.agregarPlatillo(
+      platillo3,
+      cantidad: 1,
+    );
+
+    final catalogo = {
+      platillo1.id: platillo1,
+      platillo2.id: platillo2,
+      platillo3.id: platillo3,
+    };
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => MiPedidoView(
+          restaurant: restaurant,
+          draft: draft,
+          pedidoViewModel: pedidoVm,
+          catalogoPorId: catalogo,
+          onAgregarMasPlatillos: () {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Regresando al catálogo de platillos...'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          onContinuarOcasion: () {
+            showDialog(
+              context: context,
+              builder: (ctx) => AlertDialog(
+                title: const Text('Ocasión Especial (HU18)'),
+                content: const Text(
+                  'Avanzando a la personalización de tu experiencia y amenidades.',
+                ),
+                actions: [
+                  FilledButton(
+                    style: FilledButton.styleFrom(
+                      backgroundColor: const Color(0xFFB34A26),
+                    ),
+                    onPressed: () => Navigator.of(ctx).pop(),
+                    child: const Text('Aceptar'),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
 }
 
