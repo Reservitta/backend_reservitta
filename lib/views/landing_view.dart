@@ -296,6 +296,33 @@ class _LandingViewState extends State<LandingView> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         children: [
+          // Botón directo para limpiar todos los filtros con un solo toque
+          if (_viewModel.hasActiveFilters)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ActionChip(
+                key: const ValueKey('boton_limpiar_filtros_barra'),
+                avatar: const Icon(
+                  Icons.filter_alt_off,
+                  size: 16,
+                  color: Color(0xFFB34A26),
+                ),
+                label: const Text(
+                  'Limpiar filtros',
+                  style: TextStyle(
+                    color: Color(0xFFB34A26),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                backgroundColor: const Color(0xFFFBF8F4),
+                side: const BorderSide(color: Color(0xFFB34A26), width: 1.2),
+                onPressed: () {
+                  _searchController.clear();
+                  _viewModel.clearFilters();
+                },
+              ),
+            ),
+
           // Control principal de filtro de ubicación (HU02-RF03 Criterio 1)
           ActionChip(
             key: const ValueKey('boton_filtro_ubicacion'),
@@ -536,13 +563,18 @@ class _LandingViewState extends State<LandingView> {
               onDeleted: () => _viewModel.toggleServiceFilter(_viewModel.selectedServiceId!),
             ),
 
-          TextButton(
+          OutlinedButton.icon(
             key: const ValueKey('boton_limpiar_filtros'),
+            icon: const Icon(Icons.filter_alt_off, size: 16),
+            label: const Text('Limpiar todos'),
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            ),
             onPressed: () {
               _searchController.clear();
               _viewModel.clearFilters();
             },
-            child: const Text('Limpiar todos'),
           ),
         ],
       ),
@@ -647,13 +679,19 @@ class _LandingViewState extends State<LandingView> {
                     onPressed: () => _viewModel.clearLocationFilter(),
                     child: const Text('Quitar filtro de ubicación'),
                   ),
-                ] else if (_viewModel.hasActiveFilters) ...[
-                  OutlinedButton(
+                ],
+
+                // Botón único para restablecer todos los filtros con un solo clic cuando no hay resultados
+                if (_viewModel.hasActiveFilters) ...[
+                  const SizedBox(height: 10),
+                  FilledButton.tonalIcon(
+                    key: const ValueKey('boton_limpiar_filtros_vacio'),
+                    icon: const Icon(Icons.filter_alt_off),
+                    label: const Text('Limpiar todos los filtros'),
                     onPressed: () {
                       _searchController.clear();
                       _viewModel.clearFilters();
                     },
-                    child: const Text('Limpiar filtros'),
                   ),
                 ],
                 // HU03-RF02 Criterio 4: Opción directa de quitar filtro de fecha y hora
