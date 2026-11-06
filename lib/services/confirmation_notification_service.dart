@@ -24,7 +24,7 @@ class ConfirmationNotificationService {
     WhatsAppBusinessApiClient? whatsAppClient,
     this.firestore,
     this.maxRetries = 3,
-  })  : _emailClient = emailClient ?? DefaultTransactionalEmailClient(),
+  })  : _emailClient = emailClient ?? DefaultTransactionalEmailClient(firestore: firestore),
         _whatsAppClient = whatsAppClient ?? DefaultWhatsAppBusinessApiClient();
 
   FirebaseFirestore get _db => firestore ?? FirebaseFirestore.instance;

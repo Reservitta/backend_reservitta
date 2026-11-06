@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/booking_models.dart';
 import '../models/notification_delivery_result.dart';
 import '../models/reservation_draft_model.dart';
@@ -146,7 +148,8 @@ class ReservationBookingService {
             'Se perdió la conexión al confirmar. No se guardó ninguna reserva: intenta de nuevo.',
         retryable: true,
       );
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('Error al guardar reserva: $e\n$stack');
       return const BookingFailed(
         message:
             'No se pudo guardar la reserva. No se guardó ninguna reserva: intenta de nuevo.',
