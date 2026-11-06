@@ -118,8 +118,18 @@ class ReservationBookingService {
             sucursalNombre: draft.branch?.nombre ?? '',
           );
           notifResult = await _notifications.sendNotification(payload);
-        } catch (_) {
-          // Tolerancia a fallos: fallo de notificación no revierte la reserva confirmada
+        } catch (e) {
+          // Tolerancia a fallos: fallo de notificación no revierte la reserva confirmada (HU19-RF02)
+          notifResult = NotificationDeliveryResult.failed(
+            notificacionId: 'notif_${guardada.id}',
+            canal: draft.canalPreferido.isNotEmpty ? draft.canalPreferido : 'email',
+            destino: guardada.contactoCorreo.isNotEmpty
+                ? guardada.contactoCorreo
+                : guardada.contactoTelefono,
+            intentos: 1,
+            error: e.toString(),
+            requiereReintentoManual: true,
+          );
         }
       }
 
