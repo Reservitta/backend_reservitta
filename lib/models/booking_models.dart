@@ -1,3 +1,4 @@
+import 'notification_delivery_result.dart';
 import 'reservation_model.dart';
 import 'table_availability_models.dart';
 
@@ -147,8 +148,9 @@ sealed class BookingResult {
 /// La reserva se guardó y quedó asociada al usuario.
 final class BookingConfirmed extends BookingResult {
   final ReservationModel reservation;
+  final NotificationDeliveryResult? notificationResult;
 
-  const BookingConfirmed(this.reservation);
+  const BookingConfirmed(this.reservation, {this.notificationResult});
 }
 
 /// Otra persona reservó la mesa; se ofrecen horarios alternativos.

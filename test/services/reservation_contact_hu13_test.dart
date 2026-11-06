@@ -44,9 +44,7 @@ class SpyReservationRepository implements ReservationRepository {
     ReservationModel reservation, {
     int margenLimpiezaMin = 0,
   }) async {
-    createCalls++;
-    persistedReservations.add(reservation);
-    return reservation.copyWith(id: 'res_test_${persistedReservations.length}');
+    return createReservation(reservation);
   }
 
   @override

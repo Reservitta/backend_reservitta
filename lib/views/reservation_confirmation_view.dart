@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import '../models/notification_delivery_result.dart';
 import '../models/reservation_model.dart';
 
-/// Pantalla de confirmación con los datos de la reserva guardada (HU11-RF04).
+/// Pantalla de confirmación con los datos de la reserva guardada (HU11-RF04, HU19-RF01).
 class ReservationConfirmationView extends StatelessWidget {
   final ReservationModel reservation;
+  final NotificationDeliveryResult? notificationResult;
 
   /// Se llama al pulsar "Volver al inicio"; por defecto regresa a la primera pantalla.
   final VoidCallback? onDone;
@@ -11,6 +13,7 @@ class ReservationConfirmationView extends StatelessWidget {
   const ReservationConfirmationView({
     super.key,
     required this.reservation,
+    this.notificationResult,
     this.onDone,
   });
 
@@ -114,6 +117,42 @@ class ReservationConfirmationView extends StatelessWidget {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: mutedText),
                   ),
+                  if (notificationResult != null && notificationResult!.exitoso) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      key: const ValueKey('notification_delivery_banner'),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.green.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            notificationResult!.canal == 'whatsapp'
+                                ? Icons.phone_android
+                                : Icons.mark_email_read_outlined,
+                            color: const Color(0xFF2E7D32),
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              notificationResult!.canal == 'whatsapp'
+                                  ? 'Confirmación enviada por WhatsApp al ${notificationResult!.destino}'
+                                  : 'Confirmación enviada por correo a ${notificationResult!.destino}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF1B5E20),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 24),
                   Container(
                     key: const ValueKey('confirmation_details'),

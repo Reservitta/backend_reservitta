@@ -1,15 +1,19 @@
 import '../models/booking_models.dart';
+import '../models/notification_delivery_result.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/reservation_model.dart';
+import '../models/reservation_notification_payload.dart';
 import '../models/restaurant_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../utils/schedule_utils.dart';
 import 'availability_service.dart';
+import 'confirmation_notification_service.dart';
 
-/// Confirma una reserva a partir del borrador (HU11-RF04, HU15-RF02): revalida la selección,
-/// guarda la reservación en una transacción y traduce los fallos a mensajes claros.
+/// Confirma una reserva a partir del borrador (HU11-RF04, HU15-RF02, HU19-RF01):
+/// revalida la selección, guarda la reservación en una transacción y dispara
+/// automáticamente la confirmación mediante [ConfirmationNotificationService].
 ///
-/// REUTILIZACIÓN DE ENDPOINTS (HU15-RF02):
+/// REUTILIZACIÓN DE ENDPOINTS (HU15-RF02 / HU19-RF01):
 /// Tanto el camino de "Solo reservar" como el de "Personalizar visita" consumen este mismo
 /// método y endpoint de creación de reserva. El camino de personalización únicamente aporta
 /// los datos adicionales en el payload (preorden, alergias y ocasión especial con experiencias).
@@ -17,8 +21,13 @@ import 'availability_service.dart';
 class ReservationBookingService {
   final AvailabilityService _availability;
   final ReservationRepository _reservations;
+  final ConfirmationNotificationService? _notifications;
 
-  ReservationBookingService(this._availability, this._reservations);
+  ReservationBookingService(
+    this._availability,
+    this._reservations, [
+    this._notifications,
+  ]);
 
   /// Estado con el que se guarda una reserva recién confirmada.
   static const String estadoInicial = ReservationModel.estadoConfirmada;
@@ -60,14 +69,21 @@ class ReservationBookingService {
     }
     if (!validation.isValid) return BookingRejected(validation);
 
+    final efectivoNombre =
+        contactoNombre.isNotEmpty ? contactoNombre : draft.contactoNombre;
+    final efectivoCorreo =
+        contactoCorreo.isNotEmpty ? contactoCorreo : draft.contactoCorreo;
+    final efectivoTelefono =
+        contactoTelefono.isNotEmpty ? contactoTelefono : draft.contactoTelefono;
+
     final reserva = ReservationModel.create(
       id: '',
       restauranteId: restaurant.id,
       usuarioId: usuarioId,
       restauranteNombre: restaurant.nombre,
-      contactoNombre: contactoNombre,
-      contactoCorreo: contactoCorreo,
-      contactoTelefono: contactoTelefono,
+      contactoNombre: efectivoNombre,
+      contactoCorreo: efectivoCorreo,
+      contactoTelefono: efectivoTelefono,
       fechaLocal: ScheduleUtils.formatDateLocal(draft.fecha!),
       inicio: inicio,
       duracionMin: draft.duracionMin,
@@ -87,7 +103,27 @@ class ReservationBookingService {
         reserva,
         margenLimpiezaMin: _availability.margenLimpiezaMin,
       );
-      return BookingConfirmed(guardada);
+
+      // HU19-RF01: Disparo automático de confirmación al confirmarse la reserva
+      NotificationDeliveryResult? notifResult;
+      if (_notifications != null &&
+          ReservationModel.normalizeStatus(guardada.estado) ==
+              ReservationModel.estadoConfirmada) {
+        try {
+          final payload = ReservationNotificationPayload.fromReservation(
+            guardada,
+            canalPreferido: draft.canalPreferido,
+            notas: draft.notasAlergias,
+            sucursalId: draft.branch?.id ?? '',
+            sucursalNombre: draft.branch?.nombre ?? '',
+          );
+          notifResult = await _notifications.sendNotification(payload);
+        } catch (_) {
+          // Tolerancia a fallos: fallo de notificación no revierte la reserva confirmada
+        }
+      }
+
+      return BookingConfirmed(guardada, notificationResult: notifResult);
     } on ReservationConflictException catch (e) {
       return BookingConflict(
         message: _conflictMessage(draft, e.mesaIds.toList()),
