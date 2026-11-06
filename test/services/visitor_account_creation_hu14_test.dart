@@ -76,9 +76,7 @@ class FakeReservationRepositoryForHU14 implements ReservationRepository {
     ReservationModel reservation, {
     int margenLimpiezaMin = 0,
   }) async {
-    final withId = reservation.copyWith(id: 'res_${persistedReservations.length + 1}');
-    persistedReservations.add(withId);
-    return withId;
+    return createReservation(reservation);
   }
 
   @override

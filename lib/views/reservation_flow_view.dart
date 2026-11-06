@@ -947,11 +947,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       if (!mounted) return;
 
       switch (result) {
-        case BookingConfirmed(:final reservation):
+        case BookingConfirmed(:final reservation, :final notificationResult):
           _viewModel.discardDraft();
           await Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => ReservationConfirmationView(reservation: reservation),
+              builder: (_) => ReservationConfirmationView(
+                reservation: reservation,
+                notificationResult: notificationResult,
+              ),
             ),
           );
         case BookingConflict():

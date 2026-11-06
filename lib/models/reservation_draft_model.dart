@@ -1,13 +1,15 @@
+// ignore_for_file: prefer_initializing_formals
 import 'package:flutter/material.dart';
 import 'branch_model.dart';
 import 'reservation_contact_model.dart';
+import 'reservation_model.dart';
 import '../utils/schedule_utils.dart';
 import 'restaurant_model.dart';
 
-/// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01 y HU13-RF03).
+/// Modelo de borrador de reservación para el flujo de reserva (HU07-RF01, HU13-RF03 y HU14-RF02).
 /// Guarda de forma incremental los datos elegidos por el usuario:
-/// sucursal, fecha, duración, cantidad de personas, mesa(s), horario
-/// y datos de contacto (HU13).
+/// sucursal, fecha, duración, cantidad de personas, mesa(s), horario,
+/// datos de contacto (HU13) y cuenta asociada (HU14-RF02).
 ///
 /// Además soporta personalización de la visita (HU15-RF01, HU15-RF02, HU16):
 /// preorden de platillos, especificación de alergias y ocasión especial.
@@ -23,6 +25,7 @@ class ReservationDraftModel {
   final List<String> mesaIds;
   final List<String> mesasNombres;
   final TimeOfDay? horario;
+  final String usuarioId; // HU14-RF02: ID de la cuenta creada o asociada a la reserva
 
   // HU13: Datos de contacto (soporta modelo de objeto o campos primitivos)
   final ReservationContactModel? _explicitContactData;
@@ -30,6 +33,7 @@ class ReservationDraftModel {
   final String _contactoCorreo;
   final String _contactoTelefono;
   final bool _crearCuenta;
+  final String _canalPreferido; // HU13 / HU19-RF01
 
   // HU15-RF02 / HU16: Datos opcionales de personalización de la visita
   final List<Map<String, dynamic>> preordenItems;
@@ -48,10 +52,12 @@ class ReservationDraftModel {
     this.mesasNombres = const [],
     this.horario,
     ReservationContactModel? contactData,
+    this.usuarioId = '',
     String contactoNombre = '',
     String contactoCorreo = '',
     String contactoTelefono = '',
     bool crearCuenta = false,
+    String canalPreferido = 'email',
     this.preordenItems = const [],
     this.alergias = const [],
     this.notasAlergias = '',
@@ -61,7 +67,8 @@ class ReservationDraftModel {
         _contactoNombre = contactoNombre,
         _contactoCorreo = contactoCorreo,
         _contactoTelefono = contactoTelefono,
-        _crearCuenta = crearCuenta;
+        _crearCuenta = crearCuenta,
+        _canalPreferido = canalPreferido;
 
   /// Retorna los datos de contacto estructurados
   ReservationContactModel? get contactData {
@@ -72,6 +79,7 @@ class ReservationDraftModel {
         correo: _contactoCorreo,
         telefono: _contactoTelefono,
         solicitaCrearCuenta: _crearCuenta,
+        canalPreferido: _canalPreferido,
       );
     }
     return null;
@@ -84,6 +92,7 @@ class ReservationDraftModel {
   String get contactoNotas => _explicitContactData?.notas ?? '';
   bool get crearCuenta => _explicitContactData?.solicitaCrearCuenta ?? _crearCuenta;
   bool get solicitaCrearCuenta => crearCuenta;
+  String get canalPreferido => _explicitContactData?.canalPreferido ?? (_canalPreferido.isNotEmpty ? _canalPreferido : 'email');
 
   // HU13-RF01: getters y alias de datos de contacto
   String get contactNombre => contactoNombre;
@@ -94,8 +103,11 @@ class ReservationDraftModel {
       contactoCorreo.trim().isNotEmpty &&
       contactoTelefono.trim().isNotEmpty;
   bool get hasContactData =>
-      (_explicitContactData != null && _explicitContactData!.isNotEmpty) ||
+      (_explicitContactData != null && _explicitContactData.isNotEmpty) ||
       hasValidContactData;
+
+  // HU14-RF02: indica si la reserva tiene cuenta asociada
+  bool get hasAccountAssociated => usuarioId.trim().isNotEmpty;
 
   /// Crea una copia inmutable actualizando únicamente los campos provistos.
   ReservationDraftModel copyWith({
@@ -108,10 +120,12 @@ class ReservationDraftModel {
     List<String>? mesasNombres,
     TimeOfDay? Function()? horario,
     ReservationContactModel? Function()? contactData,
+    String? usuarioId,
     String? contactoNombre,
     String? contactoCorreo,
     String? contactoTelefono,
     bool? crearCuenta,
+    String? canalPreferido,
     List<Map<String, dynamic>>? preordenItems,
     List<String>? alergias,
     String? notasAlergias,
@@ -130,10 +144,12 @@ class ReservationDraftModel {
       mesasNombres: mesasNombres ?? this.mesasNombres,
       horario: horario != null ? horario() : this.horario,
       contactData: nextContact,
+      usuarioId: usuarioId ?? this.usuarioId,
       contactoNombre: contactoNombre ?? (nextContact?.nombre ?? this.contactoNombre),
       contactoCorreo: contactoCorreo ?? (nextContact?.correo ?? this.contactoCorreo),
       contactoTelefono: contactoTelefono ?? (nextContact?.telefono ?? this.contactoTelefono),
       crearCuenta: crearCuenta ?? (nextContact?.solicitaCrearCuenta ?? this.crearCuenta),
+      canalPreferido: canalPreferido ?? (nextContact?.canalPreferido ?? this.canalPreferido),
       preordenItems: preordenItems ?? this.preordenItems,
       alergias: alergias ?? this.alergias,
       notasAlergias: notasAlergias ?? this.notasAlergias,
@@ -155,10 +171,12 @@ class ReservationDraftModel {
       mesasNombres: const [],
       horario: null,
       contactData: null,
+      usuarioId: '',
       contactoNombre: '',
       contactoCorreo: '',
       contactoTelefono: '',
       crearCuenta: false,
+      canalPreferido: 'email',
       preordenItems: const [],
       alergias: const [],
       notasAlergias: '',
@@ -247,6 +265,42 @@ class ReservationDraftModel {
     return '${_hhmm(i)} – ${_hhmm(f)}';
   }
 
+  /// Fecha en formato estándar local 'YYYY-MM-DD'
+  String get fechaLocalFormat {
+    final d = fecha;
+    if (d == null) return '';
+    return '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
+  }
+
+  /// Convierte el borrador en un [ReservationModel] listo para confirmación / persistencia (HU11-RF04)
+  ReservationModel toReservationModel({
+    String id = '',
+    String estado = ReservationModel.estadoConfirmada,
+  }) {
+    return ReservationModel.create(
+      id: id,
+      restauranteId: restaurant.id,
+      usuarioId: usuarioId,
+      restauranteNombre: restaurant.nombre,
+      contactoNombre: contactoNombre,
+      contactoCorreo: contactoCorreo,
+      contactoTelefono: contactoTelefono,
+      fechaLocal: fechaLocalFormat,
+      inicio: inicio,
+      fin: fin,
+      duracionMin: duracionMin,
+      personas: personas,
+      mesaIds: mesaIds,
+      mesasNombres: mesasNombres,
+      estado: estado,
+      preordenItems: preordenItems,
+      alergias: alergias,
+      notasAlergias: notasAlergias,
+      ocasionEspecial: ocasionEspecial,
+      experiencias: experiencias,
+    );
+  }
+
   /// Formato legible para pantalla de la fecha elegida (ej. "S, 31 de Octubre")
   String get formattedDate {
     final d = fecha;
@@ -286,6 +340,6 @@ class ReservationDraftModel {
 
   @override
   String toString() {
-    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, contact: $contactData, tienePersonalizacion: $tienePersonalizacion)';
+    return 'ReservationDraftModel(restaurant: ${restaurant.nombre}, branch: ${branch?.nombre}, fecha: $fecha, duracionMin: $duracionMin, personas: $personas, contact: $contactData, usuarioId: $usuarioId, tienePersonalizacion: $tienePersonalizacion)';
   }
 }

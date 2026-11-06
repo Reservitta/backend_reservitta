@@ -7,6 +7,7 @@ class ReservationContactModel {
   final String notas;
   final bool solicitaCrearCuenta;
   final String? password;
+  final String canalPreferido; // 'email' o 'whatsapp' (HU13 / HU19-RF01)
 
   const ReservationContactModel({
     required this.nombre,
@@ -15,6 +16,7 @@ class ReservationContactModel {
     this.notas = '',
     this.solicitaCrearCuenta = false,
     this.password,
+    this.canalPreferido = 'email',
   });
 
   /// Instancia vacía inicial
@@ -25,6 +27,7 @@ class ReservationContactModel {
     notas: '',
     solicitaCrearCuenta: false,
     password: null,
+    canalPreferido: 'email',
   );
 
   bool get isEmpty =>
@@ -39,6 +42,7 @@ class ReservationContactModel {
     String? notas,
     bool? solicitaCrearCuenta,
     String? Function()? password,
+    String? canalPreferido,
   }) {
     return ReservationContactModel(
       nombre: nombre ?? this.nombre,
@@ -47,6 +51,7 @@ class ReservationContactModel {
       notas: notas ?? this.notas,
       solicitaCrearCuenta: solicitaCrearCuenta ?? this.solicitaCrearCuenta,
       password: password != null ? password() : this.password,
+      canalPreferido: canalPreferido ?? this.canalPreferido,
     );
   }
 
@@ -57,6 +62,7 @@ class ReservationContactModel {
       'telefono': telefono.trim(),
       'notas': notas.trim(),
       'solicitaCrearCuenta': solicitaCrearCuenta,
+      'canalPreferido': canalPreferido,
     };
   }
 
@@ -68,6 +74,7 @@ class ReservationContactModel {
       notas: map['notas'] as String? ?? '',
       solicitaCrearCuenta: map['solicitaCrearCuenta'] as bool? ?? false,
       password: map['password'] as String?,
+      canalPreferido: map['canalPreferido'] as String? ?? 'email',
     );
   }
 }
