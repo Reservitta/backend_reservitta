@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import '../models/booking_models.dart';
 import '../models/notification_delivery_result.dart';
 import '../models/reservation_draft_model.dart';
@@ -118,8 +120,18 @@ class ReservationBookingService {
             sucursalNombre: draft.branch?.nombre ?? '',
           );
           notifResult = await _notifications.sendNotification(payload);
-        } catch (_) {
-          // Tolerancia a fallos: fallo de notificación no revierte la reserva confirmada
+        } catch (e) {
+          // Tolerancia a fallos: fallo de notificación no revierte la reserva confirmada (HU19-RF02)
+          notifResult = NotificationDeliveryResult.failed(
+            notificacionId: 'notif_${guardada.id}',
+            canal: draft.canalPreferido.isNotEmpty ? draft.canalPreferido : 'email',
+            destino: guardada.contactoCorreo.isNotEmpty
+                ? guardada.contactoCorreo
+                : guardada.contactoTelefono,
+            intentos: 1,
+            error: e.toString(),
+            requiereReintentoManual: true,
+          );
         }
       }
 
@@ -136,7 +148,8 @@ class ReservationBookingService {
             'Se perdió la conexión al confirmar. No se guardó ninguna reserva: intenta de nuevo.',
         retryable: true,
       );
-    } catch (_) {
+    } catch (e, stack) {
+      debugPrint('Error al guardar reserva: $e\n$stack');
       return const BookingFailed(
         message:
             'No se pudo guardar la reserva. No se guardó ninguna reserva: intenta de nuevo.',

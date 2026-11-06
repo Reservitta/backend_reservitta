@@ -17,6 +17,7 @@ import 'widgets/contact_form_step.dart';
 import 'widgets/prepare_visit_step.dart';
 import 'personalize_visit_view.dart';
 import '../services/categoria_service.dart';
+import '../services/confirmation_notification_service.dart';
 import '../services/platillo_service.dart';
 import '../services/ocasion_service.dart';
 import 'widgets/reservation_summary_step.dart';
@@ -122,9 +123,17 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
 
   ReservationBookingService? _booking;
 
+  ConfirmationNotificationService? _notifications;
+  ConfirmationNotificationService get _notificationService =>
+      _notifications ??= ConfirmationNotificationService();
+
   ReservationBookingService get _bookingService => _booking ??=
       widget.bookingService ??
-      ReservationBookingService(_availabilityService, ReservationService());
+      ReservationBookingService(
+        _availabilityService,
+        ReservationService(),
+        _notificationService,
+      );
 
   /// Cambia cuando la selección se invalida para recargar los pasos de mesa y horario.
   int _stepReload = 0;
@@ -954,6 +963,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               builder: (_) => ReservationConfirmationView(
                 reservation: reservation,
                 notificationResult: notificationResult,
+                notificationService: _notificationService,
               ),
             ),
           );
