@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'occasion_booking.dart';
 import 'preorder_restrictions.dart';
 
 /// Modelo inmutable de Reservación para gestión de reservaciones, disponibilidad,
@@ -866,10 +867,15 @@ class ReservationModel {
 
     // HU17-RF02: cada línea del pedido guarda su propia observación, ya limpia.
     final lineas = PreorderRestrictions.normalizarLineas(preordenItems);
+    // HU18-RF05: ocasión, experiencias y mensajes de felicitación, ya limpios.
+    final ocasionNormalizada =
+        OccasionBooking.normalizar(ocasionEspecial, experiencias);
     final self = copyWith(
       preordenItems: lineas,
       alergias: PreorderRestrictions.normalizarAlergias(alergias),
       notasAlergias: notasAlergias.trim(),
+      ocasionEspecial: () => ocasionNormalizada.ocasion,
+      experiencias: ocasionNormalizada.experiencias,
     );
 
     final map = <String, dynamic>{
@@ -894,6 +900,8 @@ class ReservationModel {
           ? Timestamp.fromDate(creadaEn!)
           : FieldValue.serverTimestamp(),
       'tienePreorden': lineas.isNotEmpty,
+      // Se guarda explícitamente si eligió una ocasión o no (HU18-RF05 Criterio 1).
+      'tieneOcasion': self.ocasionEspecial != null,
     };
 
     // HU17-RF02 Criterio 3: con "solo reservar" no se genera ningún registro de
@@ -916,20 +924,17 @@ class ReservationModel {
       };
     }
 
-    if (ocasionEspecial != null) {
+    if (self.ocasionEspecial != null) {
       map['ocasion'] = {
-        'ocasionId':
-            ocasionEspecial!['ocasionId'] ?? ocasionEspecial!['id'] ?? '',
-        'nombre': ocasionEspecial!['nombre'] ?? '',
-        'icono': ocasionEspecial!['icono'] ?? 'celebration',
-        'experiencias': experiencias,
+        ...self.ocasionEspecial!,
+        'experiencias': self.experiencias,
       };
     }
 
-    if (lineas.isNotEmpty || experiencias.isNotEmpty) {
+    if (lineas.isNotEmpty || self.experiencias.isNotEmpty) {
       map['totales'] = {
         'subtotalPreorden': self.subtotalPreorden,
-        'totalExperiencias': totalExperiencias,
+        'totalExperiencias': self.totalExperiencias,
         'total': self.totalPersonalizacion,
       };
     }

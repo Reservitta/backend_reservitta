@@ -85,6 +85,8 @@ class _ReservationConfirmationViewState
     return '$m min';
   }
 
+  static String _dinero(double v) => '\$${v.toStringAsFixed(2)} MXN';
+
   String get _estado {
     switch (widget.reservation.estado) {
       case ReservationModel.estadoPendiente:
@@ -289,6 +291,18 @@ class _ReservationConfirmationViewState
                         if (widget.reservation.contactoTelefono.isNotEmpty)
                           _row(Icons.phone_outlined, 'Teléfono',
                               widget.reservation.contactoTelefono),
+                        if (widget.reservation.esOcasionEspecial)
+                          _row(Icons.celebration_outlined, 'Ocasión',
+                              widget.reservation.nombreOcasionEspecial),
+                        if (widget.reservation.tienePreorden)
+                          _row(Icons.restaurant_menu, 'Pedido',
+                              _dinero(widget.reservation.subtotalPreorden)),
+                        if (widget.reservation.totalExperiencias > 0)
+                          _row(Icons.auto_awesome_outlined, 'Experiencias',
+                              _dinero(widget.reservation.totalExperiencias)),
+                        if (widget.reservation.totalPersonalizacion > 0)
+                          _row(Icons.payments_outlined, 'Total por pagar',
+                              _dinero(widget.reservation.totalPersonalizacion)),
                         _row(Icons.verified_outlined, 'Estado', _estado),
                         _row(
                           Icons.confirmation_number_outlined,
