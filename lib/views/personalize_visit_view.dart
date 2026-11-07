@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../models/categoria_model.dart';
-import '../models/experiencia_model.dart';
-import '../models/ocasion_model.dart';
+import '../models/occasion_booking.dart';
 import '../models/platillo_model.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
 import '../services/categoria_service.dart';
 import '../services/ocasion_service.dart';
+import '../viewmodels/ocasion_selection_viewmodel.dart';
+import 'widgets/ocasion_step.dart';
 import '../services/platillo_service.dart';
 import '../services/auth_service.dart';
 import '../viewmodels/pedido_viewmodel.dart';
@@ -75,8 +76,8 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   // Estado local de alergias y ocasión
   final Set<String> _alergiasSeleccionadas = {};
   final TextEditingController _notasAlergiasCtrl = TextEditingController();
-  OcasionModel? _ocasionSeleccionada;
-  final List<ExperienciaModel> _experienciasSeleccionadas = [];
+  OcasionSelectionViewModel? _ocasionVm;
+  Future<OcasionSelectionViewModel>? _ocasionVmFuture;
 
   bool _isProcessing = false;
 
@@ -139,9 +140,47 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   double get _subtotalPreorden => _pedidoViewModel.subtotal;
 
   double get _totalExperiencias {
-    return _experienciasSeleccionadas.fold<double>(0.0, (acc, exp) {
-      return acc + (exp.esGratis ? 0.0 : exp.precio);
+    final vm = _ocasionVm;
+    if (vm != null) return vm.totalExperiencias;
+    return OccasionBooking.totalExperiencias(widget.draft.experiencias);
+  }
+
+  /// Carga las ocasiones disponibles y los postres del menú para el paso de ocasión
+  /// (HU18-RF02, RF03 y RF04).
+  Future<OcasionSelectionViewModel> _cargarOcasionVm() async {
+    final ocasiones = await _ocasionService.getOcasionesDisponibles(widget.restaurant.id);
+
+    Future<List<T>> primero<T>(Stream<List<T>> Function() abrir) async {
+      try {
+        return await abrir().first.timeout(const Duration(seconds: 8));
+      } catch (_) {
+        return <T>[];
+      }
+    }
+
+    final categorias = await primero<CategoriaModel>(_getCategoriasStream);
+    final platillos = await primero<PlatilloModel>(
+      () => _platilloService.getPlatillosActivosStream(widget.restaurant.id),
+    );
+    final idsPostre = {
+      for (final c in categorias)
+        if (c.tipo.toLowerCase() == 'postre' || c.nombre.toLowerCase().contains('postre'))
+          c.id,
+    };
+
+    final vm = OcasionSelectionViewModel(
+      ocasiones: ocasiones,
+      pedido: _pedidoViewModel,
+      catalogoPostres: [for (final p in platillos) if (idsPostre.contains(p.categoriaId)) p],
+      categoriasPostre: idsPostre,
+      ocasionInicial: widget.draft.ocasionEspecial,
+      experienciasIniciales: widget.draft.experiencias,
+    );
+    vm.addListener(() {
+      if (mounted) setState(() {});
     });
+    _ocasionVm = vm;
+    return vm;
   }
 
   double get _totalPersonalizacion => _subtotalPreorden + _totalExperiencias;
@@ -275,21 +314,13 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       preordenItems: _pedidoViewModel.preordenItems,
       alergias: _alergiasSeleccionadas.toList(),
       notasAlergias: _notasAlergiasCtrl.text.trim(),
-      ocasionEspecial: () => _ocasionSeleccionada != null
-          ? {
-              'ocasionId': _ocasionSeleccionada!.id,
-              'nombre': _ocasionSeleccionada!.nombre,
-              'icono': _ocasionSeleccionada!.icono,
-            }
-          : null,
-      experiencias: _experienciasSeleccionadas
-          .map((e) => {
-                'experienciaId': e.id,
-                'nombre': e.nombre,
-                'precio': e.precio,
-                'esGratis': e.esGratis,
-              })
-          .toList(),
+      // Si nunca se abrió la pestaña de ocasión se conserva lo que ya traía el borrador.
+      ocasionEspecial: () => _ocasionVm != null
+          ? _ocasionVm!.ocasionEspecialMap
+          : widget.draft.ocasionEspecial,
+      experiencias: _ocasionVm != null
+          ? _ocasionVm!.experienciasMaps
+          : widget.draft.experiencias,
     );
 
     if (widget.onConfirm != null) {
@@ -356,7 +387,9 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                 ),
                 Tab(
                   icon: const Icon(Icons.celebration_outlined),
-                  text: _ocasionSeleccionada != null ? 'Ocasión (1)' : 'Ocasión',
+                  text: (_ocasionVm?.hayOcasion ?? widget.draft.ocasionEspecial != null)
+                      ? 'Ocasión (1)'
+                      : 'Ocasión',
                 ),
               ],
             ),
@@ -811,17 +844,18 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   // TAB 3: OCASIÓN ESPECIAL (HU18 / HU33)
   // ---------------------------------------------------------------------------
   Widget _buildOcasionesTab() {
-    return FutureBuilder<List<OcasionModel>>(
-      future: _ocasionService.getOcasiones(widget.restaurant.id),
+    _ocasionVmFuture ??= _cargarOcasionVm();
+    return FutureBuilder<OcasionSelectionViewModel>(
+      future: _ocasionVmFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState != ConnectionState.done) {
           return const Center(
             child: CircularProgressIndicator(color: _primaryTerracotta),
           );
         }
 
-        final ocasiones = snapshot.data ?? [];
-        if (ocasiones.isEmpty) {
+        final vm = snapshot.data;
+        if (vm == null || vm.ocasiones.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -841,176 +875,11 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
           );
         }
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              '¿Celebras algo especial?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: _textDark,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Elige una ocasión para incluir amenidades de cortesía o experiencias personalizadas.',
-              style: TextStyle(fontSize: 13, color: _textMuted),
-            ),
-            const SizedBox(height: 16),
-
-            ...ocasiones.map((ocasion) {
-              final esSeleccionada = _ocasionSeleccionada?.id == ocasion.id;
-
-              return Card(
-                key: ValueKey('card_ocasion_opcion_${ocasion.id}'),
-                margin: const EdgeInsets.only(bottom: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(
-                    color: esSeleccionada ? _primaryTerracotta : _cardBorder,
-                    width: esSeleccionada ? 2.0 : 1.0,
-                  ),
-                ),
-                elevation: 0,
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.celebration,
-                            color: _primaryTerracotta,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              ocasion.nombre,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          Switch(
-                            key: ValueKey('switch_ocasion_${ocasion.id}'),
-                            activeColor: _primaryTerracotta,
-                            value: esSeleccionada,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val) {
-                                  _ocasionSeleccionada = ocasion;
-                                  _experienciasSeleccionadas.clear();
-                                  for (final exp in ocasion.experiencias) {
-                                    if (exp.esGratis) {
-                                      _experienciasSeleccionadas.add(exp);
-                                    }
-                                  }
-                                } else {
-                                  _ocasionSeleccionada = null;
-                                  _experienciasSeleccionadas.clear();
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      if (ocasion.descripcion.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          ocasion.descripcion,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: _textMuted,
-                          ),
-                        ),
-                      ],
-
-                      if (esSeleccionada && ocasion.experiencias.isNotEmpty) ...[
-                        const Divider(height: 20),
-                        const Text(
-                          'Experiencias disponibles para esta ocasión:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...ocasion.experiencias.map((exp) {
-                          final expMarcada = _experienciasSeleccionadas.any(
-                            (e) => e.id == exp.id,
-                          );
-
-                          return CheckboxListTile(
-                            key: ValueKey('check_exp_${exp.id}'),
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            activeColor: _primaryTerracotta,
-                            title: Text(
-                              exp.nombre,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: exp.descripcionCorta.isNotEmpty
-                                ? Text(exp.descripcionCorta)
-                                : null,
-                            secondary: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: exp.esGratis
-                                    ? Colors.green.shade100
-                                    : Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                exp.precioFormateado,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: exp.esGratis
-                                      ? Colors.green.shade900
-                                      : Colors.brown.shade900,
-                                ),
-                              ),
-                            ),
-                            value: expMarcada,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _experienciasSeleccionadas.add(exp);
-                                } else {
-                                  _experienciasSeleccionadas.removeWhere(
-                                    (e) => e.id == exp.id,
-                                  );
-                                }
-                              });
-                            },
-                          );
-                        }),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ],
-        );
+        return OcasionStep(vm: vm, onContinuar: _confirmarPersonalizacion);
       },
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // BARRA INFERIOR DE ACCIÓN (HU15-RF02)
-  // ---------------------------------------------------------------------------
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1065,7 +934,9 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: _isProcessing ? null : _confirmarPersonalizacion,
+                onPressed: (_isProcessing || !(_ocasionVm?.puedeContinuar ?? true))
+                    ? null
+                    : _confirmarPersonalizacion,
                 child: _isProcessing
                     ? const SizedBox(
                         width: 22,
