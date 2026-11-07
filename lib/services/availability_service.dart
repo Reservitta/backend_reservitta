@@ -56,12 +56,17 @@ class AvailabilityService {
   /// Fuente de mesas y zonas. Si es null se usan las mesas del [RestaurantModel].
   final TableRepository? _tables;
 
+  /// Reserva que no cuenta como ocupada en ninguna consulta de este servicio; se usa
+  /// al modificar una reserva existente (HU20-RF02, HU20-RF03).
+  final String? ignorarReservaId;
+
   AvailabilityService(
     this._reservations, {
     TableRepository? tables,
     DateTime Function()? now,
     this.maxAnticipacionDias = 90,
     this.margenLimpiezaMin = 0,
+    this.ignorarReservaId,
     // ignore: prefer_initializing_formals
   }) : _tables = tables,
        _now = now ?? DateTime.now;
@@ -579,6 +584,7 @@ class AvailabilityService {
               fechaLocal: f,
             );
         for (final r in delDia) {
+          if (ignorarReservaId != null && r.id == ignorarReservaId) continue;
           if (r.id.isEmpty || vistos.add(r.id)) result.add(r);
         }
       } catch (_) {
@@ -843,6 +849,7 @@ class AvailabilityService {
               fechaLocal: fecha,
             );
         for (final res in delDia) {
+          if (ignorarReservaId != null && res.id == ignorarReservaId) continue;
           if (res.id.isNotEmpty && !vistos.add(res.id)) continue;
           if (intervalsOverlap(
             inicio,

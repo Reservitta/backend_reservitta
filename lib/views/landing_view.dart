@@ -9,6 +9,7 @@ import '../viewmodels/public_catalog_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'location_filter_sheet.dart';
 import 'mi_pedido_view.dart';
+import 'reservation_management_view.dart';
 import 'restaurant_detail_view.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
@@ -79,6 +80,19 @@ class _LandingViewState extends State<LandingView> {
             ),
             actions: [
               if (!_viewModel.isUserAuthenticated) ...[
+                IconButton(
+                  key: const ValueKey('boton_header_gestionar_reserva'),
+                  tooltip: 'Gestionar mi reserva',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.event_note_outlined, size: 20),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ReservationManagementView(),
+                      ),
+                    );
+                  },
+                ),
                 TextButton(
                   key: const ValueKey('boton_header_registrarse'),
                   style: TextButton.styleFrom(
