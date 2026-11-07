@@ -10,6 +10,13 @@ class ExperienciaModel {
   final bool activo;
   final int orden;
 
+  /// Tipo de experiencia (HU18-RF03/RF04). Con [tipoPostreFelicitacion] el
+  /// visitante debe elegir un postre y escribir su mensaje de felicitación.
+  final String tipo;
+
+  static const String tipoEstandar = 'estandar';
+  static const String tipoPostreFelicitacion = 'postre_felicitacion';
+
   const ExperienciaModel({
     required this.id,
     required this.nombre,
@@ -18,7 +25,18 @@ class ExperienciaModel {
     bool? esGratis,
     this.activo = true,
     this.orden = 1,
+    this.tipo = tipoEstandar,
   }) : esGratis = esGratis ?? (precio <= 0.0);
+
+  /// Es la experiencia "Postre con felicitación" (por su tipo o por su nombre).
+  bool get esPostreConFelicitacion {
+    if (tipo == tipoPostreFelicitacion) return true;
+    final n = nombre.toLowerCase();
+    return n.contains('postre') && n.contains('felicit');
+  }
+
+  /// Necesita información adicional del visitante antes de continuar (HU18-RF03 Criterio 3).
+  bool get requiereInformacion => esPostreConFelicitacion;
 
   /// Formateo del precio o etiqueta "Gratis" (HU33-RF01 Criterio 3)
   String get precioFormateado {
@@ -40,6 +58,7 @@ class ExperienciaModel {
       esGratis: esGratisRaw,
       activo: data['activo'] as bool? ?? true,
       orden: (data['orden'] as num?)?.toInt() ?? 1,
+      tipo: (data['tipo'] as String?) ?? tipoEstandar,
     );
   }
 
@@ -55,6 +74,7 @@ class ExperienciaModel {
       'esGratis': esGratis,
       'activo': activo,
       'orden': orden,
+      if (tipo != tipoEstandar) 'tipo': tipo,
     };
   }
 
@@ -66,6 +86,7 @@ class ExperienciaModel {
     bool? esGratis,
     bool? activo,
     int? orden,
+    String? tipo,
   }) {
     return ExperienciaModel(
       id: id ?? this.id,
@@ -75,6 +96,7 @@ class ExperienciaModel {
       esGratis: esGratis ?? this.esGratis,
       activo: activo ?? this.activo,
       orden: orden ?? this.orden,
+      tipo: tipo ?? this.tipo,
     );
   }
 }

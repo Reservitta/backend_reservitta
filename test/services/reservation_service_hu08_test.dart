@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reservitta/models/booking_models.dart';
+import 'package:reservitta/models/reservation_detail.dart';
 import 'package:reservitta/models/reservation_model.dart';
+import 'package:reservitta/models/reservation_status_flow.dart';
 import 'package:reservitta/repositories/reservation_repository.dart';
 
 /// Implementación Fake en memoria de ReservationRepository para pruebas unitarias de HU08-RF02
@@ -62,6 +64,37 @@ class FakeReservationRepository implements ReservationRepository {
         .intersection(reservation.mesaIds.toSet());
     if (ocupadas.isNotEmpty) throw ReservationConflictException(ocupadas);
     return createReservation(reservation);
+  }
+
+  @override
+  Future<ReservationModel> changeOperationalState({
+    required String reservationId,
+    required String nuevoEstado,
+    required String usuarioId,
+    DateTime? ahora,
+  }) async {
+    final i = reservacionesEnMemoria.indexWhere((r) => r.id == reservationId);
+    if (i < 0) throw StateError('La reservación $reservationId no existe.');
+    final res = reservacionesEnMemoria[i];
+    final destino = ReservationStateMachine.normalizar(nuevoEstado);
+    ReservationStateMachine.exigirValida(res.estadoOperativo, destino);
+    final actualizada = res.copyWith(
+      estado: destino,
+      estadoActualizadoPor: usuarioId,
+      estadoActualizadoEn: ahora ?? DateTime.now(),
+    );
+    reservacionesEnMemoria[i] = actualizada;
+    return actualizada;
+  }
+
+  @override
+  Future<ReservationDetail?> getReservationDetail(
+    String reservationId, {
+    Map<String, String>? categoriasPorId,
+    Map<String, String>? categoriaPorPlatilloId,
+  }) async {
+    final i = reservacionesEnMemoria.indexWhere((r) => r.id == reservationId);
+    return i < 0 ? null : ReservationDetail.fromReservation(reservacionesEnMemoria[i]);
   }
 
   @override

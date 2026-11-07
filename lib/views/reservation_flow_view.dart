@@ -60,6 +60,11 @@ class ReservationFlowView extends StatefulWidget {
   /// Permite sobrescribir el id del usuario autenticado (útil para pruebas).
   final String? currentUserId;
 
+  /// Modo "modificar reserva" (HU20-RF03): al confirmar el resumen se llama a esta
+  /// función en lugar de crear una reserva. Devuelve un mensaje de error o null si
+  /// se aplicó el cambio.
+  final Future<String?> Function(ReservationDraftModel draft)? onConfirmModification;
+
   /// Activa el paso 7 (Datos de contacto, HU13/HU14). Por defecto desactivado
   /// para no alterar el flujo existente de HU11/HU12.
   final bool enableContactStep;
@@ -88,6 +93,7 @@ class ReservationFlowView extends StatefulWidget {
     this.createReservationOnConfirm = false,
     this.bookingService,
     this.currentUserId,
+    this.onConfirmModification,
     this.enableContactStep = false,
     this.onContactSubmitted,
     this.categoriaService,
@@ -1045,7 +1051,28 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     }
   }
 
+  /// Guarda los cambios de una reserva existente (HU20-RF03).
+  Future<void> _aplicarModificacion() async {
+    setState(() => _isProcessing = true);
+    try {
+      final error = await widget.onConfirmModification!(_viewModel.draft);
+      if (!mounted) return;
+      if (error == null) {
+        Navigator.of(context).pop(true);
+      } else {
+        _showFlowMessage(error);
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Future<void> _handleConfirmOrContinue() async {
+    if (widget.onConfirmModification != null) {
+      await _aplicarModificacion();
+      return;
+    }
+
     // HU13: con el paso de contacto activo (y sin callback propio), el resumen
     // lleva al formulario de datos, con o sin sesión iniciada.
     if (widget.enableContactStep && widget.onProceedToContact == null) {
