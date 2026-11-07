@@ -13,13 +13,17 @@ class ReservationModel {
   static const String estadoClienteLlego = 'cliente_llego';
   static const String estadoEnServicio = 'en_servicio';
   static const String estadoCancelada = 'cancelada';
+  static const String estadoFinalizada = 'finalizada';
+  static const String estadoNoShow = 'no_show';
 
   /// Estados operativos filtrables en el panel del restaurante (HU26-RF01 Criterio 3)
   static const List<String> estadosFiltroOperativo = [
     estadoPendienteLlegada,
     estadoClienteLlego,
     estadoEnServicio,
+    estadoFinalizada,
     estadoCancelada,
+    estadoNoShow,
   ];
 
   /// Lista exhaustiva de estados oficiales permitidos
@@ -29,7 +33,9 @@ class ReservationModel {
     estadoPendienteLlegada,
     estadoClienteLlego,
     estadoEnServicio,
+    estadoFinalizada,
     estadoCancelada,
+    estadoNoShow,
   ];
 
   // Constantes de estado del pedido / preorden (HU28-RF02 / HU29)
@@ -63,6 +69,14 @@ class ReservationModel {
       case 'en servicio':
       case 'en_servicio':
         return estadoEnServicio;
+      case 'finalizada':
+      case 'finalizado':
+        return estadoFinalizada;
+      case 'no_show':
+      case 'no show':
+      case 'no-show':
+      case 'noshow':
+        return estadoNoShow;
       case 'cancelada':
       case 'cancelado':
         return estadoCancelada;
@@ -164,6 +178,11 @@ class ReservationModel {
   final Map<String, dynamic>? ocasionEspecial;
   final List<Map<String, dynamic>> experiencias;
 
+  // HU27-RF01 Criterio 3: quién cambió el estado y cuándo (trazabilidad).
+  final String estadoActualizadoPor;
+  final DateTime? estadoActualizadoEn;
+  final List<Map<String, dynamic>> historialEstados;
+
   const ReservationModel({
     required this.id,
     required this.restauranteId,
@@ -187,6 +206,9 @@ class ReservationModel {
     this.notasAlergias = '',
     this.ocasionEspecial,
     this.experiencias = const [],
+    this.estadoActualizadoPor = '',
+    this.estadoActualizadoEn,
+    this.historialEstados = const [],
   });
 
   /// Constructor factoría para instanciación con cálculo automático de hora de fin (Criterio 2)
@@ -287,8 +309,12 @@ class ReservationModel {
         return estadoClienteLlego;
       case estadoEnServicio:
         return estadoEnServicio;
+      case estadoFinalizada:
+        return estadoFinalizada;
       case estadoCancelada:
         return estadoCancelada;
+      case estadoNoShow:
+        return estadoNoShow;
       case estadoPendiente:
       case estadoConfirmada:
       case estadoPendienteLlegada:
@@ -304,8 +330,12 @@ class ReservationModel {
         return 'Cliente llegó';
       case estadoEnServicio:
         return 'En servicio';
+      case estadoFinalizada:
+        return 'Finalizada';
       case estadoCancelada:
         return 'Cancelada';
+      case estadoNoShow:
+        return 'No se presentó';
       case estadoPendienteLlegada:
       default:
         return 'Pendiente de llegada';
@@ -320,8 +350,12 @@ class ReservationModel {
         return 'Cliente llegó';
       case estadoEnServicio:
         return 'En servicio';
+      case estadoFinalizada:
+        return 'Finalizada';
       case estadoCancelada:
         return 'Cancelada';
+      case estadoNoShow:
+        return 'No se presentó';
       case estadoPendienteLlegada:
       case estadoPendiente:
       case estadoConfirmada:
@@ -375,6 +409,12 @@ class ReservationModel {
     if (normFiltro == estadoCancelada) {
       return estadoOperativo == estadoCancelada;
     }
+    if (normFiltro == estadoFinalizada) {
+      return estadoOperativo == estadoFinalizada;
+    }
+    if (normFiltro == estadoNoShow) {
+      return estadoOperativo == estadoNoShow;
+    }
     // Coincidencia exacta o por estado operativo para 'pendiente' / 'confirmada'
     return normActual == normFiltro || estadoOperativo == normFiltro;
   }
@@ -409,6 +449,12 @@ class ReservationModel {
 
   /// Indica si el estado actual es 'cancelada'
   bool get isCancelada => normalizeStatus(estado) == estadoCancelada;
+
+  /// Indica si el estado operativo es 'finalizada'
+  bool get isFinalizada => estadoOperativo == estadoFinalizada;
+
+  /// Indica si el estado operativo es 'no_show'
+  bool get isNoShow => estadoOperativo == estadoNoShow;
 
   /// Getters de personalización (HU15-RF02, HU16, HU28-RF02)
   bool get tienePreorden => preordenItems.isNotEmpty;
@@ -801,6 +847,13 @@ class ReservationModel {
       notasAlergias: notasAlergias,
       ocasionEspecial: ocasionMap,
       experiencias: experienciasList,
+      estadoActualizadoPor: (data['estadoActualizadoPor'] as String?) ?? '',
+      estadoActualizadoEn: parseTimestamp(data['estadoActualizadoEn']),
+      historialEstados: [
+        if (data['historialEstados'] is List)
+          for (final h in data['historialEstados'] as List)
+            if (h is Map) Map<String, dynamic>.from(h),
+      ],
     );
   }
 
@@ -907,6 +960,9 @@ class ReservationModel {
     String? notasAlergias,
     Map<String, dynamic>? Function()? ocasionEspecial,
     List<Map<String, dynamic>>? experiencias,
+    String? estadoActualizadoPor,
+    DateTime? estadoActualizadoEn,
+    List<Map<String, dynamic>>? historialEstados,
   }) {
     return ReservationModel(
       id: id ?? this.id,
@@ -932,6 +988,9 @@ class ReservationModel {
       ocasionEspecial:
           ocasionEspecial != null ? ocasionEspecial() : this.ocasionEspecial,
       experiencias: experiencias ?? this.experiencias,
+      estadoActualizadoPor: estadoActualizadoPor ?? this.estadoActualizadoPor,
+      estadoActualizadoEn: estadoActualizadoEn ?? this.estadoActualizadoEn,
+      historialEstados: historialEstados ?? this.historialEstados,
     );
   }
 }

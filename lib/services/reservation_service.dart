@@ -1,6 +1,8 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking_models.dart';
+import '../models/reservation_detail.dart';
 import '../models/reservation_model.dart';
+import '../models/reservation_status_flow.dart';
 import '../repositories/reservation_repository.dart';
 import 'auth_service.dart';
 
@@ -303,6 +305,84 @@ class ReservationService implements ReservationRepository {
       'estado': estadoNormalizado,
       'estadoActualizadoEn': FieldValue.serverTimestamp(),
     });
+  }
+
+  @override
+  Future<ReservationModel> changeOperationalState({
+    required String reservationId,
+    required String nuevoEstado,
+    required String usuarioId,
+    DateTime? ahora,
+  }) async {
+    final momento = ahora ?? DateTime.now();
+    final destino = ReservationStateMachine.normalizar(nuevoEstado);
+
+    return _firestore.runTransaction<ReservationModel>((tx) async {
+      final resSnap = await tx.get(_reservationsRef.doc(reservationId));
+      if (!resSnap.exists) {
+        throw StateError('La reservación $reservationId no existe.');
+      }
+      final res = ReservationModel.fromFirestore(resSnap);
+      final origen = res.estadoOperativo;
+      ReservationStateMachine.exigirValida(origen, destino);
+
+      // Lecturas antes de escrituras: ocupación de las mesas de la reserva.
+      final ocupaciones = <DocumentSnapshot<Map<String, dynamic>>>[];
+      if (ReservationStateMachine.liberaMesa(destino)) {
+        final ocupacion = _occupancyRef(res.restauranteId);
+        for (final mesaId in res.mesaIds) {
+          ocupaciones.add(await tx.get(
+            ocupacion.doc(OccupancyInterval.docId(mesaId, res.fechaLocal)),
+          ));
+        }
+      }
+
+      final historial = [
+        ...res.historialEstados,
+        {
+          'de': origen,
+          'a': destino,
+          'por': usuarioId,
+          'en': Timestamp.fromDate(momento),
+        },
+      ];
+      tx.update(resSnap.reference, {
+        'estado': destino,
+        'estadoActualizadoPor': usuarioId,
+        'estadoActualizadoEn': Timestamp.fromDate(momento),
+        'historialEstados': historial,
+      });
+      for (final snap in ocupaciones) {
+        if (!snap.exists) continue;
+        final restantes = OccupancyInterval.listFromData(snap.data())
+            .where((i) => i.reservaId != reservationId)
+            .map((i) => i.toMap())
+            .toList();
+        tx.update(snap.reference, {'intervalos': restantes});
+      }
+
+      return res.copyWith(
+        estado: destino,
+        estadoActualizadoPor: usuarioId,
+        estadoActualizadoEn: momento,
+        historialEstados: historial,
+      );
+    });
+  }
+
+  @override
+  Future<ReservationDetail?> getReservationDetail(
+    String reservationId, {
+    Map<String, String>? categoriasPorId,
+    Map<String, String>? categoriaPorPlatilloId,
+  }) async {
+    final reserva = await getReservationById(reservationId);
+    if (reserva == null) return null;
+    return ReservationDetail.fromReservation(
+      reserva,
+      categoriasPorId: categoriasPorId,
+      categoriaPorPlatilloId: categoriaPorPlatilloId,
+    );
   }
 
   /// Cancela y libera los intervalos de ocupación de sus mesas en una transacción.
