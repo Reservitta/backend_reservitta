@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking_models.dart';
+import '../models/reservation_access.dart';
 import '../models/reservation_detail.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_status_flow.dart';
@@ -142,6 +143,17 @@ class ReservationService implements ReservationRepository {
         }
 
         tx.set(docRef, guardada.toMap());
+
+        // HU20-RF01: documento público (solo con el token) para gestionar sin sesión.
+        if (guardada.tokenGestion.isNotEmpty) {
+          tx.set(
+            _firestore.collection('gestionReservas').doc(guardada.tokenGestion),
+            ManagedReservation.proyeccion(
+              guardada,
+              ReservationAccess.expiracion(guardada.fechaLocal, inicio),
+            ),
+          );
+        }
         for (final mesaId in reservation.mesaIds) {
           final snap = delDia[mesaId]!;
           final intervalos = [

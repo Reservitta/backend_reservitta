@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/booking_models.dart';
 import '../models/notification_delivery_result.dart';
+import '../models/reservation_access.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_notification_payload.dart';
@@ -93,6 +94,7 @@ class ReservationBookingService {
       mesaIds: draft.mesaIds,
       mesasNombres: draft.mesasNombres,
       estado: estadoInicial,
+      tokenGestion: ReservationAccess.generarToken(),
       preordenItems: draft.preordenItems,
       alergias: draft.alergias,
       notasAlergias: draft.notasAlergias,

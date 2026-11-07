@@ -260,6 +260,16 @@ class ConfirmationNotificationService {
       buffer.writeln('- Código de reservación: ${payload.reservaId}');
     }
 
+    // Gestión de la reserva sin iniciar sesión (HU20-RF01 Criterio 2)
+    if (payload.enlaceGestion.isNotEmpty) {
+      buffer.writeln();
+      buffer.writeln('¿Necesitas cambiar o cancelar tu reserva? Puedes hacerlo hasta 2 horas antes:');
+      buffer.writeln('  • Enlace: ${payload.enlaceGestion}');
+      if (payload.codigoGestion.isNotEmpty) {
+        buffer.writeln('  • Código: ${payload.codigoGestion}');
+      }
+    }
+
     // Preorden si aplica (HU15/16)
     if (payload.tienePreorden) {
       buffer.writeln();

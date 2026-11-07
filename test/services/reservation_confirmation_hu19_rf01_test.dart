@@ -180,6 +180,7 @@ class FakeAvailabilityServiceAlwaysValid extends AvailabilityService {
     required int duracionMin,
     required List<String> mesaIds,
     int maxAlternativas = 5,
+    String? ignorarReservaId,
   }) async {
     return const SelectionValidation.valid();
   }

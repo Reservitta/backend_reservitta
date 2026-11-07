@@ -184,6 +184,10 @@ class ReservationModel {
   final DateTime? estadoActualizadoEn;
   final List<Map<String, dynamic>> historialEstados;
 
+  /// Token para gestionar la reserva sin iniciar sesión (HU20-RF01). Es secreto:
+  /// solo se envía al correo o WhatsApp capturados y nunca se muestra en pantalla.
+  final String tokenGestion;
+
   const ReservationModel({
     required this.id,
     required this.restauranteId,
@@ -210,6 +214,7 @@ class ReservationModel {
     this.estadoActualizadoPor = '',
     this.estadoActualizadoEn,
     this.historialEstados = const [],
+    this.tokenGestion = '',
   });
 
   /// Constructor factoría para instanciación con cálculo automático de hora de fin (Criterio 2)
@@ -236,6 +241,7 @@ class ReservationModel {
     String notasAlergias = '',
     Map<String, dynamic>? ocasionEspecial,
     List<Map<String, dynamic>> experiencias = const [],
+    String tokenGestion = '',
   }) {
     final effectiveFin = fin ??
         (inicio != null
@@ -265,6 +271,7 @@ class ReservationModel {
       notasAlergias: notasAlergias,
       ocasionEspecial: ocasionEspecial,
       experiencias: experiencias,
+      tokenGestion: tokenGestion,
     );
   }
 
@@ -855,6 +862,7 @@ class ReservationModel {
           for (final h in data['historialEstados'] as List)
             if (h is Map) Map<String, dynamic>.from(h),
       ],
+      tokenGestion: (data['tokenGestion'] as String?) ?? '',
     );
   }
 
@@ -903,6 +911,8 @@ class ReservationModel {
       // Se guarda explícitamente si eligió una ocasión o no (HU18-RF05 Criterio 1).
       'tieneOcasion': self.ocasionEspecial != null,
     };
+
+    if (tokenGestion.isNotEmpty) map['tokenGestion'] = tokenGestion;
 
     // HU17-RF02 Criterio 3: con "solo reservar" no se genera ningún registro de
     // restricciones; los campos solo existen cuando traen algo.
@@ -968,6 +978,7 @@ class ReservationModel {
     String? estadoActualizadoPor,
     DateTime? estadoActualizadoEn,
     List<Map<String, dynamic>>? historialEstados,
+    String? tokenGestion,
   }) {
     return ReservationModel(
       id: id ?? this.id,
@@ -996,6 +1007,7 @@ class ReservationModel {
       estadoActualizadoPor: estadoActualizadoPor ?? this.estadoActualizadoPor,
       estadoActualizadoEn: estadoActualizadoEn ?? this.estadoActualizadoEn,
       historialEstados: historialEstados ?? this.historialEstados,
+      tokenGestion: tokenGestion ?? this.tokenGestion,
     );
   }
 }
