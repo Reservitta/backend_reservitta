@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:reservitta/models/reservation_detail.dart';
 import 'package:reservitta/models/reservation_model.dart';
 import 'package:reservitta/repositories/reservation_repository.dart';
 import 'package:reservitta/viewmodels/admin_reservations_viewmodel.dart';
@@ -74,6 +75,20 @@ class _StreamFakeReservationRepository implements ReservationRepository {
     for (final c in _controllers.values) {
       c.close();
     }
+  }
+
+  @override
+  Future<ReservationDetail?> getReservationDetail(
+    String reservationId, {
+    Map<String, String>? categoriasPorId,
+    Map<String, String>? categoriaPorPlatilloId,
+  }) async {
+    for (final lista in _porFecha.values) {
+      for (final r in lista) {
+        if (r.id == reservationId) return ReservationDetail.fromReservation(r);
+      }
+    }
+    return null;
   }
 
   @override
@@ -241,7 +256,7 @@ void main() {
     );
 
     testWidgets(
-      'Criterio 3: Al tocar una reserva se despliega su descripción',
+      'Criterio 3: Al tocar una reserva se abre su detalle completo',
       (tester) async {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1.0;
@@ -277,19 +292,15 @@ void main() {
         await tester.tap(find.byKey(const ValueKey('item_reserva_r_desc')));
         await tester.pumpAndSettle();
 
-        expect(
-          find.byKey(const ValueKey('dialogo_descripcion_reserva_r_desc')),
-          findsOneWidget,
-        );
-        expect(find.text('Descripción de la reserva'), findsOneWidget);
-        expect(find.text('14:00 - 15:30'), findsOneWidget);
+        expect(find.text('Detalle de la reservación'), findsOneWidget);
+        expect(find.byKey(const ValueKey('detalle_encabezado')), findsOneWidget);
+        expect(find.text('Fernando Herrera'), findsWidgets);
+        expect(find.text('14:00 – 15:30'), findsOneWidget);
         expect(find.text('fernando@correo.com'), findsOneWidget);
 
-        await tester.tap(
-          find.byKey(const ValueKey('boton_cerrar_descripcion_reserva')),
-        );
+        await tester.pageBack();
         await tester.pumpAndSettle();
-        expect(find.text('Descripción de la reserva'), findsNothing);
+        expect(find.text('Detalle de la reservación'), findsNothing);
       },
     );
 
