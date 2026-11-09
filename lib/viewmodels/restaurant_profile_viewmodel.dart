@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -13,6 +12,7 @@ import '../services/auth_service.dart';
 import '../services/geocoding_service.dart';
 import '../services/restaurant_service.dart';
 import '../services/storage_service.dart';
+import '../utils/image_data_uri.dart';
 import '../utils/validators.dart';
 
 class RestaurantProfileViewModel extends ChangeNotifier {
@@ -425,9 +425,13 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       if (picked != null) {
         final bytes = await picked.readAsBytes();
         final ext = picked.name.split('.').last;
-        final b64 = base64Encode(bytes);
-        return 'data:image/$ext;base64,$b64';
+        final uri = ImageDataUri.crear(bytes, ext);
+        ImageDataUri.validarPresupuesto([uri]);
+        return uri;
       }
+    } on ImageTooLargeException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
     } catch (_) {}
     return null;
   }
@@ -594,8 +598,7 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       if (logoBytes != null) {
         final ext = logoFileName?.split('.').last ?? 'jpg';
         if (kIsWeb) {
-          final b64 = base64Encode(logoBytes!);
-          finalLogoUrl = 'data:image/$ext;base64,$b64';
+          finalLogoUrl = ImageDataUri.crear(logoBytes!, ext);
         } else {
           try {
             finalLogoUrl = await _storageService.uploadRestaurantImage(
@@ -605,8 +608,7 @@ class RestaurantProfileViewModel extends ChangeNotifier {
               fileExtension: ext,
             );
           } catch (_) {
-            final b64 = base64Encode(logoBytes!);
-            finalLogoUrl = 'data:image/$ext;base64,$b64';
+            finalLogoUrl = ImageDataUri.crear(logoBytes!, ext);
           }
         }
       }
@@ -615,8 +617,7 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       if (coverBytes != null) {
         final ext = coverFileName?.split('.').last ?? 'jpg';
         if (kIsWeb) {
-          final b64 = base64Encode(coverBytes!);
-          finalCoverUrl = 'data:image/$ext;base64,$b64';
+          finalCoverUrl = ImageDataUri.crear(coverBytes!, ext);
         } else {
           try {
             finalCoverUrl = await _storageService.uploadRestaurantImage(
@@ -626,11 +627,17 @@ class RestaurantProfileViewModel extends ChangeNotifier {
               fileExtension: ext,
             );
           } catch (_) {
-            final b64 = base64Encode(coverBytes!);
-            finalCoverUrl = 'data:image/$ext;base64,$b64';
+            finalCoverUrl = ImageDataUri.crear(coverBytes!, ext);
           }
         }
       }
+
+      // Las imágenes guardadas como data URI viven en el documento de Firestore (límite
+      // de 1 MiB): se valida antes de escribir para dar un mensaje claro.
+      ImageDataUri.validarPresupuesto([
+        for (final u in [finalLogoUrl, finalCoverUrl])
+          if (u.startsWith('data:')) u,
+      ]);
 
       // 3. Construir lista de días abiertos
       final openDaysList = schedules.entries
@@ -688,6 +695,10 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       successMessage = '¡Perfil de restaurante registrado exitosamente!';
       notifyListeners();
       return true;
+    } on ImageTooLargeException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return false;
     } catch (e) {
       errorMessage = 'No se pudo guardar el perfil: $e';
       notifyListeners();
