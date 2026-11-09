@@ -34,7 +34,9 @@ class AppValidators {
       'nombre': validateName(nombre),
       'correo': validateEmail(correo),
       'telefono': validatePhone(telefono),
-      'password': validatePassword(password),
+      // Cuentas nuevas: 8 caracteres, una letra y un número. El inicio de sesión
+      // sigue aceptando 6+ para no dejar fuera a quien ya tiene cuenta.
+      'password': validateNewPassword(password),
       'confirmPassword': validateConfirmPassword(password, confirmPassword),
     };
 

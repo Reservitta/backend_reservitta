@@ -85,20 +85,21 @@ class _LandingViewState extends State<LandingView> {
               ],
             ),
             actions: [
+              // Con o sin sesión se puede gestionar una reserva con su código.
+              IconButton(
+                key: const ValueKey('boton_header_gestionar_reserva'),
+                tooltip: 'Gestionar mi reserva',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.event_note_outlined, size: 20),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) => const ReservationManagementView(),
+                    ),
+                  );
+                },
+              ),
               if (!_viewModel.isUserAuthenticated) ...[
-                IconButton(
-                  key: const ValueKey('boton_header_gestionar_reserva'),
-                  tooltip: 'Gestionar mi reserva',
-                  visualDensity: VisualDensity.compact,
-                  icon: const Icon(Icons.event_note_outlined, size: 20),
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const ReservationManagementView(),
-                      ),
-                    );
-                  },
-                ),
                 TextButton(
                   key: const ValueKey('boton_header_registrarse'),
                   style: TextButton.styleFrom(
