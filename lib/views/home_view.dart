@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/restaurant_model.dart';
 import '../models/reservation_model.dart';
+import '../services/admin_push_token_service.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import 'admin_reservations_view.dart';
@@ -66,7 +67,10 @@ class _HomeViewState extends State<HomeView> {
     final actual = _operaciones;
     if (actual != null && actual.restaurantId == restaurante.id) return actual;
     actual?.dispose();
-    final nuevo = AdminOperationsViewModel(restaurantId: restaurante.id);
+    final nuevo = AdminOperationsViewModel(
+      restaurantId: restaurante.id,
+      tokens: AdminPushTokenService(),
+    );
     nuevo.iniciar();
     return _operaciones = nuevo;
   }

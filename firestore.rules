@@ -138,6 +138,11 @@ service cloud.firestore {
         allow delete: if false;
       }
 
+      // HU30-RF02: dispositivos del administrador que reciben los push (token FCM).
+      match /dispositivosAdmin/{tokenId} {
+        allow read, create, update, delete: if isAdminOfRestaurantId(restaurantId);
+      }
+
       // HU21-RF01: recordatorio de cada reserva. Se programa al confirmar la reserva
       // (cualquier perfil de Reservitta) y el administrador lo concilia y lo envía.
       match /recordatorios/{reservaId} {

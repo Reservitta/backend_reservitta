@@ -25,12 +25,17 @@ class OperationsConfig {
   /// Zona horaria IANA del restaurante (HU30-RNF01).
   final String zonaHoraria;
 
+  /// Las alertas y los recordatorios los procesa la Cloud Function (también con la app
+  /// cerrada). Si es false los procesa la app del administrador mientras está abierta.
+  final bool procesamientoServidor;
+
   const OperationsConfig({
     this.alertasActivas = true,
     this.umbralAlertaMin = umbralAlertaPorDefecto,
     this.recordatorioMin = recordatorioPorDefecto,
     this.recordatorioTardioInmediato = false,
     this.zonaHoraria = RestaurantTime.zonaPorDefecto,
+    this.procesamientoServidor = false,
   });
 
   /// Lee los ajustes del documento del restaurante; lo que falte toma el valor por defecto.
@@ -54,6 +59,7 @@ class OperationsConfig {
       zonaHoraria: zona is String && zona.trim().isNotEmpty
           ? zona.trim()
           : RestaurantTime.zonaPorDefecto,
+      procesamientoServidor: c['procesamientoServidor'] as bool? ?? false,
     );
   }
 
@@ -63,6 +69,7 @@ class OperationsConfig {
     int? recordatorioMin,
     bool? recordatorioTardioInmediato,
     String? zonaHoraria,
+    bool? procesamientoServidor,
   }) {
     return OperationsConfig(
       alertasActivas: alertasActivas ?? this.alertasActivas,
@@ -71,6 +78,7 @@ class OperationsConfig {
       recordatorioTardioInmediato:
           recordatorioTardioInmediato ?? this.recordatorioTardioInmediato,
       zonaHoraria: zonaHoraria ?? this.zonaHoraria,
+      procesamientoServidor: procesamientoServidor ?? this.procesamientoServidor,
     );
   }
 

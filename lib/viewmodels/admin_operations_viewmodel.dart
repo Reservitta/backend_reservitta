@@ -13,6 +13,7 @@ import '../models/restaurant_time.dart';
 import '../models/table_live_status.dart';
 import '../repositories/reservation_repository.dart';
 import '../services/admin_alert_service.dart';
+import '../services/admin_push_token_service.dart';
 import '../services/operations_config_service.dart';
 import '../services/reminder_service.dart';
 import '../services/table_status_service.dart';
@@ -35,6 +36,9 @@ class AdminOperationsViewModel extends ChangeNotifier {
   final Duration tick;
   final bool sincronizar;
   final String Function()? _usuarioId;
+
+  /// Registra el dispositivo para recibir los push de alertas (HU30-RF02); opcional.
+  final AdminPushTokenService? _tokens;
 
   OperationsConfig _config = const OperationsConfig();
   List<ReservationModel> _reservasHoy = const [];
@@ -65,12 +69,15 @@ class AdminOperationsViewModel extends ChangeNotifier {
     this.tick = const Duration(minutes: 1),
     this.sincronizar = true,
     String Function()? usuarioId,
+    AdminPushTokenService? tokens,
   })  : _reservas = reservas ?? ReservationService(),
         _mesasService = mesasService ?? TableStatusService(),
         _configService = configService ?? OperationsConfigService(),
         _alertService = alertService ?? AdminAlertService(),
         _reminderService = reminderService ?? ReminderService(),
         _now = now ?? DateTime.now,
+        // ignore: prefer_initializing_formals
+        _tokens = tokens,
         // ignore: prefer_initializing_formals
         _usuarioId = usuarioId;
 
@@ -131,6 +138,10 @@ class AdminOperationsViewModel extends ChangeNotifier {
     if (_disposed) return;
     _suscribirReservas();
     _suscribirMesas();
+    final tokens = _tokens;
+    if (tokens != null) {
+      unawaited(tokens.registrar(restauranteId: restaurantId, usuarioId: _usuarioActual()));
+    }
     _timer?.cancel();
     if (tick > Duration.zero) {
       _timer = Timer.periodic(tick, (_) => _alTick());
@@ -233,7 +244,9 @@ class AdminOperationsViewModel extends ChangeNotifier {
 
   /// Registra las alertas nuevas y envía los recordatorios que ya tocan.
   Future<void> _sincronizar() async {
-    if (!sincronizar || _sincronizando || !_reservasListas || _disposed) return;
+    // Si la Cloud Function procesa alertas y recordatorios, la app no lo repite.
+    if (!sincronizar || _config.procesamientoServidor) return;
+    if (_sincronizando || !_reservasListas || _disposed) return;
     _sincronizando = true;
     try {
       final ahora = _now();
@@ -328,6 +341,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
     _timer?.cancel();
     _reservasSub?.cancel();
     _mesasSub?.cancel();
+    _tokens?.dispose();
     super.dispose();
   }
 }

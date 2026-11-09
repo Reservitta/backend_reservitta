@@ -35,6 +35,7 @@ class OperationsConfigService {
       'configuracion.recordatorioMin': config.recordatorioMin,
       'configuracion.recordatorioTardioInmediato':
           config.recordatorioTardioInmediato,
+      'configuracion.procesamientoServidor': config.procesamientoServidor,
     });
   }
 }

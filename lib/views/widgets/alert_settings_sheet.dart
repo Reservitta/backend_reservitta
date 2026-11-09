@@ -40,6 +40,7 @@ class _AlertSettingsSheetState extends State<AlertSettingsSheet> {
   late bool _activas = widget.config.alertasActivas;
   late int _umbral = widget.config.umbralAlertaMin;
   late int _recordatorio = widget.config.recordatorioMin;
+  late bool _servidor = widget.config.procesamientoServidor;
   bool _guardando = false;
   String? _error;
 
@@ -64,6 +65,7 @@ class _AlertSettingsSheetState extends State<AlertSettingsSheet> {
       alertasActivas: _activas,
       umbralAlertaMin: _umbral,
       recordatorioMin: _recordatorio,
+      procesamientoServidor: _servidor,
     ));
     if (!mounted) return;
     if (error == null) {
@@ -142,6 +144,18 @@ class _AlertSettingsSheetState extends State<AlertSettingsSheet> {
                     onSelected: (_) => setState(() => _recordatorio = m),
                   ),
               ],
+            ),
+            const SizedBox(height: 8),
+            SwitchListTile(
+              key: const ValueKey('switch_procesamiento_servidor'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('Procesar en el servidor'),
+              subtitle: const Text(
+                'Las alertas y los recordatorios siguen funcionando con la app cerrada. '
+                'Actívalo solo si ya desplegaste las Cloud Functions.',
+              ),
+              value: _servidor,
+              onChanged: (v) => setState(() => _servidor = v),
             ),
             if (_error != null) ...[
               const SizedBox(height: 12),
