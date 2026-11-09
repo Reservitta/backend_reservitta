@@ -1,0 +1,36 @@
+rules_version = '2';
+
+// Imágenes del restaurante (logo, foto principal y sucursales): cualquiera las puede ver
+// y solo el administrador de ese restaurante las puede subir.
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    function perfilDelUsuario() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // El administrador solo escribe en la carpeta de su propio restaurante.
+    function esAdminDe(restauranteId) {
+      return request.auth != null
+          && firestore.exists(/databases/(default)/documents/users/$(request.auth.uid))
+          && perfilDelUsuario().rol == 'admin'
+          && perfilDelUsuario().restauranteId
+               == /databases/(default)/documents/restaurants/$(restauranteId);
+    }
+
+    function esImagenValida() {
+      return request.resource.contentType.matches('image/.*')
+          && request.resource.size < 5 * 1024 * 1024;
+    }
+
+    match /restaurants/{restauranteId}/{carpeta}/{archivo} {
+      allow read: if true;
+      allow create, update: if esAdminDe(restauranteId) && esImagenValida();
+      allow delete: if esAdminDe(restauranteId);
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

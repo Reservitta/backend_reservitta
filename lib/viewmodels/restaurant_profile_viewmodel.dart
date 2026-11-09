@@ -10,6 +10,7 @@ import '../models/service_catalog_model.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/geocoding_service.dart';
+import '../services/image_publisher.dart';
 import '../services/restaurant_service.dart';
 import '../services/storage_service.dart';
 import '../utils/image_data_uri.dart';
@@ -17,7 +18,7 @@ import '../utils/validators.dart';
 
 class RestaurantProfileViewModel extends ChangeNotifier {
   final RestaurantService _restaurantService;
-  final StorageService _storageService;
+  final ImagePublisher _imagenes;
   final ImagePicker _imagePicker;
   final AuthService _authService;
   final GeocodingService _geocodingService;
@@ -103,11 +104,12 @@ class RestaurantProfileViewModel extends ChangeNotifier {
     required this.restaurantId,
     RestaurantService? restaurantService,
     StorageService? storageService,
+    ImagePublisher? imagePublisher,
     ImagePicker? imagePicker,
     AuthService? authService,
     GeocodingService? geocodingService,
   })  : _restaurantService = restaurantService ?? RestaurantService(),
-        _storageService = storageService ?? StorageService(),
+        _imagenes = imagePublisher ?? ImagePublisher(storageService ?? StorageService()),
         _imagePicker = imagePicker ?? ImagePicker(),
         _authService = authService ?? AuthService(),
         _geocodingService = geocodingService ?? GeocodingService() {
@@ -437,7 +439,7 @@ class RestaurantProfileViewModel extends ChangeNotifier {
     return null;
   }
 
-  // Selección de Logo o Imagen de Sucursal
+  // Selección de Logo o Imagen de Sucursal: se sube a Cloud Storage y devuelve su dirección.
   Future<String?> pickBranchImage(ImageSource source) async {
     try {
       final picked = await _imagePicker.pickImage(
@@ -448,12 +450,19 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       );
       if (picked != null) {
         final bytes = await picked.readAsBytes();
-        final ext = picked.name.split('.').last;
-        final uri = ImageDataUri.crear(bytes, ext);
-        ImageDataUri.validarPresupuesto([uri]);
-        return uri;
+        final publicada = await _imagenes.publicar(
+          restaurantId: restaurantId,
+          folder: 'sucursales',
+          bytes: bytes,
+          extension: picked.name.split('.').last,
+        );
+        if (!publicada.enNube) ImageDataUri.validarPresupuesto([publicada.url]);
+        return publicada.url;
       }
     } on ImageTooLargeException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+    } on ImageUploadException catch (e) {
       errorMessage = e.message;
       notifyListeners();
     } catch (_) {}
@@ -618,42 +627,26 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       String finalLogoUrl = logoUrl;
       String finalCoverUrl = imagenPrincipalUrl;
 
-      // 1. Subir logo si fue modificado (en Web usa Data URI para evitar bloqueo CORS en localhost)
+      // 1. Logo: se sube a Cloud Storage y en Firestore solo se guarda su dirección.
       if (logoBytes != null) {
-        final ext = logoFileName?.split('.').last ?? 'jpg';
-        if (kIsWeb) {
-          finalLogoUrl = ImageDataUri.crear(logoBytes!, ext);
-        } else {
-          try {
-            finalLogoUrl = await _storageService.uploadRestaurantImage(
-              restaurantId: restaurantId,
-              folder: 'logos',
-              imageBytes: logoBytes!,
-              fileExtension: ext,
-            );
-          } catch (_) {
-            finalLogoUrl = ImageDataUri.crear(logoBytes!, ext);
-          }
-        }
+        final publicada = await _imagenes.publicar(
+          restaurantId: restaurantId,
+          folder: 'logos',
+          bytes: logoBytes!,
+          extension: logoFileName?.split('.').last ?? 'jpg',
+        );
+        finalLogoUrl = publicada.url;
       }
 
-      // 2. Subir imagen principal si fue modificada
+      // 2. Foto principal: igual que el logo.
       if (coverBytes != null) {
-        final ext = coverFileName?.split('.').last ?? 'jpg';
-        if (kIsWeb) {
-          finalCoverUrl = ImageDataUri.crear(coverBytes!, ext);
-        } else {
-          try {
-            finalCoverUrl = await _storageService.uploadRestaurantImage(
-              restaurantId: restaurantId,
-              folder: 'covers',
-              imageBytes: coverBytes!,
-              fileExtension: ext,
-            );
-          } catch (_) {
-            finalCoverUrl = ImageDataUri.crear(coverBytes!, ext);
-          }
-        }
+        final publicada = await _imagenes.publicar(
+          restaurantId: restaurantId,
+          folder: 'covers',
+          bytes: coverBytes!,
+          extension: coverFileName?.split('.').last ?? 'jpg',
+        );
+        finalCoverUrl = publicada.url;
       }
 
       // Las imágenes guardadas como data URI viven en el documento de Firestore (límite
@@ -720,6 +713,10 @@ class RestaurantProfileViewModel extends ChangeNotifier {
       notifyListeners();
       return true;
     } on ImageTooLargeException catch (e) {
+      errorMessage = e.message;
+      notifyListeners();
+      return false;
+    } on ImageUploadException catch (e) {
       errorMessage = e.message;
       notifyListeners();
       return false;
