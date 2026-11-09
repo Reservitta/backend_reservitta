@@ -77,6 +77,14 @@ void main() {
       expect(chocan, isFalse);
     });
 
+    test('deja lugar para las sillas: las mesas nuevas quedan separadas', () async {
+      final vm = await crear();
+      final a = vm.agregarMesa();
+      final b = vm.agregarMesa();
+      final separadas = b.x! >= a.x! + a.ancho + 40 || b.y! >= a.y! + a.alto + 40;
+      expect(separadas, isTrue, reason: '${a.x},${a.y} / ${b.x},${b.y}');
+    });
+
     test('marca que hay cambios sin guardar', () async {
       final vm = await crear();
       vm.agregarMesa();

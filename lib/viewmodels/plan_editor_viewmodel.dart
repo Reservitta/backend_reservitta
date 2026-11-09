@@ -14,6 +14,9 @@ class PlanEditorViewModel extends ChangeNotifier {
   static const String sinEspacioId = '__sin_espacio__';
 
   static const double paso = 10;
+
+  /// Espacio libre entre mesas nuevas: deja lugar a las sillas de ambas.
+  static const double separacionEntreMesas = 56;
   static const double anchoLienzo = 1200;
   static const double altoLienzo = 800;
 
@@ -250,6 +253,7 @@ class PlanEditorViewModel extends ChangeNotifier {
       ancho: medidas.ancho,
       alto: medidas.alto,
       anchoPlano: anchoLienzo,
+      separacion: separacionEntreMesas,
     );
     final mesa = MesaModel(
       id: _idTemporal(),
@@ -422,6 +426,7 @@ class PlanEditorViewModel extends ChangeNotifier {
       ancho: m.ancho,
       alto: m.alto,
       anchoPlano: anchoLienzo,
+      separacion: separacionEntreMesas,
     );
     final movida = MesaModel(
       id: m.id,
@@ -453,6 +458,7 @@ class PlanEditorViewModel extends ChangeNotifier {
       ancho: m.ancho,
       alto: m.alto,
       anchoPlano: anchoLienzo,
+      separacion: separacionEntreMesas,
     );
     final copia = MesaModel(
       id: _idTemporal(),
