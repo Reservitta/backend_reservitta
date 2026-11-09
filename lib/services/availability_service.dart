@@ -56,12 +56,17 @@ class AvailabilityService {
   /// Fuente de mesas y zonas. Si es null se usan las mesas del [RestaurantModel].
   final TableRepository? _tables;
 
+  /// Reserva que no cuenta como ocupada en ninguna consulta de este servicio; se usa
+  /// al modificar una reserva existente (HU20-RF02, HU20-RF03).
+  final String? ignorarReservaId;
+
   AvailabilityService(
     this._reservations, {
     TableRepository? tables,
     DateTime Function()? now,
     this.maxAnticipacionDias = 90,
     this.margenLimpiezaMin = 0,
+    this.ignorarReservaId,
     // ignore: prefer_initializing_formals
   }) : _tables = tables,
        _now = now ?? DateTime.now;
@@ -482,8 +487,13 @@ class AvailabilityService {
     required int duracionMin,
     required List<String> mesaIds,
     int intervaloMin = 30,
+
+    /// Reserva que se está modificando: no cuenta como ocupada (HU20-RF02).
+    String? ignorarReservaId,
   }) async {
-    final reservations = await _reservationsAround(restaurant.id, fecha);
+    final reservations = (await _reservationsAround(restaurant.id, fecha))
+        .where((r) => ignorarReservaId == null || r.id != ignorarReservaId)
+        .toList();
     return _slotsFor(
       restaurant: restaurant,
       fecha: fecha,
@@ -574,6 +584,7 @@ class AvailabilityService {
               fechaLocal: f,
             );
         for (final r in delDia) {
+          if (ignorarReservaId != null && r.id == ignorarReservaId) continue;
           if (r.id.isEmpty || vistos.add(r.id)) result.add(r);
         }
       } catch (_) {
@@ -693,7 +704,14 @@ class AvailabilityService {
     );
   }
 
+  /// Mesas que se pueden reservar: las que el administrador marcó fuera de servicio
+  /// (HU31-RF01) no se ofrecen.
   Future<List<MesaModel>> _loadMesas(RestaurantModel restaurant) async {
+    final todas = await _loadTodasLasMesas(restaurant);
+    return todas.where((m) => !m.fueraDeServicio).toList();
+  }
+
+  Future<List<MesaModel>> _loadTodasLasMesas(RestaurantModel restaurant) async {
     final repo = _tables;
     if (repo == null) return restaurant.mesas;
     try {
@@ -729,6 +747,7 @@ class AvailabilityService {
     required int duracionMin,
     required List<String> mesaIds,
     int maxAlternativas = 4,
+    String? ignorarReservaId,
   }) async {
     final duracion = duracionMin > 0 ? duracionMin : 90;
 
@@ -761,11 +780,13 @@ class AvailabilityService {
     }
 
     final fin = inicio.add(Duration(minutes: duracion));
-    final overlapping = await _overlappingReservations(
+    final overlapping = (await _overlappingReservations(
       restauranteId: restaurant.id,
       inicio: inicio,
       fin: fin,
-    );
+    ))
+        .where((r) => ignorarReservaId == null || r.id != ignorarReservaId)
+        .toList();
     final seleccionadas = mesaIds.toSet();
     final enConflicto = <String>{
       for (final r in overlapping)
@@ -780,6 +801,7 @@ class AvailabilityService {
       mesaIds: mesaIds,
       cercaDe: inicio,
       max: maxAlternativas,
+      ignorarReservaId: ignorarReservaId,
     );
     return SelectionValidation.invalid(
       issue: SelectionIssue.mesaOcupada,
@@ -797,12 +819,14 @@ class AvailabilityService {
     required List<String> mesaIds,
     required DateTime cercaDe,
     int max = 4,
+    String? ignorarReservaId,
   }) async {
     final slots = await getAvailableTimeSlots(
       restaurant: restaurant,
       fecha: fecha,
       duracionMin: duracionMin,
       mesaIds: mesaIds,
+      ignorarReservaId: ignorarReservaId,
     );
     int distancia(TimeSlot s) => s.inicio.difference(cercaDe).inMinutes.abs();
     final ordenados = [...slots]..sort((a, b) => distancia(a).compareTo(distancia(b)));
@@ -832,6 +856,7 @@ class AvailabilityService {
               fechaLocal: fecha,
             );
         for (final res in delDia) {
+          if (ignorarReservaId != null && res.id == ignorarReservaId) continue;
           if (res.id.isNotEmpty && !vistos.add(res.id)) continue;
           if (intervalsOverlap(
             inicio,

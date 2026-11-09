@@ -32,6 +32,7 @@ class _FakeAvailabilityService extends AvailabilityService {
     required int duracionMin,
     required List<String> mesaIds,
     int maxAlternativas = 4,
+    String? ignorarReservaId,
   }) async {
     return const SelectionValidation.valid();
   }

@@ -39,6 +39,17 @@ service cloud.firestore {
           );
     }
 
+    // Sprint 8: el administrador solo gestiona los datos operativos de su propio restaurante.
+    function isAdminOfRestaurantId(restId) {
+      let userData = get(userPath(request.auth.uid)).data;
+      return hasReservittaProfile()
+          && userData.rol == 'admin'
+          && (
+            userData.restauranteId == restId
+            || userData.restauranteId == /databases/$(database)/documents/restaurants/$(restId)
+          );
+    }
+
     function isAdminAfterRegistration() {
       return isSignedIn()
           && existsAfter(userPath(request.auth.uid))
@@ -104,7 +115,34 @@ service cloud.firestore {
       // HU11-RF04: la reserva transaccional lee y actualiza la ocupación de cada
       // mesa por día para evitar reservas dobles. Requiere un perfil de Reservitta.
       match /ocupacionMesas/{ocupacionId} {
-        allow read, create, update: if hasReservittaProfile();
+        // Es información de disponibilidad (horas ocupadas), no datos personales.
+        // Quien gestiona con token también la actualiza sin iniciar sesión (HU20).
+        allow read: if true;
+        allow create, update: if hasReservittaProfile()
+                              || request.resource.data.keys()
+                                   .hasOnly(['mesaId', 'fechaLocal', 'intervalos']);
+        allow delete: if false;
+      }
+
+      // HU30-RF02: alertas de llegada registradas para el administrador (una por
+      // reserva, tipo y umbral). Solo las ve y las escribe el administrador del restaurante.
+      match /alertasAdmin/{alertaId} {
+        allow read, create, update: if isAdminOfRestaurantId(restaurantId);
+        allow delete: if false;
+      }
+
+      // HU30-RF02: cola de mensajes push (FCM) que un proceso de servidor entrega
+      // a los dispositivos del administrador.
+      match /colaPush/{mensajeId} {
+        allow read, create, update: if isAdminOfRestaurantId(restaurantId);
+        allow delete: if false;
+      }
+
+      // HU21-RF01: recordatorio de cada reserva. Se programa al confirmar la reserva
+      // (cualquier perfil de Reservitta) y el administrador lo concilia y lo envía.
+      match /recordatorios/{reservaId} {
+        allow create: if hasReservittaProfile();
+        allow read, update: if isAdminOfRestaurantId(restaurantId);
         allow delete: if false;
       }
 
@@ -119,6 +157,32 @@ service cloud.firestore {
       }
     }
 
+    // HU20-RF01/RF02: gestión de la reserva con un token, sin iniciar sesión.
+    // Una operación con token solo es válida si, en la misma escritura, también se
+    // actualiza el documento público gestionReservas/{token} con la hora del servidor:
+    // para escribir ese documento hay que conocer el token (no se puede listar).
+    function tokenOperation(token) {
+      return token is string
+          && exists(/databases/$(database)/documents/gestionReservas/$(token))
+          && getAfter(/databases/$(database)/documents/gestionReservas/$(token))
+               .data.ultimaOperacionEn == request.time;
+    }
+
+    match /gestionReservas/{token} {
+      // El token es secreto y largo: leerlo por id es suficiente; no se puede listar.
+      allow get: if true;
+      allow list: if false;
+      allow create: if hasReservittaProfile()
+                    && request.resource.data.usuarioId == request.auth.uid;
+      allow update: if resource.data.expiraEn > request.time
+                    && request.resource.data.ultimaOperacionEn == request.time
+                    && request.resource.data.diff(resource.data).affectedKeys()
+                         .hasOnly(['estado', 'fechaLocal', 'inicio', 'fin', 'duracionMin',
+                                   'personas', 'mesaIds', 'mesasNombres', 'expiraEn',
+                                   'ultimaOperacionEn']);
+      allow delete: if false;
+    }
+
     match /reservations/{reservationId} {
       // Las reservaciones sí requieren cuenta y estar autenticado (HU01-RF03).
       // HU26-RF01 Criterio 4: Las reglas de Firestore garantizan que un
@@ -127,7 +191,13 @@ service cloud.firestore {
                   || isVisitorProfile();
       allow create: if hasReservittaProfile();
       allow update: if isAdminOfReservationRestaurant(resource.data)
-                    || isVisitorProfile();
+                    || isVisitorProfile()
+                    || (tokenOperation(resource.data.tokenGestion)
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['estado', 'estadoActualizadoPor', 'estadoActualizadoEn',
+                                       'historialEstados', 'fechaLocal', 'inicio', 'fin',
+                                       'duracionMin', 'personas', 'cantidadPersonas',
+                                       'mesaIds', 'mesasNombres', 'ultimaModificacionEn']));
       allow delete: if false;
     }
 

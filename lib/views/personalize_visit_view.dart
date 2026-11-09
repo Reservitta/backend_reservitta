@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
-import '../models/experiencia_model.dart';
-import '../models/ocasion_model.dart';
+import '../models/categoria_model.dart';
+import '../models/occasion_booking.dart';
 import '../models/platillo_model.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
 import '../services/categoria_service.dart';
 import '../services/ocasion_service.dart';
+import '../viewmodels/ocasion_selection_viewmodel.dart';
+import 'widgets/ocasion_step.dart';
 import '../services/platillo_service.dart';
 import '../services/auth_service.dart';
 import '../viewmodels/pedido_viewmodel.dart';
@@ -53,11 +55,14 @@ class PersonalizeVisitView extends StatefulWidget {
 
 class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
     with SingleTickerProviderStateMixin {
+  late final CategoriaService _categoriaService;
   late final PlatilloService _platilloService;
   late final OcasionService _ocasionService;
   late final PedidoViewModel _pedidoViewModel;
   late final bool _isExternalPedidoViewModel;
   late final AuthService _authService;
+
+  String _categoriaSeleccionadaId = 'todas';
 
   bool get _hasSession =>
       widget.isAuthenticated ??
@@ -71,8 +76,8 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   // Estado local de alergias y ocasión
   final Set<String> _alergiasSeleccionadas = {};
   final TextEditingController _notasAlergiasCtrl = TextEditingController();
-  OcasionModel? _ocasionSeleccionada;
-  final List<ExperienciaModel> _experienciasSeleccionadas = [];
+  OcasionSelectionViewModel? _ocasionVm;
+  Future<OcasionSelectionViewModel>? _ocasionVmFuture;
 
   bool _isProcessing = false;
 
@@ -97,6 +102,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   void initState() {
     super.initState();
     _authService = widget.authService ?? AuthService();
+    _categoriaService = widget.categoriaService ?? CategoriaService();
     _platilloService = widget.platilloService ?? PlatilloService();
     _ocasionService = widget.ocasionService ?? OcasionService();
     _isExternalPedidoViewModel = widget.pedidoViewModel != null;
@@ -107,6 +113,17 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
 
     _alergiasSeleccionadas.addAll(widget.draft.alergias);
     _notasAlergiasCtrl.text = widget.draft.notasAlergias;
+  }
+
+  Stream<List<CategoriaModel>> _getCategoriasStream() {
+    if (widget.categoriaService != null) {
+      return widget.categoriaService!.getCategoriasStream(widget.restaurant.id);
+    }
+    try {
+      return _categoriaService.getCategoriasStream(widget.restaurant.id);
+    } catch (_) {
+      return Stream.value(const []);
+    }
   }
 
   @override
@@ -123,9 +140,47 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   double get _subtotalPreorden => _pedidoViewModel.subtotal;
 
   double get _totalExperiencias {
-    return _experienciasSeleccionadas.fold<double>(0.0, (acc, exp) {
-      return acc + (exp.esGratis ? 0.0 : exp.precio);
+    final vm = _ocasionVm;
+    if (vm != null) return vm.totalExperiencias;
+    return OccasionBooking.totalExperiencias(widget.draft.experiencias);
+  }
+
+  /// Carga las ocasiones disponibles y los postres del menú para el paso de ocasión
+  /// (HU18-RF02, RF03 y RF04).
+  Future<OcasionSelectionViewModel> _cargarOcasionVm() async {
+    final ocasiones = await _ocasionService.getOcasionesDisponibles(widget.restaurant.id);
+
+    Future<List<T>> primero<T>(Stream<List<T>> Function() abrir) async {
+      try {
+        return await abrir().first.timeout(const Duration(seconds: 8));
+      } catch (_) {
+        return <T>[];
+      }
+    }
+
+    final categorias = await primero<CategoriaModel>(_getCategoriasStream);
+    final platillos = await primero<PlatilloModel>(
+      () => _platilloService.getPlatillosActivosStream(widget.restaurant.id),
+    );
+    final idsPostre = {
+      for (final c in categorias)
+        if (c.tipo.toLowerCase() == 'postre' || c.nombre.toLowerCase().contains('postre'))
+          c.id,
+    };
+
+    final vm = OcasionSelectionViewModel(
+      ocasiones: ocasiones,
+      pedido: _pedidoViewModel,
+      catalogoPostres: [for (final p in platillos) if (idsPostre.contains(p.categoriaId)) p],
+      categoriasPostre: idsPostre,
+      ocasionInicial: widget.draft.ocasionEspecial,
+      experienciasIniciales: widget.draft.experiencias,
+    );
+    vm.addListener(() {
+      if (mounted) setState(() {});
     });
+    _ocasionVm = vm;
+    return vm;
   }
 
   double get _totalPersonalizacion => _subtotalPreorden + _totalExperiencias;
@@ -259,21 +314,13 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       preordenItems: _pedidoViewModel.preordenItems,
       alergias: _alergiasSeleccionadas.toList(),
       notasAlergias: _notasAlergiasCtrl.text.trim(),
-      ocasionEspecial: () => _ocasionSeleccionada != null
-          ? {
-              'ocasionId': _ocasionSeleccionada!.id,
-              'nombre': _ocasionSeleccionada!.nombre,
-              'icono': _ocasionSeleccionada!.icono,
-            }
-          : null,
-      experiencias: _experienciasSeleccionadas
-          .map((e) => {
-                'experienciaId': e.id,
-                'nombre': e.nombre,
-                'precio': e.precio,
-                'esGratis': e.esGratis,
-              })
-          .toList(),
+      // Si nunca se abrió la pestaña de ocasión se conserva lo que ya traía el borrador.
+      ocasionEspecial: () => _ocasionVm != null
+          ? _ocasionVm!.ocasionEspecialMap
+          : widget.draft.ocasionEspecial,
+      experiencias: _ocasionVm != null
+          ? _ocasionVm!.experienciasMaps
+          : widget.draft.experiencias,
     );
 
     if (widget.onConfirm != null) {
@@ -340,7 +387,9 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                 ),
                 Tab(
                   icon: const Icon(Icons.celebration_outlined),
-                  text: _ocasionSeleccionada != null ? 'Ocasión (1)' : 'Ocasión',
+                  text: (_ocasionVm?.hayOcasion ?? widget.draft.ocasionEspecial != null)
+                      ? 'Ocasión (1)'
+                      : 'Ocasión',
                 ),
               ],
             ),
@@ -360,90 +409,203 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   }
 
   // ---------------------------------------------------------------------------
-  // TAB 1: PREORDEN (HU16-RF02, HU16-RF04, HU16-RF05, HU17-RF01)
+  // TAB 1: PREORDEN (HU16-RF02, HU16-RF03, HU16-RF04, HU16-RF05, HU17-RF01)
   // ---------------------------------------------------------------------------
   Widget _buildPreordenTab() {
-    return StreamBuilder<List<PlatilloModel>>(
-      stream: _platilloService.getPlatillosActivosStream(widget.restaurant.id),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: _primaryTerracotta),
-          );
-        }
+    return StreamBuilder<List<CategoriaModel>>(
+      stream: _getCategoriasStream(),
+      builder: (context, catSnap) {
+        final categorias = catSnap.data ?? [];
 
-        final platillos = snapshot.data ?? [];
-        for (final p in platillos) {
-          _catalogoPorId[p.id] = p;
-        }
+        return StreamBuilder<List<PlatilloModel>>(
+          stream: _platilloService.getPlatillosActivosStream(widget.restaurant.id),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: CircularProgressIndicator(color: _primaryTerracotta),
+              );
+            }
 
-        if (platillos.isEmpty) {
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Icon(Icons.menu_book, size: 48, color: _textMuted),
-                  SizedBox(height: 12),
-                  Text(
-                    'No hay platillos disponibles para preordenar.',
-                    style: TextStyle(color: _textMuted, fontSize: 14),
+            final platillos = snapshot.data ?? [];
+            for (final p in platillos) {
+              _catalogoPorId[p.id] = p;
+            }
+
+            if (platillos.isEmpty) {
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.menu_book, size: 48, color: _textMuted),
+                      SizedBox(height: 12),
+                      Text(
+                        'No hay platillos disponibles para preordenar.',
+                        style: TextStyle(color: _textMuted, fontSize: 14),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-          );
-        }
+                ),
+              );
+            }
 
-        return ListView(
-          key: const ValueKey('lista_preorden_platillos'),
-          padding: const EdgeInsets.all(16),
-          children: [
-            // Botón "Ver mi pedido (n platillos)" (HU16-RF06 Criterio 1 - solo con sesión)
-            if (_hasSession && _pedidoViewModel.isNotEmpty) ...[
-              Container(
-                key: const ValueKey('container_btn_ver_mi_pedido'),
-                margin: const EdgeInsets.only(bottom: 12),
-                width: double.infinity,
-                child: FilledButton.icon(
-                  key: const ValueKey('btn_ver_mi_pedido'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: _primaryTerracotta,
-                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+            // Construir lista de categorías para las pestañas (HU16-RF03 Criterio 1)
+            final categoriasTabs = <CategoriaModel>[];
+            if (categorias.isNotEmpty) {
+              categoriasTabs.addAll(categorias);
+            } else {
+              final uniqueCatIds = platillos
+                  .map((p) => p.categoriaId)
+                  .where((id) => id.isNotEmpty)
+                  .toSet()
+                  .toList();
+              for (var i = 0; i < uniqueCatIds.length; i++) {
+                final id = uniqueCatIds[i];
+                final nombre = id.replaceAll('cat_', '').replaceAll('_', ' ');
+                final nombreCapitalizado = nombre.isNotEmpty
+                    ? '${nombre[0].toUpperCase()}${nombre.substring(1)}'
+                    : id;
+                categoriasTabs.add(CategoriaModel(
+                  id: id,
+                  nombre: nombreCapitalizado,
+                  nombreNormalizado: CategoriaModel.normalizarNombre(nombreCapitalizado),
+                  orden: i + 1,
+                ));
+              }
+            }
+
+            final todasLasTabs = [
+              const CategoriaModel(
+                id: 'todas',
+                nombre: 'Todas',
+                nombreNormalizado: 'todas',
+                orden: 0,
+              ),
+              ...categoriasTabs,
+            ];
+
+            // Filtrar platillos según la pestaña seleccionada
+            final platillosFiltrados = _categoriaSeleccionadaId == 'todas'
+                ? platillos
+                : platillos.where((p) => p.categoriaId == _categoriaSeleccionadaId).toList();
+
+            final initialIndex = todasLasTabs.indexWhere((c) => c.id == _categoriaSeleccionadaId);
+            final activeIndex = initialIndex >= 0 ? initialIndex : 0;
+
+            final content = ListView(
+              key: const ValueKey('lista_preorden_platillos'),
+              padding: const EdgeInsets.all(16),
+              children: [
+                // Botón "Ver mi pedido (n platillos)" (HU16-RF06 Criterio 1 - solo con sesión)
+                if (_hasSession && _pedidoViewModel.isNotEmpty) ...[
+                  Container(
+                    key: const ValueKey('container_btn_ver_mi_pedido'),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      key: const ValueKey('btn_ver_mi_pedido'),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: _primaryTerracotta,
+                        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.shopping_bag_outlined, size: 18),
+                      label: Text(
+                        'Ver mi pedido (${_pedidoViewModel.totalCantidad} ${_pedidoViewModel.totalCantidad == 1 ? "platillo" : "platillos"})',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      onPressed: _navegarAMiPedidoView,
                     ),
                   ),
-                  icon: const Icon(Icons.shopping_bag_outlined, size: 18),
-                  label: Text(
-                    'Ver mi pedido (${_pedidoViewModel.totalCantidad} ${_pedidoViewModel.totalCantidad == 1 ? "platillo" : "platillos"})',
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ],
+                // Sección "Mi pedido" reflejada de inmediato (HU16-RF05 Criterio 4 / HU17-RF01 Criterio 3)
+                if (_pedidoViewModel.isNotEmpty) ...[
+                  _buildMiPedidoSection(),
+                  const SizedBox(height: 16),
+                ],
+                // Pestañas por categoría (HU16-RF03 Criterio 1)
+                if (categoriasTabs.isNotEmpty) ...[
+                  Container(
+                    key: const ValueKey('container_categorias_preorden'),
+                    margin: const EdgeInsets.only(bottom: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: _cardBorder),
+                    ),
+                    child: TabBar(
+                      key: const ValueKey('tabbar_categorias_preorden'),
+                      isScrollable: true,
+                      tabAlignment: TabAlignment.start,
+                      labelColor: _primaryTerracotta,
+                      unselectedLabelColor: _textMuted,
+                      indicatorColor: _primaryTerracotta,
+                      indicatorWeight: 3.0,
+                      labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5),
+                      unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.normal, fontSize: 13.5),
+                      tabs: todasLasTabs.map((cat) {
+                        return Tab(
+                          key: ValueKey('tab_categoria_${cat.id}'),
+                          text: cat.nombre,
+                        );
+                      }).toList(),
+                      onTap: (index) {
+                        setState(() {
+                          _categoriaSeleccionadaId = todasLasTabs[index].id;
+                        });
+                      },
+                    ),
                   ),
-                  onPressed: _navegarAMiPedidoView,
-                ),
-              ),
-            ],
-            // Sección "Mi pedido" reflejada de inmediato (HU16-RF05 Criterio 4 / HU17-RF01 Criterio 3)
-            if (_pedidoViewModel.isNotEmpty) ...[
-              _buildMiPedidoSection(),
-              const SizedBox(height: 16),
-            ],
-            ...platillos.map((p) {
-              final cantidad = _pedidoViewModel.cantidadDePlatillo(p.id);
-              final observacion = _pedidoViewModel.observacionDePlatillo(p.id);
+                ],
+                if (platillosFiltrados.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 36),
+                    child: Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(Icons.restaurant_outlined, size: 40, color: _textMuted),
+                          SizedBox(height: 10),
+                          Text(
+                            'No hay platillos disponibles en esta categoría.',
+                            style: TextStyle(color: _textMuted, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                else
+                  ...platillosFiltrados.map((p) {
+                    final cantidad = _pedidoViewModel.cantidadDePlatillo(p.id);
+                    final observacion = _pedidoViewModel.observacionDePlatillo(p.id);
 
-              return PlatilloMenuCard(
-                platillo: p,
-                mode: PlatilloCardMode.preorden,
-                cantidad: cantidad,
-                observacion: observacion,
-                onAgregar: () => _abrirDetallePlatillo(p),
-                onEditar: () => _abrirDetallePlatillo(p),
-                onTap: () => _abrirDetallePlatillo(p),
+                    return PlatilloMenuCard(
+                      platillo: p,
+                      mode: PlatilloCardMode.preorden,
+                      cantidad: cantidad,
+                      observacion: observacion,
+                      onAgregar: () => _abrirDetallePlatillo(p),
+                      onEditar: () => _abrirDetallePlatillo(p),
+                      onTap: () => _abrirDetallePlatillo(p),
+                    );
+                  }),
+              ],
+            );
+
+            if (categoriasTabs.isNotEmpty) {
+              return DefaultTabController(
+                key: ValueKey('cat_tab_ctrl_${todasLasTabs.map((e) => e.id).join("_")}_$activeIndex'),
+                length: todasLasTabs.length,
+                initialIndex: activeIndex,
+                child: content,
               );
-            }),
-          ],
+            }
+
+            return content;
+          },
         );
       },
     );
@@ -682,17 +844,18 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   // TAB 3: OCASIÓN ESPECIAL (HU18 / HU33)
   // ---------------------------------------------------------------------------
   Widget _buildOcasionesTab() {
-    return FutureBuilder<List<OcasionModel>>(
-      future: _ocasionService.getOcasiones(widget.restaurant.id),
+    _ocasionVmFuture ??= _cargarOcasionVm();
+    return FutureBuilder<OcasionSelectionViewModel>(
+      future: _ocasionVmFuture,
       builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState != ConnectionState.done) {
           return const Center(
             child: CircularProgressIndicator(color: _primaryTerracotta),
           );
         }
 
-        final ocasiones = snapshot.data ?? [];
-        if (ocasiones.isEmpty) {
+        final vm = snapshot.data;
+        if (vm == null || vm.ocasiones.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24),
@@ -712,176 +875,11 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
           );
         }
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            const Text(
-              '¿Celebras algo especial?',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: _textDark,
-              ),
-            ),
-            const SizedBox(height: 4),
-            const Text(
-              'Elige una ocasión para incluir amenidades de cortesía o experiencias personalizadas.',
-              style: TextStyle(fontSize: 13, color: _textMuted),
-            ),
-            const SizedBox(height: 16),
-
-            ...ocasiones.map((ocasion) {
-              final esSeleccionada = _ocasionSeleccionada?.id == ocasion.id;
-
-              return Card(
-                key: ValueKey('card_ocasion_opcion_${ocasion.id}'),
-                margin: const EdgeInsets.only(bottom: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  side: BorderSide(
-                    color: esSeleccionada ? _primaryTerracotta : _cardBorder,
-                    width: esSeleccionada ? 2.0 : 1.0,
-                  ),
-                ),
-                elevation: 0,
-                color: Colors.white,
-                child: Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.celebration,
-                            color: _primaryTerracotta,
-                            size: 24,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              ocasion.nombre,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
-                            ),
-                          ),
-                          Switch(
-                            key: ValueKey('switch_ocasion_${ocasion.id}'),
-                            activeColor: _primaryTerracotta,
-                            value: esSeleccionada,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val) {
-                                  _ocasionSeleccionada = ocasion;
-                                  _experienciasSeleccionadas.clear();
-                                  for (final exp in ocasion.experiencias) {
-                                    if (exp.esGratis) {
-                                      _experienciasSeleccionadas.add(exp);
-                                    }
-                                  }
-                                } else {
-                                  _ocasionSeleccionada = null;
-                                  _experienciasSeleccionadas.clear();
-                                }
-                              });
-                            },
-                          ),
-                        ],
-                      ),
-                      if (ocasion.descripcion.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          ocasion.descripcion,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: _textMuted,
-                          ),
-                        ),
-                      ],
-
-                      if (esSeleccionada && ocasion.experiencias.isNotEmpty) ...[
-                        const Divider(height: 20),
-                        const Text(
-                          'Experiencias disponibles para esta ocasión:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        ...ocasion.experiencias.map((exp) {
-                          final expMarcada = _experienciasSeleccionadas.any(
-                            (e) => e.id == exp.id,
-                          );
-
-                          return CheckboxListTile(
-                            key: ValueKey('check_exp_${exp.id}'),
-                            dense: true,
-                            contentPadding: EdgeInsets.zero,
-                            activeColor: _primaryTerracotta,
-                            title: Text(
-                              exp.nombre,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: exp.descripcionCorta.isNotEmpty
-                                ? Text(exp.descripcionCorta)
-                                : null,
-                            secondary: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 6,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: exp.esGratis
-                                    ? Colors.green.shade100
-                                    : Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                exp.precioFormateado,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: exp.esGratis
-                                      ? Colors.green.shade900
-                                      : Colors.brown.shade900,
-                                ),
-                              ),
-                            ),
-                            value: expMarcada,
-                            onChanged: (val) {
-                              setState(() {
-                                if (val == true) {
-                                  _experienciasSeleccionadas.add(exp);
-                                } else {
-                                  _experienciasSeleccionadas.removeWhere(
-                                    (e) => e.id == exp.id,
-                                  );
-                                }
-                              });
-                            },
-                          );
-                        }),
-                      ],
-                    ],
-                  ),
-                ),
-              );
-            }),
-          ],
-        );
+        return OcasionStep(vm: vm, onContinuar: _confirmarPersonalizacion);
       },
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // BARRA INFERIOR DE ACCIÓN (HU15-RF02)
-  // ---------------------------------------------------------------------------
   Widget _buildBottomBar() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -936,7 +934,9 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                onPressed: _isProcessing ? null : _confirmarPersonalizacion,
+                onPressed: (_isProcessing || !(_ocasionVm?.puedeContinuar ?? true))
+                    ? null
+                    : _confirmarPersonalizacion,
                 child: _isProcessing
                     ? const SizedBox(
                         width: 22,

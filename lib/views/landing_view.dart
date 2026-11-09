@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import '../models/platillo_model.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
+import '../services/reminder_inbox_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import '../viewmodels/pedido_viewmodel.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'location_filter_sheet.dart';
 import 'mi_pedido_view.dart';
+import 'reservation_management_view.dart';
 import 'restaurant_detail_view.dart';
+import 'widgets/upcoming_reminder_banner.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
 /// Permite navegación libre del catálogo, filtros de ubicación por radio (HU02),
@@ -17,7 +20,11 @@ import 'restaurant_detail_view.dart';
 class LandingView extends StatefulWidget {
   final PublicCatalogViewModel? viewModel;
 
-  const LandingView({super.key, this.viewModel});
+  /// Recordatorios de reservas próximas del visitante con sesión (HU21-RF02); por
+  /// defecto se consultan en Firestore.
+  final Future<List<UpcomingReminder>> Function()? cargarRecordatorios;
+
+  const LandingView({super.key, this.viewModel, this.cargarRecordatorios});
 
   @override
   State<LandingView> createState() => _LandingViewState();
@@ -79,6 +86,19 @@ class _LandingViewState extends State<LandingView> {
             ),
             actions: [
               if (!_viewModel.isUserAuthenticated) ...[
+                IconButton(
+                  key: const ValueKey('boton_header_gestionar_reserva'),
+                  tooltip: 'Gestionar mi reserva',
+                  visualDensity: VisualDensity.compact,
+                  icon: const Icon(Icons.event_note_outlined, size: 20),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const ReservationManagementView(),
+                      ),
+                    );
+                  },
+                ),
                 TextButton(
                   key: const ValueKey('boton_header_registrarse'),
                   style: TextButton.styleFrom(
@@ -185,6 +205,14 @@ class _LandingViewState extends State<LandingView> {
                     if (_viewModel.isUserAuthenticated)
                       SliverToBoxAdapter(
                         child: _buildAccesoRapidoMiPedido(theme),
+                      ),
+
+                    // 1.6. Recordatorio de reservas próximas (HU21-RF02)
+                    if (_viewModel.isUserAuthenticated)
+                      SliverToBoxAdapter(
+                        child: UpcomingReminderBanner(
+                          cargar: widget.cargarRecordatorios,
+                        ),
                       ),
 
                     // 2. Filtros de Ubicación y Servicios
@@ -296,6 +324,33 @@ class _LandingViewState extends State<LandingView> {
         padding: const EdgeInsets.symmetric(horizontal: 20),
         scrollDirection: Axis.horizontal,
         children: [
+          // Botón directo para limpiar todos los filtros con un solo toque
+          if (_viewModel.hasActiveFilters)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: ActionChip(
+                key: const ValueKey('boton_limpiar_filtros_barra'),
+                avatar: const Icon(
+                  Icons.filter_alt_off,
+                  size: 16,
+                  color: Color(0xFFB34A26),
+                ),
+                label: const Text(
+                  'Limpiar filtros',
+                  style: TextStyle(
+                    color: Color(0xFFB34A26),
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                backgroundColor: const Color(0xFFFBF8F4),
+                side: const BorderSide(color: Color(0xFFB34A26), width: 1.2),
+                onPressed: () {
+                  _searchController.clear();
+                  _viewModel.clearFilters();
+                },
+              ),
+            ),
+
           // Control principal de filtro de ubicación (HU02-RF03 Criterio 1)
           ActionChip(
             key: const ValueKey('boton_filtro_ubicacion'),
@@ -536,13 +591,18 @@ class _LandingViewState extends State<LandingView> {
               onDeleted: () => _viewModel.toggleServiceFilter(_viewModel.selectedServiceId!),
             ),
 
-          TextButton(
+          OutlinedButton.icon(
             key: const ValueKey('boton_limpiar_filtros'),
+            icon: const Icon(Icons.filter_alt_off, size: 16),
+            label: const Text('Limpiar todos'),
+            style: OutlinedButton.styleFrom(
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            ),
             onPressed: () {
               _searchController.clear();
               _viewModel.clearFilters();
             },
-            child: const Text('Limpiar todos'),
           ),
         ],
       ),
@@ -647,13 +707,19 @@ class _LandingViewState extends State<LandingView> {
                     onPressed: () => _viewModel.clearLocationFilter(),
                     child: const Text('Quitar filtro de ubicación'),
                   ),
-                ] else if (_viewModel.hasActiveFilters) ...[
-                  OutlinedButton(
+                ],
+
+                // Botón único para restablecer todos los filtros con un solo clic cuando no hay resultados
+                if (_viewModel.hasActiveFilters) ...[
+                  const SizedBox(height: 10),
+                  FilledButton.tonalIcon(
+                    key: const ValueKey('boton_limpiar_filtros_vacio'),
+                    icon: const Icon(Icons.filter_alt_off),
+                    label: const Text('Limpiar todos los filtros'),
                     onPressed: () {
                       _searchController.clear();
                       _viewModel.clearFilters();
                     },
-                    child: const Text('Limpiar filtros'),
                   ),
                 ],
                 // HU03-RF02 Criterio 4: Opción directa de quitar filtro de fecha y hora

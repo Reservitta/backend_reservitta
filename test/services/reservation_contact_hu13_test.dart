@@ -29,6 +29,10 @@ class FakeContactValidationService extends ContactValidationService {
 
 /// Fake de repositorio de reservaciones para comprobar que NO se realizan escrituras prematuras (Criterio 2)
 class SpyReservationRepository implements ReservationRepository {
+  // HU27/HU28: métodos del repositorio que esta prueba no usa.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   int createCalls = 0;
   final List<ReservationModel> persistedReservations = [];
 
@@ -44,9 +48,7 @@ class SpyReservationRepository implements ReservationRepository {
     ReservationModel reservation, {
     int margenLimpiezaMin = 0,
   }) async {
-    createCalls++;
-    persistedReservations.add(reservation);
-    return reservation.copyWith(id: 'res_test_${persistedReservations.length}');
+    return createReservation(reservation);
   }
 
   @override

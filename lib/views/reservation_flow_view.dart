@@ -17,6 +17,7 @@ import 'widgets/contact_form_step.dart';
 import 'widgets/prepare_visit_step.dart';
 import 'personalize_visit_view.dart';
 import '../services/categoria_service.dart';
+import '../services/confirmation_notification_service.dart';
 import '../services/platillo_service.dart';
 import '../services/ocasion_service.dart';
 import 'widgets/reservation_summary_step.dart';
@@ -59,6 +60,11 @@ class ReservationFlowView extends StatefulWidget {
   /// Permite sobrescribir el id del usuario autenticado (útil para pruebas).
   final String? currentUserId;
 
+  /// Modo "modificar reserva" (HU20-RF03): al confirmar el resumen se llama a esta
+  /// función en lugar de crear una reserva. Devuelve un mensaje de error o null si
+  /// se aplicó el cambio.
+  final Future<String?> Function(ReservationDraftModel draft)? onConfirmModification;
+
   /// Activa el paso 7 (Datos de contacto, HU13/HU14). Por defecto desactivado
   /// para no alterar el flujo existente de HU11/HU12.
   final bool enableContactStep;
@@ -87,6 +93,7 @@ class ReservationFlowView extends StatefulWidget {
     this.createReservationOnConfirm = false,
     this.bookingService,
     this.currentUserId,
+    this.onConfirmModification,
     this.enableContactStep = false,
     this.onContactSubmitted,
     this.categoriaService,
@@ -122,9 +129,17 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
 
   ReservationBookingService? _booking;
 
+  ConfirmationNotificationService? _notifications;
+  ConfirmationNotificationService get _notificationService =>
+      _notifications ??= ConfirmationNotificationService();
+
   ReservationBookingService get _bookingService => _booking ??=
       widget.bookingService ??
-      ReservationBookingService(_availabilityService, ReservationService());
+      ReservationBookingService(
+        _availabilityService,
+        ReservationService(),
+        _notificationService,
+      );
 
   /// Cambia cuando la selección se invalida para recargar los pasos de mesa y horario.
   int _stepReload = 0;
@@ -710,9 +725,17 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     return PrepareVisitStep(
       draft: draft,
       isProcessing: _isProcessing,
-      onSoloReservar: _bookReservation,
+      onSoloReservar: _reservarSinPersonalizar,
       onPersonalizarVisita: _navegarAPersonalizarVisita,
     );
+  }
+
+  /// "Solo reservar": se descarta cualquier personalización que el borrador aún
+  /// tenga (preorden, alergias, observaciones u ocasión) para que la reserva se
+  /// guarde sin ningún registro de restricciones (HU17-RF02 Criterio 3).
+  Future<void> _reservarSinPersonalizar() async {
+    _viewModel.clearPersonalizacion();
+    await _bookReservation();
   }
 
   Future<void> _navegarAPersonalizarVisita() async {
@@ -939,11 +962,16 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       if (!mounted) return;
 
       switch (result) {
-        case BookingConfirmed(:final reservation):
+        case BookingConfirmed(:final reservation, :final notificationResult):
           _viewModel.discardDraft();
           await Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder: (_) => ReservationConfirmationView(reservation: reservation),
+              builder: (_) => ReservationConfirmationView(
+                reservation: reservation,
+                notificationResult: notificationResult,
+                notificationService: _notificationService,
+                operaciones: _viewModel.restaurant.operaciones,
+              ),
             ),
           );
         case BookingConflict():
@@ -1024,7 +1052,28 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     }
   }
 
+  /// Guarda los cambios de una reserva existente (HU20-RF03).
+  Future<void> _aplicarModificacion() async {
+    setState(() => _isProcessing = true);
+    try {
+      final error = await widget.onConfirmModification!(_viewModel.draft);
+      if (!mounted) return;
+      if (error == null) {
+        Navigator.of(context).pop(true);
+      } else {
+        _showFlowMessage(error);
+      }
+    } finally {
+      if (mounted) setState(() => _isProcessing = false);
+    }
+  }
+
   Future<void> _handleConfirmOrContinue() async {
+    if (widget.onConfirmModification != null) {
+      await _aplicarModificacion();
+      return;
+    }
+
     // HU13: con el paso de contacto activo (y sin callback propio), el resumen
     // lleva al formulario de datos, con o sin sesión iniciada.
     if (widget.enableContactStep && widget.onProceedToContact == null) {

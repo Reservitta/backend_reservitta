@@ -1,3 +1,4 @@
+import '../models/reservation_detail.dart';
 import '../models/reservation_model.dart';
 export '../services/reservation_service.dart' show ReservationService;
 
@@ -26,6 +27,35 @@ abstract class ReservationRepository {
   Future<List<ReservationModel>> getActiveReservationsByRestaurantAndDate({
     required String restauranteId,
     required String fechaLocal,
+  });
+
+  /// Cambia el estado operativo validando la transición (HU27-RF01). Registra quién
+  /// lo hizo y cuándo, y libera la mesa si la reserva termina, se cancela o es no-show.
+  /// Lanza `InvalidStateTransitionException` si la transición no es válida.
+  Future<ReservationModel> changeOperationalState({
+    required String reservationId,
+    required String nuevoEstado,
+    required String usuarioId,
+    DateTime? ahora,
+  });
+
+  /// Cambia el estado del pedido preordenado (HU29-RF01), independiente del estado de
+  /// la reserva. Solo avanza pendiente → en preparación → listo; regresar un paso exige
+  /// [motivo]. Lanza `InvalidOrderTransitionException` si no es válido. No cambia la
+  /// reserva ni la mesa (HU29-RF03: marcar listo es solo informativo).
+  Future<ReservationModel> changeOrderState({
+    required String reservationId,
+    required String nuevoEstado,
+    required String usuarioId,
+    String? motivo,
+    DateTime? ahora,
+  });
+
+  /// Detalle completo de una reservación para el administrador (HU28-RF01); null si no existe.
+  Future<ReservationDetail?> getReservationDetail(
+    String reservationId, {
+    Map<String, String>? categoriasPorId,
+    Map<String, String>? categoriaPorPlatilloId,
   });
 
   /// Obtiene una reservación por su ID

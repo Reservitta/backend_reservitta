@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
 import '../models/reservation_model.dart';
 import '../repositories/reservation_repository.dart';
+import '../services/categoria_service.dart';
+import '../viewmodels/admin_operations_viewmodel.dart';
 import '../viewmodels/admin_reservations_viewmodel.dart';
+import 'reservation_detail_view.dart';
+import 'widgets/alert_settings_sheet.dart';
+import 'widgets/arrival_alert_widgets.dart';
+import 'widgets/reservation_state_control.dart';
 
 /// Pantalla de listado de reservas para administradores de restaurante (HU26-RF02)
 ///
 /// Criterios de aceptación:
 /// 1. Lista o tabla con hora, cliente, personas, mesa y estado, ordenada cronológicamente.
 /// 2. Se puede seleccionar una fecha distinta a la de hoy mediante un selector de fecha.
-/// 3. Al tocar una reserva se despliega la descripción de la reserva (placeholder previo a HU28).
+/// 3. Al tocar una reserva se abre su detalle completo (HU28-RF02) y se puede cambiar su estado (HU27-RF02).
 /// 4. Se muestra un estado vacío ("No hay reservas para este día") y manejo de errores con "Reintentar".
 /// 5. La lista se actualiza en tiempo real si llega una nueva reserva o cambia su estado.
 class AdminReservationsView extends StatefulWidget {
@@ -18,6 +24,13 @@ class AdminReservationsView extends StatefulWidget {
   final bool showAppBar;
   final void Function(ReservationModel reservation)? onReservationTap;
 
+  /// Nombres de categoría por id (para el detalle); por defecto se leen del restaurante.
+  final Future<Map<String, String>> Function()? cargarCategorias;
+
+  /// Estado operativo del día: con él el listado destaca las reservas por llegar
+  /// (HU30-RF03) y permite ajustar las alertas.
+  final AdminOperationsViewModel? operaciones;
+
   const AdminReservationsView({
     super.key,
     required this.restaurantId,
@@ -25,6 +38,8 @@ class AdminReservationsView extends StatefulWidget {
     this.viewModel,
     this.showAppBar = true,
     this.onReservationTap,
+    this.cargarCategorias,
+    this.operaciones,
   });
 
   static const Color _primaryTerracotta = Color(0xFFB34A26);
@@ -110,184 +125,46 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
     }
   }
 
-  /// Al tocar una reserva despliega únicamente su descripción general (previo a HU28)
+  /// Nombres de categoría por id para agrupar los platillos del detalle (HU28-RF02).
+  Future<Map<String, String>> _cargarCategorias() async {
+    final cargar = widget.cargarCategorias;
+    if (cargar != null) return cargar();
+    final categorias =
+        await CategoriaService().getCategoriasStream(widget.restaurantId).first;
+    return {
+      for (final c in categorias)
+        c.id: c.tipo != 'general' && c.tipo.isNotEmpty ? c.tipo : c.nombre,
+    };
+  }
+
+  /// Al tocar una reserva abre su detalle completo (HU28-RF02).
   void _alTocarReserva(ReservationModel reserva) {
     if (widget.onReservationTap != null) {
       widget.onReservationTap!(reserva);
       return;
     }
 
-    showDialog<void>(
-      context: context,
-      builder: (ctx) {
-        return AlertDialog(
-          key: ValueKey('dialogo_descripcion_reserva_${reserva.id}'),
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(18),
-            side: const BorderSide(color: AdminReservationsView._cardBorder),
-          ),
-          title: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AdminReservationsView._primaryTerracotta
-                      .withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(
-                  Icons.event_note_rounded,
-                  color: AdminReservationsView._primaryTerracotta,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Descripción de la reserva',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AdminReservationsView._textDark,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          content: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 440),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildFilaDescripcion(
-                    icono: Icons.person_outline_rounded,
-                    etiqueta: 'Cliente',
-                    valor: reserva.nombreCliente,
-                  ),
-                  if (reserva.contactoTelefono.trim().isNotEmpty)
-                    _buildFilaDescripcion(
-                      icono: Icons.phone_outlined,
-                      etiqueta: 'Teléfono',
-                      valor: reserva.contactoTelefono,
-                    ),
-                  if (reserva.contactoCorreo.trim().isNotEmpty)
-                    _buildFilaDescripcion(
-                      icono: Icons.email_outlined,
-                      etiqueta: 'Correo',
-                      valor: reserva.contactoCorreo,
-                    ),
-                  _buildFilaDescripcion(
-                    icono: Icons.calendar_today_outlined,
-                    etiqueta: 'Fecha',
-                    valor: reserva.fechaLocal,
-                  ),
-                  _buildFilaDescripcion(
-                    icono: Icons.access_time_rounded,
-                    etiqueta: 'Horario',
-                    valor: reserva.horarioFormateado,
-                  ),
-                  _buildFilaDescripcion(
-                    icono: Icons.groups_outlined,
-                    etiqueta: 'Personas',
-                    valor:
-                        '${reserva.cantidadPersonas} ${reserva.cantidadPersonas == 1 ? 'persona' : 'personas'}',
-                  ),
-                  _buildFilaDescripcion(
-                    icono: Icons.table_restaurant_outlined,
-                    etiqueta: 'Mesa(s)',
-                    valor: reserva.mesasAsignadasTexto,
-                  ),
-                  _buildFilaDescripcion(
-                    icono: Icons.info_outline_rounded,
-                    etiqueta: 'Estado',
-                    valor: reserva.etiquetaEstado,
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: AdminReservationsView._creamLight,
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(
-                        color: AdminReservationsView._cardBorder,
-                      ),
-                    ),
-                    child: Text(
-                      'Reserva registrada para ${reserva.nombreCliente} '
-                      '(${reserva.cantidadPersonas} ${reserva.cantidadPersonas == 1 ? 'comensal' : 'comensales'}) '
-                      'a las ${reserva.horaInicioFormateada} en ${reserva.mesasAsignadasTexto}.',
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AdminReservationsView._textMuted,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          actions: [
-            FilledButton(
-              key: const ValueKey('boton_cerrar_descripcion_reserva'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AdminReservationsView._primaryTerracotta,
-              ),
-              onPressed: () => Navigator.of(ctx).pop(),
-              child: const Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildFilaDescripcion({
-    required IconData icono,
-    required String etiqueta,
-    required String valor,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icono, size: 18, color: AdminReservationsView._textMuted),
-          const SizedBox(width: 10),
-          SizedBox(
-            width: 82,
-            child: Text(
-              '$etiqueta:',
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AdminReservationsView._textMuted,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              valor,
-              style: const TextStyle(
-                fontSize: 13.5,
-                fontWeight: FontWeight.w600,
-                color: AdminReservationsView._textDark,
-              ),
-            ),
-          ),
-        ],
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReservationDetailView(
+          reservationId: reserva.id,
+          repository: _viewModel.repositorio,
+          onChangeState: (nuevo) => _viewModel.cambiarEstado(reserva.id, nuevo),
+          onChangeOrderState: (nuevo, {motivo}) =>
+              _viewModel.cambiarEstadoPedido(reserva.id, nuevo, motivo: motivo),
+          cargarCategorias: _cargarCategorias,
+        ),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
+    final operaciones = widget.operaciones;
     return ListenableBuilder(
-      listenable: _viewModel,
+      listenable: operaciones == null
+          ? _viewModel
+          : Listenable.merge([_viewModel, operaciones]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: AdminReservationsView._lightBg,
@@ -318,6 +195,10 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildEncabezadoYSelectorFecha(),
+                    if (operaciones != null) ...[
+                      const SizedBox(height: 12),
+                      _buildAlertasDeLlegada(operaciones),
+                    ],
                     const SizedBox(height: 16),
                     _buildBarraFiltrosEstado(),
                     const SizedBox(height: 16),
@@ -529,10 +410,22 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
         keyId: 'filtro_estado_en_servicio',
       ),
       (
+        valor: ReservationModel.estadoFinalizada,
+        etiqueta:
+            'Finalizada (${_viewModel.contarPorEstado(ReservationModel.estadoFinalizada)})',
+        keyId: 'filtro_estado_finalizada',
+      ),
+      (
         valor: ReservationModel.estadoCancelada,
         etiqueta:
             'Cancelada (${_viewModel.contarPorEstado(ReservationModel.estadoCancelada)})',
         keyId: 'filtro_estado_cancelada',
+      ),
+      (
+        valor: ReservationModel.estadoNoShow,
+        etiqueta:
+            'No se presentó (${_viewModel.contarPorEstado(ReservationModel.estadoNoShow)})',
+        keyId: 'filtro_estado_no_show',
       ),
     ];
 
@@ -756,8 +649,53 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
     );
   }
 
+  /// Alertas de reservas por llegar con acceso a los ajustes (HU30-RF03).
+  Widget _buildAlertasDeLlegada(AdminOperationsViewModel operaciones) {
+    final alertas = operaciones.alertas;
+    return Column(
+      key: const ValueKey('alertas_llegada'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                !operaciones.config.alertasActivas
+                    ? 'Alertas de llegada desactivadas'
+                    : alertas.isEmpty
+                        ? 'Sin llegadas próximas'
+                        : '${alertas.length} ${alertas.length == 1 ? 'llegada próxima' : 'llegadas próximas'}',
+                key: const ValueKey('alertas_resumen'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AdminReservationsView._textDark,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              key: const ValueKey('btn_ajustes_alertas_reservas'),
+              onPressed: () => AlertSettingsSheet.mostrar(
+                context,
+                config: operaciones.config,
+                onGuardar: operaciones.guardarConfig,
+              ),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: const Text('Ajustes'),
+            ),
+          ],
+        ),
+        for (final a in alertas.take(3))
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: ArrivalAlertTile(alerta: a, onTap: () => _alTocarReserva(a.reserva)),
+          ),
+      ],
+    );
+  }
+
   Widget _buildFilaReserva(ReservationModel reserva) {
     final badgeStyle = _obtenerEstiloEstado(reserva.estadoOperativo);
+    final alerta = widget.operaciones?.alertaDe(reserva.id);
 
     return InkWell(
       key: ValueKey('item_reserva_${reserva.id}'),
@@ -816,6 +754,11 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                    if (alerta != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: ArrivalAlertChip(alerta: alerta),
                       ),
                   ],
                 ),
@@ -918,6 +861,16 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
               ),
             ),
 
+            SizedBox(
+              width: 40,
+              child: ReservationStateControl(
+                reservaId: reserva.id,
+                estadoActual: reserva.estadoOperativo,
+                compacto: true,
+                onChange: (nuevo) => _viewModel.cambiarEstado(reserva.id, nuevo),
+              ),
+            ),
+
             const SizedBox(
               width: 28,
               child: Icon(
@@ -938,36 +891,12 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
     Color foreground,
     IconData icon,
   }) _obtenerEstiloEstado(String estadoOperativo) {
-    switch (estadoOperativo) {
-      case ReservationModel.estadoClienteLlego:
-        return (
-          background: const Color(0xFFE3F2FD),
-          border: const Color(0xFF90CAF9),
-          foreground: const Color(0xFF1565C0),
-          icon: Icons.how_to_reg_rounded,
-        );
-      case ReservationModel.estadoEnServicio:
-        return (
-          background: const Color(0xFFE8F5E9),
-          border: const Color(0xFFA5D6A7),
-          foreground: const Color(0xFF2E7D32),
-          icon: Icons.restaurant_rounded,
-        );
-      case ReservationModel.estadoCancelada:
-        return (
-          background: const Color(0xFFFFEBEE),
-          border: const Color(0xFFEF9A9A),
-          foreground: const Color(0xFFC62828),
-          icon: Icons.cancel_outlined,
-        );
-      case ReservationModel.estadoPendienteLlegada:
-      default:
-        return (
-          background: const Color(0xFFFFF8E1),
-          border: const Color(0xFFFFE082),
-          foreground: const Color(0xFFB26A00),
-          icon: Icons.schedule_rounded,
-        );
-    }
+    final e = ReservationStateStyle.of(estadoOperativo);
+    return (
+      background: e.background,
+      border: e.border,
+      foreground: e.foreground,
+      icon: e.icon,
+    );
   }
 }
