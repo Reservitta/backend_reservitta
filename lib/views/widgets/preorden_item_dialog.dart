@@ -121,6 +121,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                         ),
                       ),
                       IconButton(
+        tooltip: 'Cerrar',
                         icon: const Icon(Icons.close, size: 20),
                         onPressed: () => Navigator.of(context).pop(),
                         visualDensity: VisualDensity.compact,
@@ -224,6 +225,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                         child: Row(
                           children: [
                             IconButton(
+        tooltip: 'Quitar uno',
                               key: const ValueKey('btn_decrementar_preorden'),
                               icon: const Icon(Icons.remove, size: 18),
                               onPressed: _cantidad > 1 ? _decrementar : null,
@@ -242,6 +244,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                               ),
                             ),
                             IconButton(
+        tooltip: 'Agregar uno',
                               key: const ValueKey('btn_incrementar_preorden'),
                               icon: const Icon(Icons.add, size: 18),
                               onPressed: _incrementar,
@@ -331,7 +334,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             child: Text(
                               'Este platillo se elabora con receta estándar y no admite modificaciones personalizadas.',
                               style: TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: PreordenItemDialog._textMuted,
                               ),
                             ),

@@ -266,6 +266,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                         ),
                       ),
                       IconButton(
+        tooltip: 'Cerrar',
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.of(ctx).pop(),
                       ),

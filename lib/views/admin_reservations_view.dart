@@ -261,7 +261,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                       Text(
                         'Tiempo real',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AdminReservationsView._primaryTerracotta,
                         ),
@@ -355,7 +355,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                               child: const Text(
                                 'Hoy',
                                 style: TextStyle(
-                                  fontSize: 10.5,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color:
                                       AdminReservationsView._primaryTerracotta,
@@ -624,7 +624,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
 
   Widget _buildEncabezadoTabla() {
     const headerStyle = TextStyle(
-      fontSize: 11.5,
+      fontSize: 12,
       fontWeight: FontWeight.w700,
       letterSpacing: 0.6,
       color: AdminReservationsView._textMuted,
@@ -848,7 +848,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                         child: Text(
                           reserva.etiquetaEstado,
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: badgeStyle.foreground,
                           ),

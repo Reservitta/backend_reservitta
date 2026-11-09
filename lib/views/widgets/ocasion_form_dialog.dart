@@ -287,6 +287,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                           ),
                         ),
                         IconButton(
+        tooltip: 'Cerrar',
                           icon: const Icon(Icons.close),
                           onPressed: () => Navigator.pop(context, false),
                         ),
@@ -474,7 +475,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                                             if (exp.descripcionCorta.isNotEmpty)
                                               Text(
                                                 exp.descripcionCorta,
-                                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                                style: const TextStyle(fontSize: 12, color: Colors.grey),
                                               ),
                                           ],
                                         ),
@@ -488,7 +489,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                                         child: Text(
                                           exp.precioFormateado,
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.bold,
                                             color: exp.esGratis ? Colors.green.shade900 : Colors.brown.shade900,
                                           ),

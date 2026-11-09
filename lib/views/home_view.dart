@@ -128,6 +128,7 @@ class _HomeViewState extends State<HomeView> {
               title: const Text('Reservitta Admin'),
               actions: [
                 IconButton(
+        tooltip: 'Cerrar sesión',
                   icon: const Icon(Icons.logout),
                   onPressed: () => _viewModel.signOut(),
                 ),
@@ -402,7 +403,7 @@ class _HomeViewState extends State<HomeView> {
         titulo,
         style: const TextStyle(
           color: _sidebarHeader,
-          fontSize: 10.5,
+          fontSize: 12,
           fontWeight: FontWeight.w700,
           letterSpacing: 1.2,
         ),

@@ -264,6 +264,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
               obscureText: _obscurePassword,
               errorText: _viewModel.errorPassword,
               suffixIcon: IconButton(
+        tooltip: 'Mostrar u ocultar contraseña',
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   size: 20,

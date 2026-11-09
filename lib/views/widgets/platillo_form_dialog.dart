@@ -285,7 +285,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         SizedBox(height: 4),
         Text(
           'Sin imagen',
-          style: TextStyle(fontSize: 11, color: Color(0xFF9E8F82)),
+          style: TextStyle(fontSize: 12, color: Color(0xFF9E8F82)),
         ),
       ],
     );
@@ -700,7 +700,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                       ? 'Visible para visitantes en tiempo real.'
                                       : 'Marcado como agotado en el menú.',
                                   style: TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: 12,
                                     color: _isDisponible
                                         ? Colors.green.shade800
                                         : Colors.orange.shade800,
@@ -771,7 +771,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                     Text(
                                       'Habilita un campo opcional para que el comensal indique modificaciones al preordenar.',
                                       style: TextStyle(
-                                        fontSize: 11.5,
+                                        fontSize: 12,
                                         color: _permitePersonalizacion
                                             ? const Color(0xFF2C5E94)
                                             : PlatilloFormDialog._textMuted,
@@ -821,7 +821,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                 prefixIcon: const Icon(Icons.help_outline_rounded,
                                     size: 20, color: Color(0xFF2C5E94)),
                                 helperText: 'Guía visible para el comensal al preordenar este platillo.',
-                                helperStyle: const TextStyle(fontSize: 11),
+                                helperStyle: const TextStyle(fontSize: 12),
                                 filled: true,
                                 fillColor: Colors.white,
                                 border: OutlineInputBorder(
@@ -856,7 +856,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                             const Text(
                               'Longitud máxima de la nota del cliente (150 caracteres por defecto).',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: Color(0xFF5A738E),
                               ),
                             ),
@@ -882,7 +882,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                         },
                                   selectedColor: const Color(0xFFD3E3F2),
                                   labelStyle: TextStyle(
-                                    fontSize: 11.5,
+                                    fontSize: 12,
                                     fontWeight: seleccionado
                                         ? FontWeight.w700
                                         : FontWeight.w500,

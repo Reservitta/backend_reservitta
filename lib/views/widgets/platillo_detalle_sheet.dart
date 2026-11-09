@@ -241,6 +241,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: IconButton(
+        tooltip: 'Cerrar',
                       key: const ValueKey('btn_cerrar_detalle_platillo'),
                       icon: const Icon(Icons.close, size: 22),
                       onPressed: () => Navigator.of(context).pop(),
@@ -470,6 +471,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
+        tooltip: 'Quitar uno',
                         key: const ValueKey('btn_decrementar_cantidad'),
                         icon: const Icon(Icons.remove_circle_outline),
                         color: PlatilloDetalleSheet._primaryTerracotta,
@@ -488,6 +490,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                         ),
                       ),
                       IconButton(
+        tooltip: 'Agregar uno',
                         key: const ValueKey('btn_incrementar_cantidad'),
                         icon: const Icon(Icons.add_circle_outline),
                         color: PlatilloDetalleSheet._primaryTerracotta,

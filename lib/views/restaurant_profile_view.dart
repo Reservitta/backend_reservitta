@@ -301,7 +301,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                         child: Text(
                           fe['direccion']!,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Colors.red,
                             fontWeight: FontWeight.w500,
                           ),
@@ -378,7 +378,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                   child: Text(
                     errorText,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: Colors.red,
                       fontWeight: FontWeight.w500,
                     ),
@@ -714,7 +714,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       Text(
                         'Coordenadas: $latStr, $lngStr (Sincronizadas con tu dirección)',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: _textMuted,
                         ),
                       ),
@@ -932,7 +932,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                                 children: [
                                   Text(
                                     'Lat: ${item.latitude.toStringAsFixed(5)}, Lng: ${item.longitude.toStringAsFixed(5)}',
-                                    style: const TextStyle(fontSize: 11, color: _textMuted),
+                                    style: const TextStyle(fontSize: 12, color: _textMuted),
                                   ),
                                   const SizedBox(height: 4),
                                   ClipRRect(
@@ -1118,7 +1118,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                                       'Abierto',
                                       style: TextStyle(
                                         color: Colors.green,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -1191,7 +1191,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                                       child: Text(
                                         sName,
                                         style: const TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: _textDark,
                                         ),
@@ -1442,7 +1442,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       Text(
                         'Sincronizada',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.green.shade800,
                         ),
@@ -1477,7 +1477,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
              const Text(
                'Nombre de la sucursal sincronizado',
                style: TextStyle(
-                 fontSize: 11,
+                 fontSize: 12,
                  fontWeight: FontWeight.w600,
                  color: _textMuted,
                ),
@@ -1541,7 +1541,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       const Text(
                         'Dirección física que se guardará',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _textMuted,
                         ),
@@ -1586,7 +1586,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       const Text(
                         'Teléfono de contacto que se guardará',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _textMuted,
                         ),
@@ -1655,7 +1655,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                   child: Text(
                     'Esta sucursal se guardará automáticamente como tu matriz principal vinculada a estos datos.',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: _textMuted,
                     ),
                   ),
@@ -1754,7 +1754,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                               child: Text(
                                 coordsText,
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: _textMuted,
                                 ),
                               ),
@@ -1933,7 +1933,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                               child: Text(
                                 coordsLabel,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: branchCoords != null
                                       ? Colors.green.shade800

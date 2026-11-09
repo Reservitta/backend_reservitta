@@ -582,7 +582,7 @@ class _OcasionListViewState extends State<OcasionListView> {
                             if (exp.descripcionCorta.isNotEmpty)
                               Text(
                                 exp.descripcionCorta,
-                                style: const TextStyle(fontSize: 11, color: _textMuted),
+                                style: const TextStyle(fontSize: 12, color: _textMuted),
                               ),
                           ],
                         ),
@@ -597,7 +597,7 @@ class _OcasionListViewState extends State<OcasionListView> {
                         child: Text(
                           exp.precioFormateado,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: exp.esGratis ? Colors.green.shade900 : Colors.brown.shade900,
                           ),

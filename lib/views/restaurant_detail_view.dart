@@ -602,7 +602,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                             child: const Text(
                               'Personalizable',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E5288),
                               ),

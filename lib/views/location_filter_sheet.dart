@@ -442,7 +442,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                             Text(
                               'Alrededor de ${_temporaryLocation!.label}',
                               style: TextStyle(
-                                fontSize: 11,
+                                fontSize: 12,
                                 color: theme.colorScheme.onPrimary.withAlpha(200),
                               ),
                               maxLines: 1,
@@ -584,7 +584,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                     isGps ? 'GPS Activo' : 'Zona Manual',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 12,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -613,7 +613,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                 'Radio: ${_selectedRadius.toInt()} km',
                 style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 11,
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -647,7 +647,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                     '${lat.toStringAsFixed(3)}, ${lon.toStringAsFixed(3)}',
                     style: TextStyle(
                       color: Colors.white.withAlpha(180),
-                      fontSize: 10,
+                      fontSize: 12,
                     ),
                   ),
                 ],

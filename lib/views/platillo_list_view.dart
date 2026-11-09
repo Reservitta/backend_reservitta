@@ -337,7 +337,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                                   Text(
                                                     'Tiempo Real Activo',
                                                     style: TextStyle(
-                                                      fontSize: 11.5,
+                                                      fontSize: 12,
                                                       fontWeight: FontWeight.w600,
                                                       color: PlatilloListView
                                                           ._primaryTerracotta,

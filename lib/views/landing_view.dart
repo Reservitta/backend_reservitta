@@ -287,6 +287,7 @@ class _LandingViewState extends State<LandingView> {
                   prefixIcon: const Icon(Icons.search),
                   suffixIcon: _searchController.text.isNotEmpty
                       ? IconButton(
+        tooltip: 'Borrar búsqueda',
                           icon: const Icon(Icons.clear),
                           onPressed: () {
                             _searchController.clear();
@@ -1277,7 +1278,7 @@ class _RestaurantCard extends StatelessWidget {
                         style: TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 10,
+                          fontSize: 12,
                         ),
                       ),
                     ),
@@ -1304,7 +1305,7 @@ class _RestaurantCard extends StatelessWidget {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -1447,7 +1448,7 @@ class _RestaurantCard extends StatelessWidget {
           Text(
             'Sin imagen disponible',
             style: TextStyle(
-              fontSize: 11,
+              fontSize: 12,
               color: theme.colorScheme.onSurfaceVariant.withAlpha(140),
             ),
           ),

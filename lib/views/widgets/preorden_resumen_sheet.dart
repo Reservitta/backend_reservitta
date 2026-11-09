@@ -122,6 +122,7 @@ class PreordenResumenSheet extends StatelessWidget {
                         ),
                       ),
                     IconButton(
+        tooltip: 'Cerrar',
                       icon: const Icon(Icons.close_rounded),
                       onPressed: () => Navigator.pop(context),
                     ),

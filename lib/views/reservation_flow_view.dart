@@ -595,7 +595,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                                       : Text(
                                           '$stepNumber',
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.bold,
                                             color: isActive
                                                 ? Colors.white
@@ -625,7 +625,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                               child: Text(
                                 steps[idx],
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: (isActive || isCompleted)
                                       ? FontWeight.bold
                                       : FontWeight.normal,
@@ -1351,7 +1351,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 child: const Text(
                   'Abierto',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2E7D32),
                   ),
@@ -1506,7 +1506,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     child: Text(
                       'Cerrado',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: Colors.red.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1523,7 +1523,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     child: Text(
                       'Abierto',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: Colors.green.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1574,6 +1574,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
+        tooltip: 'Anterior',
                 key: const ValueKey('btn_mes_anterior'),
                 icon: const Icon(Icons.chevron_left, color: terracotta),
                 onPressed: () {
@@ -1596,6 +1597,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 ),
               ),
               IconButton(
+        tooltip: 'Siguiente',
                 key: const ValueKey('btn_mes_siguiente'),
                 icon: const Icon(Icons.chevron_right, color: terracotta),
                 onPressed: () {
@@ -1805,7 +1807,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                       Text(
                         '• Cerrado',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: isSelected ? Colors.white70 : Colors.red.shade400,
                         ),
@@ -1940,7 +1942,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                         child: const Text(
                           'Sugerido',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: terracotta,
                           ),

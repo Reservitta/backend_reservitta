@@ -264,6 +264,7 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
                         ),
                         suffixIcon: _nombreController.text.isNotEmpty
                             ? IconButton(
+        tooltip: 'Borrar',
                                 icon: const Icon(Icons.clear_rounded, size: 18),
                                 onPressed: () {
                                   _nombreController.clear();

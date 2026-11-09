@@ -151,7 +151,7 @@ class TableMapWidget extends StatelessWidget {
         const SizedBox(height: 4),
         const Text(
           'Pellizca para acercar y arrastra para moverte por el plano.',
-          style: TextStyle(fontSize: 11, color: Color(0xFF7A6E65)),
+          style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
         ),
       ],
     );

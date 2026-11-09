@@ -655,7 +655,7 @@ class _MesaTile extends StatelessWidget {
                       Text(
                         '${mesa.capacidad} ${mesa.capacidad == 1 ? 'silla' : 'sillas'}',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: PlanEditorView.mutedText,
                         ),
                       ),

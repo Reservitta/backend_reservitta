@@ -59,7 +59,7 @@ class ArrivalAlertChip extends StatelessWidget {
           Text(
             alerta.texto,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: s.foreground,
             ),

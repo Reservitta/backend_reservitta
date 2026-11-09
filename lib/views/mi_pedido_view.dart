@@ -109,6 +109,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
             backgroundColor: MiPedidoView.lightBg,
             elevation: 0,
             leading: IconButton(
+        tooltip: 'Volver',
               icon: const Icon(Icons.arrow_back, color: MiPedidoView.textDark),
               onPressed: () {
                 if (widget.onAgregarMasPlatillos != null) {
@@ -255,7 +256,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                 child: const Text(
                   'Solo lectura',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: MiPedidoView.textMuted,
                   ),

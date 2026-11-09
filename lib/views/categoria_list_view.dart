@@ -299,7 +299,7 @@ class _CategoriaListViewState extends State<CategoriaListView> {
                                           Text(
                                             'Sincronizado',
                                             style: TextStyle(
-                                              fontSize: 11.5,
+                                              fontSize: 12,
                                               fontWeight: FontWeight.w600,
                                               color: CategoriaListView
                                                   ._primaryTerracotta,

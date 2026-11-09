@@ -137,7 +137,7 @@ class PlatilloCard extends StatelessWidget {
                           child: Text(
                             categoriaNombre,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: _primaryTerracotta,
                             ),
@@ -155,7 +155,7 @@ class PlatilloCard extends StatelessWidget {
                         child: Text(
                           disponible ? 'Disponible' : 'Agotado',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: disponible
                                 ? Colors.green.shade800
@@ -184,7 +184,7 @@ class PlatilloCard extends StatelessWidget {
                                 Text(
                                   'Personalizable',
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF1E5288),
                                   ),
@@ -230,7 +230,7 @@ class PlatilloCard extends StatelessWidget {
                 Text(
                   disponible ? 'Activo' : 'Agotado',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: disponible ? Colors.green.shade800 : Colors.orange.shade900,
                   ),

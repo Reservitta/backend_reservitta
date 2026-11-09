@@ -444,7 +444,7 @@ class _ReservationConfirmationViewState
                 child: Text(
                   'Canal: $canalNombre',
                   style: const TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF2E7D32),
                   ),

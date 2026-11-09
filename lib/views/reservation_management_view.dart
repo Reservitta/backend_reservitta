@@ -302,6 +302,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
         foregroundColor: ReservationManagementView.darkText,
         elevation: 0,
         leading: IconButton(
+        tooltip: 'Volver',
           key: const ValueKey('btn_salir_gestion'),
           icon: const Icon(Icons.arrow_back),
           onPressed: _salir,

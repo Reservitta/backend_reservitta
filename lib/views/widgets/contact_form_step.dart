@@ -449,6 +449,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
               hint: 'Ingresa tu contraseña',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
+        tooltip: 'Mostrar u ocultar contraseña',
                 icon: Icon(
                   _mostrarPassword ? Icons.visibility_off : Icons.visibility,
                   color: ContactFormStep.mutedText,
@@ -490,6 +491,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   hint: 'Repite tu contraseña',
                   prefixIcon: Icons.lock_outline,
                   suffixIcon: IconButton(
+        tooltip: 'Mostrar u ocultar contraseña',
                     icon: Icon(
                       _mostrarConfirmPassword
                           ? Icons.visibility_off

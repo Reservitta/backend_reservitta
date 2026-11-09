@@ -176,7 +176,7 @@ class PlatilloMenuCard extends StatelessWidget {
                             child: const Text(
                               'Personalizable',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E5288),
                               ),
@@ -217,7 +217,7 @@ class PlatilloMenuCard extends StatelessWidget {
                             child: Text(
                               tag,
                               style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 color: Color(0xFF7A6E65),
                               ),
                             ),
@@ -232,7 +232,7 @@ class PlatilloMenuCard extends StatelessWidget {
                         'Observación: ${observacion.trim()}',
                         key: ValueKey('txt_observacion_platillo_${platillo.id}'),
                         style: const TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontStyle: FontStyle.italic,
                           color: Color(0xFF1E5288),
                         ),
@@ -289,6 +289,7 @@ class PlatilloMenuCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
+        tooltip: 'Quitar uno',
                                     key: ValueKey(
                                       'btn_decrementar_platillo_${platillo.id}',
                                     ),
@@ -315,6 +316,7 @@ class PlatilloMenuCard extends StatelessWidget {
                                     ),
                                   ),
                                   IconButton(
+        tooltip: 'Agregar uno',
                                     key: ValueKey(
                                       'btn_incrementar_platillo_${platillo.id}',
                                     ),
