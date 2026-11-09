@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'occasion_booking.dart';
 import 'preorder_restrictions.dart';
 
 /// Modelo inmutable de Reservación para gestión de reservaciones, disponibilidad,
@@ -13,13 +14,17 @@ class ReservationModel {
   static const String estadoClienteLlego = 'cliente_llego';
   static const String estadoEnServicio = 'en_servicio';
   static const String estadoCancelada = 'cancelada';
+  static const String estadoFinalizada = 'finalizada';
+  static const String estadoNoShow = 'no_show';
 
   /// Estados operativos filtrables en el panel del restaurante (HU26-RF01 Criterio 3)
   static const List<String> estadosFiltroOperativo = [
     estadoPendienteLlegada,
     estadoClienteLlego,
     estadoEnServicio,
+    estadoFinalizada,
     estadoCancelada,
+    estadoNoShow,
   ];
 
   /// Lista exhaustiva de estados oficiales permitidos
@@ -29,7 +34,9 @@ class ReservationModel {
     estadoPendienteLlegada,
     estadoClienteLlego,
     estadoEnServicio,
+    estadoFinalizada,
     estadoCancelada,
+    estadoNoShow,
   ];
 
   // Constantes de estado del pedido / preorden (HU28-RF02 / HU29)
@@ -63,6 +70,14 @@ class ReservationModel {
       case 'en servicio':
       case 'en_servicio':
         return estadoEnServicio;
+      case 'finalizada':
+      case 'finalizado':
+        return estadoFinalizada;
+      case 'no_show':
+      case 'no show':
+      case 'no-show':
+      case 'noshow':
+        return estadoNoShow;
       case 'cancelada':
       case 'cancelado':
         return estadoCancelada;
@@ -164,6 +179,15 @@ class ReservationModel {
   final Map<String, dynamic>? ocasionEspecial;
   final List<Map<String, dynamic>> experiencias;
 
+  // HU27-RF01 Criterio 3: quién cambió el estado y cuándo (trazabilidad).
+  final String estadoActualizadoPor;
+  final DateTime? estadoActualizadoEn;
+  final List<Map<String, dynamic>> historialEstados;
+
+  /// Token para gestionar la reserva sin iniciar sesión (HU20-RF01). Es secreto:
+  /// solo se envía al correo o WhatsApp capturados y nunca se muestra en pantalla.
+  final String tokenGestion;
+
   const ReservationModel({
     required this.id,
     required this.restauranteId,
@@ -187,6 +211,10 @@ class ReservationModel {
     this.notasAlergias = '',
     this.ocasionEspecial,
     this.experiencias = const [],
+    this.estadoActualizadoPor = '',
+    this.estadoActualizadoEn,
+    this.historialEstados = const [],
+    this.tokenGestion = '',
   });
 
   /// Constructor factoría para instanciación con cálculo automático de hora de fin (Criterio 2)
@@ -213,6 +241,7 @@ class ReservationModel {
     String notasAlergias = '',
     Map<String, dynamic>? ocasionEspecial,
     List<Map<String, dynamic>> experiencias = const [],
+    String tokenGestion = '',
   }) {
     final effectiveFin = fin ??
         (inicio != null
@@ -242,6 +271,7 @@ class ReservationModel {
       notasAlergias: notasAlergias,
       ocasionEspecial: ocasionEspecial,
       experiencias: experiencias,
+      tokenGestion: tokenGestion,
     );
   }
 
@@ -287,8 +317,12 @@ class ReservationModel {
         return estadoClienteLlego;
       case estadoEnServicio:
         return estadoEnServicio;
+      case estadoFinalizada:
+        return estadoFinalizada;
       case estadoCancelada:
         return estadoCancelada;
+      case estadoNoShow:
+        return estadoNoShow;
       case estadoPendiente:
       case estadoConfirmada:
       case estadoPendienteLlegada:
@@ -304,8 +338,12 @@ class ReservationModel {
         return 'Cliente llegó';
       case estadoEnServicio:
         return 'En servicio';
+      case estadoFinalizada:
+        return 'Finalizada';
       case estadoCancelada:
         return 'Cancelada';
+      case estadoNoShow:
+        return 'No se presentó';
       case estadoPendienteLlegada:
       default:
         return 'Pendiente de llegada';
@@ -320,8 +358,12 @@ class ReservationModel {
         return 'Cliente llegó';
       case estadoEnServicio:
         return 'En servicio';
+      case estadoFinalizada:
+        return 'Finalizada';
       case estadoCancelada:
         return 'Cancelada';
+      case estadoNoShow:
+        return 'No se presentó';
       case estadoPendienteLlegada:
       case estadoPendiente:
       case estadoConfirmada:
@@ -375,6 +417,12 @@ class ReservationModel {
     if (normFiltro == estadoCancelada) {
       return estadoOperativo == estadoCancelada;
     }
+    if (normFiltro == estadoFinalizada) {
+      return estadoOperativo == estadoFinalizada;
+    }
+    if (normFiltro == estadoNoShow) {
+      return estadoOperativo == estadoNoShow;
+    }
     // Coincidencia exacta o por estado operativo para 'pendiente' / 'confirmada'
     return normActual == normFiltro || estadoOperativo == normFiltro;
   }
@@ -409,6 +457,12 @@ class ReservationModel {
 
   /// Indica si el estado actual es 'cancelada'
   bool get isCancelada => normalizeStatus(estado) == estadoCancelada;
+
+  /// Indica si el estado operativo es 'finalizada'
+  bool get isFinalizada => estadoOperativo == estadoFinalizada;
+
+  /// Indica si el estado operativo es 'no_show'
+  bool get isNoShow => estadoOperativo == estadoNoShow;
 
   /// Getters de personalización (HU15-RF02, HU16, HU28-RF02)
   bool get tienePreorden => preordenItems.isNotEmpty;
@@ -801,6 +855,14 @@ class ReservationModel {
       notasAlergias: notasAlergias,
       ocasionEspecial: ocasionMap,
       experiencias: experienciasList,
+      estadoActualizadoPor: (data['estadoActualizadoPor'] as String?) ?? '',
+      estadoActualizadoEn: parseTimestamp(data['estadoActualizadoEn']),
+      historialEstados: [
+        if (data['historialEstados'] is List)
+          for (final h in data['historialEstados'] as List)
+            if (h is Map) Map<String, dynamic>.from(h),
+      ],
+      tokenGestion: (data['tokenGestion'] as String?) ?? '',
     );
   }
 
@@ -813,10 +875,15 @@ class ReservationModel {
 
     // HU17-RF02: cada línea del pedido guarda su propia observación, ya limpia.
     final lineas = PreorderRestrictions.normalizarLineas(preordenItems);
+    // HU18-RF05: ocasión, experiencias y mensajes de felicitación, ya limpios.
+    final ocasionNormalizada =
+        OccasionBooking.normalizar(ocasionEspecial, experiencias);
     final self = copyWith(
       preordenItems: lineas,
       alergias: PreorderRestrictions.normalizarAlergias(alergias),
       notasAlergias: notasAlergias.trim(),
+      ocasionEspecial: () => ocasionNormalizada.ocasion,
+      experiencias: ocasionNormalizada.experiencias,
     );
 
     final map = <String, dynamic>{
@@ -841,7 +908,11 @@ class ReservationModel {
           ? Timestamp.fromDate(creadaEn!)
           : FieldValue.serverTimestamp(),
       'tienePreorden': lineas.isNotEmpty,
+      // Se guarda explícitamente si eligió una ocasión o no (HU18-RF05 Criterio 1).
+      'tieneOcasion': self.ocasionEspecial != null,
     };
+
+    if (tokenGestion.isNotEmpty) map['tokenGestion'] = tokenGestion;
 
     // HU17-RF02 Criterio 3: con "solo reservar" no se genera ningún registro de
     // restricciones; los campos solo existen cuando traen algo.
@@ -863,20 +934,17 @@ class ReservationModel {
       };
     }
 
-    if (ocasionEspecial != null) {
+    if (self.ocasionEspecial != null) {
       map['ocasion'] = {
-        'ocasionId':
-            ocasionEspecial!['ocasionId'] ?? ocasionEspecial!['id'] ?? '',
-        'nombre': ocasionEspecial!['nombre'] ?? '',
-        'icono': ocasionEspecial!['icono'] ?? 'celebration',
-        'experiencias': experiencias,
+        ...self.ocasionEspecial!,
+        'experiencias': self.experiencias,
       };
     }
 
-    if (lineas.isNotEmpty || experiencias.isNotEmpty) {
+    if (lineas.isNotEmpty || self.experiencias.isNotEmpty) {
       map['totales'] = {
         'subtotalPreorden': self.subtotalPreorden,
-        'totalExperiencias': totalExperiencias,
+        'totalExperiencias': self.totalExperiencias,
         'total': self.totalPersonalizacion,
       };
     }
@@ -907,6 +975,10 @@ class ReservationModel {
     String? notasAlergias,
     Map<String, dynamic>? Function()? ocasionEspecial,
     List<Map<String, dynamic>>? experiencias,
+    String? estadoActualizadoPor,
+    DateTime? estadoActualizadoEn,
+    List<Map<String, dynamic>>? historialEstados,
+    String? tokenGestion,
   }) {
     return ReservationModel(
       id: id ?? this.id,
@@ -932,6 +1004,10 @@ class ReservationModel {
       ocasionEspecial:
           ocasionEspecial != null ? ocasionEspecial() : this.ocasionEspecial,
       experiencias: experiencias ?? this.experiencias,
+      estadoActualizadoPor: estadoActualizadoPor ?? this.estadoActualizadoPor,
+      estadoActualizadoEn: estadoActualizadoEn ?? this.estadoActualizadoEn,
+      historialEstados: historialEstados ?? this.historialEstados,
+      tokenGestion: tokenGestion ?? this.tokenGestion,
     );
   }
 }

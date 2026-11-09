@@ -93,6 +93,10 @@ class FakeAuthServiceForHU19 extends AuthService {
 
 /// Fake de repositorio de reservaciones
 class FakeReservationRepositoryForHU19 implements ReservationRepository {
+  // HU27/HU28: métodos del repositorio que esta prueba no usa.
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   final List<ReservationModel> persistedReservations = [];
 
   @override
@@ -176,6 +180,7 @@ class FakeAvailabilityServiceAlwaysValid extends AvailabilityService {
     required int duracionMin,
     required List<String> mesaIds,
     int maxAlternativas = 5,
+    String? ignorarReservaId,
   }) async {
     return const SelectionValidation.valid();
   }

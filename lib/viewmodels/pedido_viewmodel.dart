@@ -281,11 +281,25 @@ class PedidoViewModel extends ChangeNotifier {
 
     final idx = _items.indexWhere((e) => e.platilloId == platillo.id);
     if (idx != -1) {
-      _items[idx] = nuevoItem;
+      // Conserva el mensaje de felicitación (HU18-RF04) al editar cantidad u observación.
+      _items[idx] = nuevoItem.copyWith(
+        mensajeFelicitacion: _items[idx].mensajeFelicitacion,
+      );
     } else {
       _items.add(nuevoItem);
     }
 
+    _sincronizarYNotificar();
+  }
+
+  /// Asocia (o quita, con texto vacío) el mensaje de felicitación de un postre
+  /// ya agregado al pedido (HU18-RF04). El mensaje nunca cambia el precio.
+  void establecerMensajeFelicitacion(String platilloId, String mensaje) {
+    final idx = _items.indexWhere((e) => e.platilloId == platilloId);
+    if (idx == -1) return;
+    final limpio = mensaje.trim();
+    if (_items[idx].mensajeFelicitacion == limpio) return;
+    _items[idx] = _items[idx].copyWith(mensajeFelicitacion: limpio);
     _sincronizarYNotificar();
   }
 

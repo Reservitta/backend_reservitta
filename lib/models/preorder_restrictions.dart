@@ -36,6 +36,9 @@ class PreorderRestrictions {
   /// Límite de caracteres de la observación de un platillo (el mismo de HU17-RF01).
   static const int maxCaracteresObservacion = 200;
 
+  /// Límite del mensaje de felicitación de un postre (HU18-RF04).
+  static const int maxCaracteresMensajeFelicitacion = 100;
+
   /// Deja cada línea del pedido lista para guardarse: descarta las líneas sin
   /// platillo o con cantidad menor a 1 y limpia su observación (sin espacios
   /// sobrantes y con el límite de caracteres). La observación queda dentro de la
@@ -54,6 +57,15 @@ class PreorderRestrictions {
         ..['platilloId'] = platilloId
         ..['cantidad'] = cantidad
         ..['observacion'] = _limpiarObservacion(item['observacion'], maxObservacion);
+      final mensaje = _limpiarObservacion(
+        item['mensajeFelicitacion'],
+        maxCaracteresMensajeFelicitacion,
+      );
+      if (mensaje.isEmpty) {
+        linea.remove('mensajeFelicitacion');
+      } else {
+        linea['mensajeFelicitacion'] = mensaje;
+      }
       result.add(linea);
     }
     return result;

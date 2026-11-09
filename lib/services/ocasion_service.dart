@@ -243,6 +243,29 @@ class OcasionService {
     return result;
   }
 
+  /// Ocasiones disponibles para el visitante (HU18-RF01): solo las activas, con sus
+  /// experiencias activas ordenadas, cada una con nombre, ícono, descripción y precio
+  /// o "Gratis". Las ocasiones salen en el orden predefinido y "Otro" al final.
+  Future<List<OcasionModel>> getOcasionesDisponibles(String restaurantId) async {
+    final ocasiones = await getOcasiones(restaurantId);
+    int prioridad(OcasionModel o) {
+      final i = OcasionModel.nombresPredefinidos.indexOf(o.tipoPredefinido);
+      return i < 0 ? OcasionModel.nombresPredefinidos.length : i;
+    }
+
+    final disponibles = [
+      for (final o in ocasiones)
+        o.copyWith(
+          experiencias: (o.experiencias.where((e) => e.activo).toList()
+            ..sort((a, b) => a.orden.compareTo(b.orden))),
+        ),
+    ]..sort((a, b) {
+        final p = prioridad(a).compareTo(prioridad(b));
+        return p != 0 ? p : a.nombre.compareTo(b.nombre);
+      });
+    return disponibles;
+  }
+
   /// Elimina una ocasión especial del restaurante (HU33-RF01, HU33-RF02 Criterio 3 y 4).
   /// Las reservas existentes conservan su dato histórico intacto en el documento de reservación.
   Future<void> eliminarOcasion({

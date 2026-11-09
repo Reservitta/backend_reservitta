@@ -1,3 +1,4 @@
+import '../models/reservation_access.dart';
 import '../models/reservation_model.dart';
 
 /// Formato JSON estándar de notificación para confirmaciones (HU19) y recordatorios (HU21).
@@ -41,6 +42,11 @@ class ReservationNotificationPayload {
   final String notas;
   final String usuarioId;
 
+  /// Enlace y código para gestionar la reserva sin sesión (HU20-RF01). Solo se
+  /// incluyen en el mensaje que se envía al contacto; no se guardan en el payload.
+  final String enlaceGestion;
+  final String codigoGestion;
+
   const ReservationNotificationPayload({
     required this.reservaId,
     required this.estadoReserva,
@@ -64,6 +70,8 @@ class ReservationNotificationPayload {
     this.alergias = const [],
     this.notas = '',
     this.usuarioId = '',
+    this.enlaceGestion = '',
+    this.codigoGestion = '',
   });
 
   /// Crea una instancia del payload directamente desde un [ReservationModel]
@@ -109,6 +117,12 @@ class ReservationNotificationPayload {
       alergias: List<String>.from(reservation.alergias),
       notas: notas.isNotEmpty ? notas : reservation.notasAlergias,
       usuarioId: reservation.usuarioId,
+      enlaceGestion: reservation.tokenGestion.isNotEmpty
+          ? ReservationAccess.enlace(reservation.tokenGestion)
+          : '',
+      codigoGestion: reservation.tokenGestion.isNotEmpty
+          ? ReservationAccess.formatear(reservation.tokenGestion)
+          : '',
     );
   }
 
