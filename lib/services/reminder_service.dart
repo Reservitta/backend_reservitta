@@ -40,6 +40,21 @@ class ReminderPolicy {
   /// Máximo de intentos de envío antes de marcar el recordatorio como fallido.
   static const int maxIntentos = 3;
 
+  /// Texto que se le muestra al cliente sobre su recordatorio (HU21-RF02), o null si
+  /// no se le va a enviar uno.
+  static String? textoParaCliente({
+    required DateTime inicio,
+    required DateTime ahora,
+    required OperationsConfig config,
+  }) {
+    final plan = planear(inicio: inicio, ahora: ahora, config: config);
+    if (!plan.seEnvia) return null;
+    if (!plan.programadoPara!.isAfter(ahora)) {
+      return 'Te enviaremos un recordatorio en unos minutos.';
+    }
+    return 'Te enviaremos un recordatorio ${config.textoRecordatorio} antes de tu reserva.';
+  }
+
   /// Decide cuándo enviar el recordatorio de una reserva que empieza en [inicio].
   ///
   /// Se programa [OperationsConfig.recordatorioMin] antes. Si la reserva se creó con

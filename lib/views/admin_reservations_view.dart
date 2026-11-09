@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import '../models/reservation_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../services/categoria_service.dart';
+import '../viewmodels/admin_operations_viewmodel.dart';
 import '../viewmodels/admin_reservations_viewmodel.dart';
 import 'reservation_detail_view.dart';
+import 'widgets/alert_settings_sheet.dart';
+import 'widgets/arrival_alert_widgets.dart';
 import 'widgets/reservation_state_control.dart';
 
 /// Pantalla de listado de reservas para administradores de restaurante (HU26-RF02)
@@ -24,6 +27,10 @@ class AdminReservationsView extends StatefulWidget {
   /// Nombres de categoría por id (para el detalle); por defecto se leen del restaurante.
   final Future<Map<String, String>> Function()? cargarCategorias;
 
+  /// Estado operativo del día: con él el listado destaca las reservas por llegar
+  /// (HU30-RF03) y permite ajustar las alertas.
+  final AdminOperationsViewModel? operaciones;
+
   const AdminReservationsView({
     super.key,
     required this.restaurantId,
@@ -32,6 +39,7 @@ class AdminReservationsView extends StatefulWidget {
     this.showAppBar = true,
     this.onReservationTap,
     this.cargarCategorias,
+    this.operaciones,
   });
 
   static const Color _primaryTerracotta = Color(0xFFB34A26);
@@ -142,6 +150,8 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
           reservationId: reserva.id,
           repository: _viewModel.repositorio,
           onChangeState: (nuevo) => _viewModel.cambiarEstado(reserva.id, nuevo),
+          onChangeOrderState: (nuevo, {motivo}) =>
+              _viewModel.cambiarEstadoPedido(reserva.id, nuevo, motivo: motivo),
           cargarCategorias: _cargarCategorias,
         ),
       ),
@@ -150,8 +160,11 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
 
   @override
   Widget build(BuildContext context) {
+    final operaciones = widget.operaciones;
     return ListenableBuilder(
-      listenable: _viewModel,
+      listenable: operaciones == null
+          ? _viewModel
+          : Listenable.merge([_viewModel, operaciones]),
       builder: (context, _) {
         return Scaffold(
           backgroundColor: AdminReservationsView._lightBg,
@@ -182,6 +195,10 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _buildEncabezadoYSelectorFecha(),
+                    if (operaciones != null) ...[
+                      const SizedBox(height: 12),
+                      _buildAlertasDeLlegada(operaciones),
+                    ],
                     const SizedBox(height: 16),
                     _buildBarraFiltrosEstado(),
                     const SizedBox(height: 16),
@@ -632,8 +649,53 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
     );
   }
 
+  /// Alertas de reservas por llegar con acceso a los ajustes (HU30-RF03).
+  Widget _buildAlertasDeLlegada(AdminOperationsViewModel operaciones) {
+    final alertas = operaciones.alertas;
+    return Column(
+      key: const ValueKey('alertas_llegada'),
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                !operaciones.config.alertasActivas
+                    ? 'Alertas de llegada desactivadas'
+                    : alertas.isEmpty
+                        ? 'Sin llegadas próximas'
+                        : '${alertas.length} ${alertas.length == 1 ? 'llegada próxima' : 'llegadas próximas'}',
+                key: const ValueKey('alertas_resumen'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  color: AdminReservationsView._textDark,
+                ),
+              ),
+            ),
+            TextButton.icon(
+              key: const ValueKey('btn_ajustes_alertas_reservas'),
+              onPressed: () => AlertSettingsSheet.mostrar(
+                context,
+                config: operaciones.config,
+                onGuardar: operaciones.guardarConfig,
+              ),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: const Text('Ajustes'),
+            ),
+          ],
+        ),
+        for (final a in alertas.take(3))
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: ArrivalAlertTile(alerta: a, onTap: () => _alTocarReserva(a.reserva)),
+          ),
+      ],
+    );
+  }
+
   Widget _buildFilaReserva(ReservationModel reserva) {
     final badgeStyle = _obtenerEstiloEstado(reserva.estadoOperativo);
+    final alerta = widget.operaciones?.alertaDe(reserva.id);
 
     return InkWell(
       key: ValueKey('item_reserva_${reserva.id}'),
@@ -692,6 +754,11 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
+                      ),
+                    if (alerta != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: ArrivalAlertChip(alerta: alerta),
                       ),
                   ],
                 ),

@@ -970,6 +970,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 reservation: reservation,
                 notificationResult: notificationResult,
                 notificationService: _notificationService,
+                operaciones: _viewModel.restaurant.operaciones,
               ),
             ),
           );

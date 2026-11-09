@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/schedule_utils.dart';
 import 'mesa_model.dart';
+import 'operations_config.dart';
 
 class DaySchedule {
   final bool abierto;
@@ -59,6 +60,9 @@ class RestaurantModel {
   final int? capacidadMaxima;
   final List<MesaModel> mesas;
 
+  /// Alertas de llegada y recordatorio del restaurante (HU30, HU21).
+  final OperationsConfig operaciones;
+
   const RestaurantModel({
     required this.id,
     required this.nombre,
@@ -80,6 +84,7 @@ class RestaurantModel {
     this.distanciaKm,
     this.capacidadMaxima,
     this.mesas = const [],
+    this.operaciones = const OperationsConfig(),
   });
 
   // Getters de compatibilidad y campos públicos (HU01-RF01 Criterios 1 y 2)
@@ -201,6 +206,7 @@ class RestaurantModel {
           .whereType<Map<String, dynamic>>()
           .map((m) => MesaModel.fromMap((m['id'] as String?) ?? '', m))
           .toList(),
+      operaciones: OperationsConfig.fromRestaurantData(data),
     );
   }
 
@@ -267,6 +273,7 @@ class RestaurantModel {
     double? distanciaKm,
     int? capacidadMaxima,
     List<MesaModel>? mesas,
+    OperationsConfig? operaciones,
   }) {
     return RestaurantModel(
       id: id ?? this.id,
@@ -290,6 +297,7 @@ class RestaurantModel {
       distanciaKm: distanciaKm ?? this.distanciaKm,
       capacidadMaxima: capacidadMaxima ?? this.capacidadMaxima,
       mesas: mesas ?? this.mesas,
+      operaciones: operaciones ?? this.operaciones,
     );
   }
 }

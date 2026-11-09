@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 
 import '../models/branch_model.dart';
 import '../models/mesa_model.dart';
+import '../models/operations_config.dart';
 import '../models/reservation_access.dart';
 import '../models/restaurant_model.dart';
 import '../services/availability_service.dart';
+import '../services/reminder_service.dart';
 import '../services/reservation_management_service.dart';
 import '../services/reservation_service.dart';
 import '../services/restaurant_service.dart';
@@ -55,6 +57,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
   final TextEditingController _codigoCtrl = TextEditingController();
 
   ManagedReservation? _reserva;
+  OperationsConfig _operaciones = const OperationsConfig();
   ({String nombre, String telefono, String direccion})? _contacto;
   bool _cargando = false;
   bool _procesando = false;
@@ -96,9 +99,18 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
           // El contacto es un extra: sin él igual se muestra el resumen.
         }
       }
+      // HU21-RF02: con qué anticipación se avisa. Es un extra: sin él se usa el valor por defecto.
+      var operaciones = const OperationsConfig();
+      try {
+        final cargar = widget.cargarRestaurante ??
+            (String id) => RestaurantService().getRestaurantById(id);
+        final restaurante = await cargar(reserva.restauranteId);
+        if (restaurante != null) operaciones = restaurante.operaciones;
+      } catch (_) {}
       if (!mounted) return;
       setState(() {
         _reserva = reserva;
+        _operaciones = operaciones;
         _contacto = contacto;
         _cargando = false;
       });
@@ -504,11 +516,33 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
 
   Widget _acciones(ManagedReservation r) {
     final limite = _service.politica.limite(r.inicio);
+    final recordatorio = ReminderPolicy.textoParaCliente(
+      inicio: r.inicio,
+      ahora: _ahora,
+      config: _operaciones,
+    );
     return _tarjeta(
       key: const ValueKey('acciones_reserva'),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (recordatorio != null) ...[
+            Row(
+              key: const ValueKey('aviso_recordatorio'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.notifications_active_outlined,
+                    size: 18, color: ReservationManagementView.mutedText),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(recordatorio,
+                      style: const TextStyle(
+                          color: ReservationManagementView.mutedText, fontSize: 13)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+          ],
           Text(
             'Puedes modificar o cancelar hasta el ${_fecha(limite)} a las ${_hhmm(limite)}.',
             key: const ValueKey('texto_limite'),

@@ -39,6 +39,17 @@ service cloud.firestore {
           );
     }
 
+    // Sprint 8: el administrador solo gestiona los datos operativos de su propio restaurante.
+    function isAdminOfRestaurantId(restId) {
+      let userData = get(userPath(request.auth.uid)).data;
+      return hasReservittaProfile()
+          && userData.rol == 'admin'
+          && (
+            userData.restauranteId == restId
+            || userData.restauranteId == /databases/$(database)/documents/restaurants/$(restId)
+          );
+    }
+
     function isAdminAfterRegistration() {
       return isSignedIn()
           && existsAfter(userPath(request.auth.uid))
@@ -110,6 +121,28 @@ service cloud.firestore {
         allow create, update: if hasReservittaProfile()
                               || request.resource.data.keys()
                                    .hasOnly(['mesaId', 'fechaLocal', 'intervalos']);
+        allow delete: if false;
+      }
+
+      // HU30-RF02: alertas de llegada registradas para el administrador (una por
+      // reserva, tipo y umbral). Solo las ve y las escribe el administrador del restaurante.
+      match /alertasAdmin/{alertaId} {
+        allow read, create, update: if isAdminOfRestaurantId(restaurantId);
+        allow delete: if false;
+      }
+
+      // HU30-RF02: cola de mensajes push (FCM) que un proceso de servidor entrega
+      // a los dispositivos del administrador.
+      match /colaPush/{mensajeId} {
+        allow read, create, update: if isAdminOfRestaurantId(restaurantId);
+        allow delete: if false;
+      }
+
+      // HU21-RF01: recordatorio de cada reserva. Se programa al confirmar la reserva
+      // (cualquier perfil de Reservitta) y el administrador lo concilia y lo envía.
+      match /recordatorios/{reservaId} {
+        allow create: if hasReservittaProfile();
+        allow read, update: if isAdminOfRestaurantId(restaurantId);
         allow delete: if false;
       }
 

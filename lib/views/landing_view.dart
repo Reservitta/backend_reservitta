@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/platillo_model.dart';
 import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
+import '../services/reminder_inbox_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import '../viewmodels/pedido_viewmodel.dart';
 import '../viewmodels/public_catalog_viewmodel.dart';
@@ -11,6 +12,7 @@ import 'location_filter_sheet.dart';
 import 'mi_pedido_view.dart';
 import 'reservation_management_view.dart';
 import 'restaurant_detail_view.dart';
+import 'widgets/upcoming_reminder_banner.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
 /// Permite navegación libre del catálogo, filtros de ubicación por radio (HU02),
@@ -18,7 +20,11 @@ import 'restaurant_detail_view.dart';
 class LandingView extends StatefulWidget {
   final PublicCatalogViewModel? viewModel;
 
-  const LandingView({super.key, this.viewModel});
+  /// Recordatorios de reservas próximas del visitante con sesión (HU21-RF02); por
+  /// defecto se consultan en Firestore.
+  final Future<List<UpcomingReminder>> Function()? cargarRecordatorios;
+
+  const LandingView({super.key, this.viewModel, this.cargarRecordatorios});
 
   @override
   State<LandingView> createState() => _LandingViewState();
@@ -199,6 +205,14 @@ class _LandingViewState extends State<LandingView> {
                     if (_viewModel.isUserAuthenticated)
                       SliverToBoxAdapter(
                         child: _buildAccesoRapidoMiPedido(theme),
+                      ),
+
+                    // 1.6. Recordatorio de reservas próximas (HU21-RF02)
+                    if (_viewModel.isUserAuthenticated)
+                      SliverToBoxAdapter(
+                        child: UpcomingReminderBanner(
+                          cargar: widget.cargarRecordatorios,
+                        ),
                       ),
 
                     // 2. Filtros de Ubicación y Servicios
