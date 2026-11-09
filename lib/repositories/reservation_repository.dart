@@ -39,6 +39,18 @@ abstract class ReservationRepository {
     DateTime? ahora,
   });
 
+  /// Cambia el estado del pedido preordenado (HU29-RF01), independiente del estado de
+  /// la reserva. Solo avanza pendiente → en preparación → listo; regresar un paso exige
+  /// [motivo]. Lanza `InvalidOrderTransitionException` si no es válido. No cambia la
+  /// reserva ni la mesa (HU29-RF03: marcar listo es solo informativo).
+  Future<ReservationModel> changeOrderState({
+    required String reservationId,
+    required String nuevoEstado,
+    required String usuarioId,
+    String? motivo,
+    DateTime? ahora,
+  });
+
   /// Detalle completo de una reservación para el administrador (HU28-RF01); null si no existe.
   Future<ReservationDetail?> getReservationDetail(
     String reservationId, {

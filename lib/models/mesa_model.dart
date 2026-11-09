@@ -12,6 +12,9 @@ class MesaModel {
     formaRectangular,
   ];
 
+  /// Estado manual que fija el administrador (HU31-RF01); null = se deriva de las reservas.
+  static const String estadoFueraDeServicio = 'fuera_de_servicio';
+
   final String id;
   final String nombre;
   final int capacidad;
@@ -39,6 +42,9 @@ class MesaModel {
     this.alto = 100.0,
     this.estadoManual,
   });
+
+  /// El administrador la marcó fuera de servicio (por ejemplo, por mantenimiento).
+  bool get fueraDeServicio => estadoManual == estadoFueraDeServicio;
 
   /// Tiene coordenadas para dibujarse en el plano (HU10-RF01 Criterio 1).
   bool get tienePosicion => x != null && y != null;
