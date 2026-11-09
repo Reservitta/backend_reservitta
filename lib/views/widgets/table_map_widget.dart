@@ -88,7 +88,7 @@ class TableMapWidget extends StatelessWidget {
       return _TableList(viewModel: viewModel, onTapMesa: onTapMesa);
     }
 
-    final mesas = viewModel.plan.mesas.map((p) => p.mesa).toList();
+    final mesas = viewModel.mesasVisibles.map((p) => p.mesa).toList();
     var width = 0.0;
     var height = 0.0;
     for (final m in mesas) {
@@ -234,7 +234,7 @@ class _TableList extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
           ),
         ),
-        for (final p in viewModel.plan.mesas)
+        for (final p in viewModel.mesasVisibles)
           Builder(
             builder: (context) {
               final state = viewModel.stateOf(p.mesa);

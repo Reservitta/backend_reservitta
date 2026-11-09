@@ -4,6 +4,7 @@ import '../../models/mesa_model.dart';
 import '../../models/restaurant_model.dart';
 import '../../services/availability_service.dart';
 import '../../viewmodels/table_selection_viewmodel.dart';
+import 'space_selector.dart';
 import 'table_map_widget.dart';
 
 /// Paso "Mesa" del flujo de reserva: plano, selección de mesa o combinación y
@@ -147,6 +148,7 @@ class _TableSelectionStepState extends State<TableSelectionStep> {
           onChanged: _vm.needsCombination ? null : _vm.setCombineMode,
         ),
         const SizedBox(height: 8),
+        SpaceSelector(viewModel: _vm),
         TableMapWidget(viewModel: _vm, onTapMesa: _vm.onTapMesa),
         const SizedBox(height: 12),
         const TableLegend(),

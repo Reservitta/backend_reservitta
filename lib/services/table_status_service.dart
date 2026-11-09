@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../models/mesa_model.dart';
+import '../models/zona_model.dart';
 
 /// Estado manual de las mesas (HU31-RF01): el administrador puede marcar una mesa
 /// fuera de servicio (por ejemplo, por mantenimiento) y volver a activarla. Ese
@@ -24,6 +25,20 @@ class TableStatusService {
   /// Vuelve a activar la mesa: su estado se deriva otra vez de las reservas.
   Future<void> reactivar(String restauranteId, String mesaId) =>
       _mesaRef(restauranteId, mesaId).update({'estadoManual': null});
+
+  /// Espacios (pisos, patio…) del restaurante en tiempo real, en su orden.
+  Stream<List<ZonaModel>> zonasStream(String restauranteId) {
+    return _db
+        .collection('restaurants')
+        .doc(restauranteId)
+        .collection('zonas')
+        .snapshots()
+        .map((s) {
+      final lista = s.docs.map(ZonaModel.fromFirestore).toList()
+        ..sort((a, b) => a.orden.compareTo(b.orden));
+      return lista;
+    });
+  }
 
   /// Mesas del restaurante en tiempo real.
   Stream<List<MesaModel>> mesasStream(String restauranteId) {
