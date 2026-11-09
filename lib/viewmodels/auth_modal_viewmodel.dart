@@ -114,7 +114,7 @@ class AuthModalViewModel extends ChangeNotifier {
     });
     registerPasswordController.addListener(() {
       if (_registerSubmitted) {
-        fieldErrors['password'] = AppValidators.validatePassword(
+        fieldErrors['password'] = AppValidators.validateNewPassword(
           registerPasswordController.text,
         );
         // Re-validar confirmación cuando la contraseña cambia

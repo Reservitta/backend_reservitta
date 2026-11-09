@@ -98,8 +98,8 @@ class AuthService {
     required String password,
     String? nombreRestaurante,
   }) async {
-    if (password.length < 6) {
-      throw Exception('La contraseña debe tener al menos 6 caracteres.');
+    if (password.length < 8) {
+      throw Exception('La contraseña debe tener al menos 8 caracteres.');
     }
 
     final userCredential = await _createAuthAccount(
@@ -160,8 +160,8 @@ class AuthService {
     required String telefono,
     required String password,
   }) async {
-    if (password.length < 6) {
-      throw Exception('La contraseña debe tener al menos 6 caracteres.');
+    if (password.length < 8) {
+      throw Exception('La contraseña debe tener al menos 8 caracteres.');
     }
 
     User? user;
