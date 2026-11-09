@@ -338,6 +338,30 @@ class RestaurantProfileViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Hay un logo (nuevo o ya guardado).
+  bool get tieneLogo => logoBytes != null || logoUrl.isNotEmpty;
+
+  /// Hay una foto principal (nueva o ya guardada).
+  bool get tieneFotoPrincipal => coverBytes != null || imagenPrincipalUrl.isNotEmpty;
+
+  /// Quita el logo para poder continuar sin él y agregarlo después.
+  void quitarLogo() {
+    logoBytes = null;
+    logoFileName = null;
+    logoUrl = '';
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Quita la foto principal para poder continuar sin ella y agregarla después.
+  void quitarFotoPrincipal() {
+    coverBytes = null;
+    coverFileName = null;
+    imagenPrincipalUrl = '';
+    errorMessage = null;
+    notifyListeners();
+  }
+
   // Selección de Logo
   Future<void> pickLogo(ImageSource source) async {
     try {
