@@ -7,6 +7,10 @@ import 'package:reservitta/repositories/reservation_repository.dart';
 
 /// Implementación Fake en memoria de ReservationRepository para pruebas unitarias de HU08-RF02
 class FakeReservationRepository implements ReservationRepository {
+  // HU29-RF01: métodos que esta prueba no usa (changeOrderState).
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+
   final List<ReservationModel> reservacionesEnMemoria;
 
   FakeReservationRepository({

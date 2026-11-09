@@ -184,6 +184,11 @@ class ReservationModel {
   final DateTime? estadoActualizadoEn;
   final List<Map<String, dynamic>> historialEstados;
 
+  /// HU29-RF01: cuándo cambió por última vez el estado del pedido y su historial
+  /// (de, a, por, en, motivo si fue una reversa).
+  final DateTime? estadoPreordenActualizadoEn;
+  final List<Map<String, dynamic>> historialPedido;
+
   /// Token para gestionar la reserva sin iniciar sesión (HU20-RF01). Es secreto:
   /// solo se envía al correo o WhatsApp capturados y nunca se muestra en pantalla.
   final String tokenGestion;
@@ -214,6 +219,8 @@ class ReservationModel {
     this.estadoActualizadoPor = '',
     this.estadoActualizadoEn,
     this.historialEstados = const [],
+    this.estadoPreordenActualizadoEn,
+    this.historialPedido = const [],
     this.tokenGestion = '',
   });
 
@@ -769,7 +776,15 @@ class ReservationModel {
     final rawPreorden = data['preorden'] as Map<String, dynamic>?;
     final List<Map<String, dynamic>> preordenList = [];
     String estadoPreordenParsed = preordenPendiente;
+    DateTime? pedidoActualizadoEn;
+    final historialPedidoList = <Map<String, dynamic>>[];
     if (rawPreorden != null) {
+      pedidoActualizadoEn = parseTimestamp(rawPreorden['estadoActualizadoEn']);
+      if (rawPreorden['historial'] is List) {
+        for (final h in rawPreorden['historial'] as List) {
+          if (h is Map) historialPedidoList.add(Map<String, dynamic>.from(h));
+        }
+      }
       if (rawPreorden['estado'] is String) {
         estadoPreordenParsed = normalizePreordenStatus(rawPreorden['estado'] as String);
       }
@@ -862,6 +877,8 @@ class ReservationModel {
           for (final h in data['historialEstados'] as List)
             if (h is Map) Map<String, dynamic>.from(h),
       ],
+      estadoPreordenActualizadoEn: pedidoActualizadoEn,
+      historialPedido: historialPedidoList,
       tokenGestion: (data['tokenGestion'] as String?) ?? '',
     );
   }
@@ -978,6 +995,8 @@ class ReservationModel {
     String? estadoActualizadoPor,
     DateTime? estadoActualizadoEn,
     List<Map<String, dynamic>>? historialEstados,
+    DateTime? estadoPreordenActualizadoEn,
+    List<Map<String, dynamic>>? historialPedido,
     String? tokenGestion,
   }) {
     return ReservationModel(
@@ -1007,6 +1026,9 @@ class ReservationModel {
       estadoActualizadoPor: estadoActualizadoPor ?? this.estadoActualizadoPor,
       estadoActualizadoEn: estadoActualizadoEn ?? this.estadoActualizadoEn,
       historialEstados: historialEstados ?? this.historialEstados,
+      estadoPreordenActualizadoEn:
+          estadoPreordenActualizadoEn ?? this.estadoPreordenActualizadoEn,
+      historialPedido: historialPedido ?? this.historialPedido,
       tokenGestion: tokenGestion ?? this.tokenGestion,
     );
   }

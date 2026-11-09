@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
+import '../models/order_status_flow.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_status_flow.dart';
 import '../repositories/reservation_repository.dart';
@@ -175,6 +176,28 @@ class AdminReservationsViewModel extends ChangeNotifier {
       return e.message;
     } catch (_) {
       return 'No se pudo cambiar el estado. Revisa tu conexión e intenta de nuevo.';
+    }
+  }
+
+  /// Cambia el estado del pedido preordenado (HU29-RF02). Devuelve un mensaje de error
+  /// si no se pudo, o null si se aplicó.
+  Future<String?> cambiarEstadoPedido(
+    String reservaId,
+    String nuevoEstado, {
+    String? motivo,
+  }) async {
+    try {
+      await _reservationRepository.changeOrderState(
+        reservationId: reservaId,
+        nuevoEstado: nuevoEstado,
+        usuarioId: _usuarioActual(),
+        motivo: motivo,
+      );
+      return null;
+    } on InvalidOrderTransitionException catch (e) {
+      return e.motivo;
+    } catch (_) {
+      return 'No se pudo cambiar el estado del pedido. Revisa tu conexión e intenta de nuevo.';
     }
   }
 

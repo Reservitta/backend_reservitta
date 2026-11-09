@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
 
 import '../models/restaurant_model.dart';
+import '../models/reservation_model.dart';
+import '../viewmodels/admin_operations_viewmodel.dart';
 import '../viewmodels/home_viewmodel.dart';
 import 'admin_reservations_view.dart';
 import 'categoria_list_view.dart';
+import 'dashboard_view.dart';
 import 'ocasion_list_view.dart';
+import 'orders_view.dart';
 import 'platillo_list_view.dart';
+import 'reservation_detail_view.dart';
 import 'restaurant_profile_view.dart';
+import 'table_management_view.dart';
 
 /// Secciones del panel de administración
 enum AdminSection {
@@ -29,14 +35,16 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   late final HomeViewModel _viewModel;
+
+  /// Estado operativo del día (reservas, mesas, alertas y métricas), compartido por el
+  /// dashboard, las reservas, los pedidos y las mesas.
+  AdminOperationsViewModel? _operaciones;
   AdminSection _seccionActual = AdminSection.menu;
 
   static const Color _sidebarBg = Color(0xFF1B110B);
   static const Color _primaryTerracotta = Color(0xFFB34A26);
   static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
   static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
   static const Color _sidebarMuted = Color(0xFF9E8E83);
   static const Color _sidebarHeader = Color(0xFF7D6B5E);
 
@@ -49,8 +57,45 @@ class _HomeViewState extends State<HomeView> {
 
   @override
   void dispose() {
+    _operaciones?.dispose();
     _viewModel.dispose();
     super.dispose();
+  }
+
+  AdminOperationsViewModel _operacionesDe(RestaurantModel restaurante) {
+    final actual = _operaciones;
+    if (actual != null && actual.restaurantId == restaurante.id) return actual;
+    actual?.dispose();
+    final nuevo = AdminOperationsViewModel(restaurantId: restaurante.id);
+    nuevo.iniciar();
+    return _operaciones = nuevo;
+  }
+
+  /// Abre el detalle de una reserva desde el dashboard, los pedidos o las mesas.
+  void _abrirReserva(AdminOperationsViewModel operaciones, ReservationModel reserva) {
+    final repo = operaciones.reservasRepositorio;
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ReservationDetailView(
+          reservationId: reserva.id,
+          repository: repo,
+          onChangeState: (nuevo) async {
+            try {
+              await repo.changeOperationalState(
+                reservationId: reserva.id,
+                nuevoEstado: nuevo,
+                usuarioId: operaciones.usuarioActual,
+              );
+              return null;
+            } catch (e) {
+              return e.toString();
+            }
+          },
+          onChangeOrderState: (nuevo, {motivo}) =>
+              operaciones.cambiarEstadoPedido(reserva.id, nuevo, motivo: motivo),
+        ),
+      ),
+    );
   }
 
   String _obtenerIniciales(String? nombre) {
@@ -470,507 +515,40 @@ class _HomeViewState extends State<HomeView> {
         );
 
       case AdminSection.dashboard:
-        return _buildDashboardView(currentRest);
+        // HU25-RF02: métricas del día, alertas de llegada y accesos directos
+        final ops = _operacionesDe(currentRest);
+        return DashboardView(
+          operaciones: ops,
+          restauranteNombre: currentRest.nombre,
+          onIrAReservas: () => setState(() => _seccionActual = AdminSection.reservas),
+          onIrAMesas: () => setState(() => _seccionActual = AdminSection.mesas),
+          onIrAPedidos: () => setState(() => _seccionActual = AdminSection.pedidos),
+          onAbrirReserva: (r) => _abrirReserva(ops, r),
+        );
 
       case AdminSection.reservas:
         // HU26-RF02: Pantalla de listado de reservas del restaurante
         return AdminReservationsView(
           restaurantId: currentRest.id,
           showAppBar: false,
+          operaciones: _operacionesDe(currentRest),
         );
 
       case AdminSection.pedidos:
+        // HU29-RF02: gestión del estado de los pedidos preordenados
+        final ops = _operacionesDe(currentRest);
+        return OrdersView(
+          operaciones: ops,
+          onAbrirReserva: (r) => _abrirReserva(ops, r),
+        );
+
       case AdminSection.mesas:
-        return _buildProximamenteView(_obtenerTituloSeccion(_seccionActual));
+        // HU31-RF02: estado de las mesas y fuera de servicio
+        final ops = _operacionesDe(currentRest);
+        return TableManagementView(
+          operaciones: ops,
+          onAbrirReserva: (r) => _abrirReserva(ops, r),
+        );
     }
-  }
-
-  /// Vista "Próximamente" fiel a la imagen de referencia del usuario
-  Widget _buildProximamenteView(String seccionTitulo) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            seccionTitulo,
-            style: const TextStyle(
-              fontFamily: 'serif',
-              fontSize: 32,
-              fontWeight: FontWeight.bold,
-              color: _textDark,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Esta sección está preparada para futuras implementaciones.',
-            style: TextStyle(
-              fontSize: 14,
-              color: _textMuted,
-            ),
-          ),
-          const SizedBox(height: 48),
-
-          // Tarjeta central estilo placeholder con icono de cubiertos
-          Center(
-            child: Container(
-              width: 640,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 48),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color: const Color(0xFFE2D6C7),
-                  width: 1.2,
-                ),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(
-                    Icons.restaurant_rounded,
-                    size: 42,
-                    color: _textDark,
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Próximamente',
-                    style: TextStyle(
-                      fontSize: 16.5,
-                      fontWeight: FontWeight.bold,
-                      color: _textDark,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Esta sección de administración estará disponible en la\nsiguiente iteración del sistema.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: _textMuted,
-                      height: 1.35,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Vista de Dashboard Administrador
-  Widget _buildDashboardView(RestaurantModel currentRest) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 30),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 860),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Encabezado
-              const Text(
-                'Dashboard',
-                style: TextStyle(
-                  fontFamily: 'serif',
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: _textDark,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Resumen operativo y estado general de tu restaurante.',
-                style: TextStyle(
-                  fontSize: 13.5,
-                  color: _textMuted,
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Banner de perfil completado con éxito
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.green.shade50,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.green.shade200),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.check_circle, color: Colors.green, size: 28),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Perfil de Restaurante Activo',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green.shade900,
-                              fontSize: 15,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Tu restaurante "${currentRest.nombre}" está visible y listo para recibir reservaciones.',
-                            style: TextStyle(
-                              color: Colors.green.shade800,
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.green.shade900,
-                        side: BorderSide(color: Colors.green.shade400),
-                      ),
-                      icon: const Icon(Icons.settings_outlined, size: 16),
-                      label: const Text('Configurar'),
-                      onPressed: () {
-                        setState(() {
-                          _seccionActual = AdminSection.configuracion;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Resumen del Restaurante
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _cardBorder),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      currentRest.nombre,
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.location_on_outlined, size: 16, color: Colors.grey),
-                        const SizedBox(width: 6),
-                        Expanded(
-                          child: Text(
-                            currentRest.direccion.isNotEmpty
-                                ? currentRest.direccion
-                                : 'Sin dirección registrada',
-                            style: const TextStyle(fontSize: 13, color: Colors.grey),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.phone_outlined, size: 16, color: Colors.grey),
-                        const SizedBox(width: 6),
-                        Text(
-                          currentRest.telefono.isNotEmpty
-                              ? currentRest.telefono
-                              : 'Sin teléfono registrado',
-                          style: const TextStyle(fontSize: 13, color: Colors.grey),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3ECE1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${currentRest.diasAbiertos.length} días de atención',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFF3ECE1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            '${currentRest.serviciosIds.length + currentRest.serviciosPersonalizados.length} servicios activos',
-                            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Accesos rápidos a Menú y Categorías
-              Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _cardBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFDF1EB),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.restaurant_menu_rounded,
-                              color: _primaryTerracotta,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Menú y Platillos',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14.5,
-                                    color: Color(0xFF2E241E),
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Alta, edición y disponibilidad',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: Color(0xFF7A6E65),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _primaryTerracotta,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _seccionActual = AdminSection.menu;
-                              });
-                            },
-                            child: const Text('Ir al Menú', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _cardBorder),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFDF1EB),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: const Icon(
-                              Icons.category_rounded,
-                              color: _primaryTerracotta,
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          const Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Categorías',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 14.5,
-                                    color: Color(0xFF2E241E),
-                                  ),
-                                ),
-                                SizedBox(height: 2),
-                                Text(
-                                  'Secciones y orden del menú',
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    color: Color(0xFF7A6E65),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: _primaryTerracotta,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _seccionActual = AdminSection.categorias;
-                              });
-                            },
-                            child: const Text('Gestionar', style: TextStyle(fontSize: 12)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Listado con título PROVISIONAL solicitado por el usuario:
-              // "LO DE RESTAURANTES REGISTRADOS EN LA PLATAFORMA PONLE CON UN NOMBRE PROVISIONAL"
-              const Text(
-                'Restaurantes Asociados (Provisional)',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2E241E),
-                ),
-              ),
-              const SizedBox(height: 10),
-
-              StreamBuilder<List<RestaurantModel>>(
-                stream: _viewModel.restaurantsStream,
-                builder: (context, snap) {
-                  if (snap.hasError) {
-                    return Center(child: Text('Error: ${snap.error}'));
-                  }
-                  if (!snap.hasData) {
-                    return const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: CircularProgressIndicator(),
-                      ),
-                    );
-                  }
-                  final list = snap.data!;
-                  if (list.isEmpty) {
-                    return const Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Text('No hay restaurantes asociados en el sistema.'),
-                    );
-                  }
-                  return ListView.separated(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: list.length,
-                    separatorBuilder: (context, index) => const SizedBox(height: 8),
-                    itemBuilder: (context, index) {
-                      final r = list[index];
-                      return Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: _cardBorder),
-                        ),
-                        child: Row(
-                          children: [
-                            const CircleAvatar(
-                              backgroundColor: Color(0xFFF3ECE1),
-                              child: Icon(Icons.restaurant, color: _primaryTerracotta),
-                            ),
-                            const SizedBox(width: 14),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    r.nombre,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    r.direccion.isNotEmpty ? r.direccion : 'Sin dirección',
-                                    style: const TextStyle(fontSize: 12, color: Colors.grey),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: r.perfilCompleto
-                                    ? Colors.green.shade50
-                                    : Colors.amber.shade50,
-                                borderRadius: BorderRadius.circular(6),
-                                border: Border.all(
-                                  color: r.perfilCompleto
-                                      ? Colors.green.shade300
-                                      : Colors.amber.shade300,
-                                ),
-                              ),
-                              child: Text(
-                                r.perfilCompleto ? 'Completo' : 'Borrador',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: r.perfilCompleto
-                                      ? Colors.green.shade800
-                                      : Colors.amber.shade900,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }

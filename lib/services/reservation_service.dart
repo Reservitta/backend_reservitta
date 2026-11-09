@@ -2,21 +2,29 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/booking_models.dart';
 import '../models/reservation_access.dart';
 import '../models/reservation_detail.dart';
+import '../models/order_status_flow.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_status_flow.dart';
 import '../repositories/reservation_repository.dart';
 import 'auth_service.dart';
+import 'reminder_service.dart';
 
 /// Implementación del servicio de reservaciones sobre Cloud Firestore (HU08-RF02 y HU26-RF01)
 class ReservationService implements ReservationRepository {
   final FirebaseFirestore? _firestoreInstance;
   final AuthService? _authServiceInstance;
+  final ReminderService? _recordatoriosInstance;
 
   ReservationService({
     FirebaseFirestore? firestore,
     AuthService? authService,
+    ReminderService? recordatorios,
   })  : _firestoreInstance = firestore,
-        _authServiceInstance = authService;
+        _authServiceInstance = authService,
+        _recordatoriosInstance = recordatorios;
+
+  ReminderService get _recordatorios =>
+      _recordatoriosInstance ?? ReminderService(firestore: _firestoreInstance);
 
   FirebaseFirestore get _firestore =>
       _firestoreInstance ?? FirebaseFirestore.instance;
@@ -176,6 +184,15 @@ class ReservationService implements ReservationRepository {
         throw ReservationConnectionException(e.code);
       }
       rethrow;
+    }
+
+    // HU21-RF01: al confirmarse la reserva se programa su recordatorio. Si falla no
+    // se revierte la reserva; el procesamiento de recordatorios lo reintenta.
+    if (ReservationModel.normalizeStatus(guardada.estado) ==
+        ReservationModel.estadoConfirmada) {
+      try {
+        await _recordatorios.programar(guardada);
+      } catch (_) {}
     }
     return guardada;
   }
@@ -378,6 +395,73 @@ class ReservationService implements ReservationRepository {
         estadoActualizadoPor: usuarioId,
         estadoActualizadoEn: momento,
         historialEstados: historial,
+      );
+    }).then((actualizada) async {
+      // HU21-RF01: una reserva cancelada, finalizada o no-show ya no recibe recordatorio.
+      if (ReservationStateMachine.liberaMesa(destino)) {
+        try {
+          await _recordatorios.cancelar(
+            actualizada.restauranteId,
+            actualizada.id,
+            ahora: momento,
+          );
+        } catch (_) {}
+      }
+      return actualizada;
+    });
+  }
+
+  @override
+  Future<ReservationModel> changeOrderState({
+    required String reservationId,
+    required String nuevoEstado,
+    required String usuarioId,
+    String? motivo,
+    DateTime? ahora,
+  }) async {
+    final momento = ahora ?? DateTime.now();
+    final destino = OrderStateMachine.normalizar(nuevoEstado);
+
+    return _firestore.runTransaction<ReservationModel>((tx) async {
+      final snap = await tx.get(_reservationsRef.doc(reservationId));
+      if (!snap.exists) {
+        throw StateError('La reservación $reservationId no existe.');
+      }
+      final res = ReservationModel.fromFirestore(snap);
+      if (!res.tienePreorden) {
+        throw const InvalidOrderTransitionException(
+          '',
+          '',
+          'Esta reserva no tiene un pedido preordenado.',
+        );
+      }
+      final origen = OrderStateMachine.normalizar(res.estadoPreorden);
+      OrderStateMachine.validar(origen, destino, motivo: motivo);
+
+      final limpio = motivo?.trim() ?? '';
+      final historial = [
+        ...res.historialPedido,
+        {
+          'de': origen,
+          'a': destino,
+          'por': usuarioId,
+          'en': Timestamp.fromDate(momento),
+          if (OrderStateMachine.esReversa(origen, destino) && limpio.isNotEmpty)
+            'motivo': limpio,
+        },
+      ];
+      // Solo cambia el pedido: la reserva y su mesa no se tocan (HU29-RF03).
+      tx.update(snap.reference, {
+        'preorden.estado': destino,
+        'preorden.estadoActualizadoEn': Timestamp.fromDate(momento),
+        'preorden.estadoActualizadoPor': usuarioId,
+        'preorden.historial': historial,
+      });
+
+      return res.copyWith(
+        estadoPreorden: destino,
+        estadoPreordenActualizadoEn: momento,
+        historialPedido: historial,
       );
     });
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/reservation_detail.dart';
 import '../models/reservation_model.dart';
 import '../repositories/reservation_repository.dart';
+import 'widgets/order_state_control.dart';
 import 'widgets/reservation_state_control.dart';
 
 /// Pantalla de detalle de una reservación para el administrador (HU28-RF02).
@@ -20,12 +21,17 @@ class ReservationDetailView extends StatefulWidget {
   /// Nombres de categoría por id, para agrupar los platillos (entrada, plato fuerte...).
   final Future<Map<String, String>> Function()? cargarCategorias;
 
+  /// Cambia el estado del pedido (HU29-RF02); devuelve un mensaje de error o null.
+  /// Si es null no se muestra el control del pedido.
+  final Future<String?> Function(String nuevoEstado, {String? motivo})? onChangeOrderState;
+
   const ReservationDetailView({
     super.key,
     required this.reservationId,
     required this.repository,
     required this.onChangeState,
     this.cargarCategorias,
+    this.onChangeOrderState,
   });
 
   static const Color terracotta = Color(0xFFB34A26);
@@ -83,6 +89,12 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
 
   Future<String?> _cambiarEstado(String nuevo) async {
     final error = await widget.onChangeState(nuevo);
+    if (error == null) await _cargar();
+    return error;
+  }
+
+  Future<String?> _cambiarEstadoPedido(String nuevo, {String? motivo}) async {
+    final error = await widget.onChangeOrderState!(nuevo, motivo: motivo);
     if (error == null) await _cargar();
     return error;
   }
@@ -409,6 +421,14 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
               ),
             ],
           ),
+          if (widget.onChangeOrderState != null) ...[
+            const SizedBox(height: 12),
+            OrderStateControl(
+              reservaId: d.id,
+              estadoActual: d.estadoPreorden,
+              onChange: _cambiarEstadoPedido,
+            ),
+          ],
           for (final grupo in d.platillosPorGrupo.entries) ...[
             const SizedBox(height: 12),
             Text(grupo.key.toUpperCase(),

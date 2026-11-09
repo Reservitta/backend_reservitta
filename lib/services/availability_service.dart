@@ -704,7 +704,14 @@ class AvailabilityService {
     );
   }
 
+  /// Mesas que se pueden reservar: las que el administrador marcó fuera de servicio
+  /// (HU31-RF01) no se ofrecen.
   Future<List<MesaModel>> _loadMesas(RestaurantModel restaurant) async {
+    final todas = await _loadTodasLasMesas(restaurant);
+    return todas.where((m) => !m.fueraDeServicio).toList();
+  }
+
+  Future<List<MesaModel>> _loadTodasLasMesas(RestaurantModel restaurant) async {
     final repo = _tables;
     if (repo == null) return restaurant.mesas;
     try {

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../models/notification_delivery_result.dart';
+import '../models/operations_config.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_notification_payload.dart';
 import '../services/confirmation_notification_service.dart';
+import '../services/reminder_service.dart';
 
 /// Pantalla de confirmación con los datos de la reserva guardada (HU11-RF04, HU19-RF01, HU19-RF02).
 ///
@@ -19,6 +21,12 @@ class ReservationConfirmationView extends StatefulWidget {
   /// Se llama al pulsar "Volver al inicio"; por defecto regresa a la primera pantalla.
   final VoidCallback? onDone;
 
+  /// Ajustes del restaurante para informar del recordatorio (HU21-RF02).
+  final OperationsConfig operaciones;
+
+  /// Reloj para decidir si todavía alcanza a enviarse el recordatorio.
+  final DateTime Function()? now;
+
   const ReservationConfirmationView({
     super.key,
     required this.reservation,
@@ -26,6 +34,8 @@ class ReservationConfirmationView extends StatefulWidget {
     this.notificationService,
     this.onResend,
     this.onDone,
+    this.operaciones = const OperationsConfig(),
+    this.now,
   });
 
   static const Color terracotta = Color(0xFFB34A26);
@@ -86,6 +96,17 @@ class _ReservationConfirmationViewState
   }
 
   static String _dinero(double v) => '\$${v.toStringAsFixed(2)} MXN';
+
+  /// Aviso del recordatorio (HU21-RF02); null si a esta reserva no se le enviará uno.
+  String? get _textoRecordatorio {
+    final r = widget.reservation;
+    if (!r.bloqueaMesas) return null;
+    return ReminderPolicy.textoParaCliente(
+      inicio: r.effectiveStart,
+      ahora: (widget.now ?? DateTime.now)(),
+      config: widget.operaciones,
+    );
+  }
 
   String get _estado {
     switch (widget.reservation.estado) {
@@ -313,6 +334,27 @@ class _ReservationConfirmationViewState
                       ],
                     ),
                   ),
+                  if (_textoRecordatorio != null) ...[
+                    const SizedBox(height: 14),
+                    Row(
+                      key: const ValueKey('aviso_recordatorio'),
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(Icons.notifications_active_outlined,
+                            size: 18, color: ReservationConfirmationView.mutedText),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _textoRecordatorio!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: ReservationConfirmationView.mutedText,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 28),
                   SizedBox(
                     height: 52,
