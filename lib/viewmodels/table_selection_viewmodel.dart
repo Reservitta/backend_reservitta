@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/mesa_model.dart';
 import '../models/restaurant_model.dart';
+import '../models/zona_model.dart';
 import '../services/availability_service.dart';
 
 /// Estado visual de una mesa en el mapa (HU10-RF02).
@@ -83,6 +84,10 @@ class TableSelectionViewModel extends ChangeNotifier {
   /// Se llama con la selección válida (o vacía) cada vez que cambia, para
   /// guardarla en el borrador.
   final void Function(List<MesaModel> mesas) onSelectionChanged;
+
+  /// Se llama con los nombres de los espacios de la selección válida (piso, patio…),
+  /// o vacío si el restaurante no tiene varios espacios (HU34-RF04).
+  final void Function(List<String> espacios)? onEspaciosChanged;
   final List<String> initialSelectedIds;
 
   TableSelectionViewModel({
@@ -92,6 +97,7 @@ class TableSelectionViewModel extends ChangeNotifier {
     required this.personas,
     required this.duracionMin,
     required this.onSelectionChanged,
+    this.onEspaciosChanged,
     this.initialSelectedIds = const [],
   });
 
@@ -115,6 +121,98 @@ class TableSelectionViewModel extends ChangeNotifier {
   String? get message => _message;
 
   bool get hasPlan => _plan.configurado;
+
+  // ---------------------------------------------------------------------------
+  // Espacios (pisos, patio…) — HU34-RF04
+  // ---------------------------------------------------------------------------
+
+  /// Id del espacio "Sin espacio": agrupa las mesas que no tienen uno asignado.
+  static const String sinEspacioId = '__sin_espacio__';
+
+  String? _zonaActivaId;
+
+  bool _sinEspacio(MesaModel m) =>
+      m.zonaId == null || m.zonaId!.isEmpty || !_plan.zonas.any((z) => z.id == m.zonaId);
+
+  bool _enEspacio(MesaModel m, String id) =>
+      id == sinEspacioId ? _sinEspacio(m) : m.zonaId == id;
+
+  /// Espacios que tienen mesas, en su orden. Incluye "Sin espacio" si hay mesas sin uno.
+  List<ZonaModel> get espacios {
+    final lista = <ZonaModel>[
+      for (final z in _plan.zonas)
+        if (_plan.mesas.any((p) => p.mesa.zonaId == z.id)) z,
+    ];
+    if (lista.isNotEmpty && _plan.mesas.any((p) => _sinEspacio(p.mesa))) {
+      lista.add(const ZonaModel(id: sinEspacioId, nombre: 'Otras mesas', orden: 9999));
+    }
+    return lista;
+  }
+
+  /// El restaurante tiene más de un espacio con mesas: se muestra el selector.
+  bool get hayVariosEspacios => espacios.length > 1;
+
+  /// Espacio que se está viendo; null si el restaurante no tiene varios.
+  String? get zonaActivaId => hayVariosEspacios ? _zonaActivaId : null;
+
+  /// Mesas del plano que se muestran: las del espacio elegido (o todas si no hay varios).
+  List<PlanoMesa> get mesasVisibles {
+    final id = zonaActivaId;
+    if (id == null) return _plan.mesas;
+    return [
+      for (final p in _plan.mesas)
+        if (_enEspacio(p.mesa, id)) p,
+    ];
+  }
+
+  /// Mesas libres de un espacio para el grupo, la fecha y la duración elegidos.
+  int disponiblesEn(String espacioId) => [
+        for (final p in _plan.mesas)
+          if (_enEspacio(p.mesa, espacioId) && stateOf(p.mesa) == TableVisualState.disponible) p,
+      ].length;
+
+  /// Nombres de los espacios de las mesas elegidas, sin repetir y en orden.
+  List<String> _espaciosDeSeleccion() {
+    if (!hayVariosEspacios) return const [];
+    final nombres = <String>[];
+    for (final m in _selected) {
+      for (final z in _plan.zonas) {
+        if (z.id == m.zonaId && !nombres.contains(z.nombre)) nombres.add(z.nombre);
+      }
+    }
+    return nombres;
+  }
+
+  void seleccionarZona(String id) {
+    if (_zonaActivaId == id) return;
+    _zonaActivaId = id;
+    _message = null;
+    notifyListeners();
+  }
+
+  /// Espacio con el que se abre el plano: el de la mesa ya elegida o el primero con mesas libres.
+  void _elegirEspacioInicial() {
+    final lista = espacios;
+    if (lista.isEmpty) {
+      _zonaActivaId = null;
+      return;
+    }
+    for (final m in _selected) {
+      for (final e in lista) {
+        if (_enEspacio(m, e.id)) {
+          _zonaActivaId = e.id;
+          return;
+        }
+      }
+    }
+    for (final e in lista) {
+      if (disponiblesEn(e.id) > 0) {
+        _zonaActivaId = e.id;
+        return;
+      }
+    }
+    _zonaActivaId = lista.first.id;
+  }
 
   /// Sin mesas adecuadas: no hay ninguna individual ni combinación posible.
   bool get hasNoOptions =>
@@ -174,6 +272,7 @@ class TableSelectionViewModel extends ChangeNotifier {
         duracionMin: duracionMin,
       );
       _restoreSelection();
+      _elegirEspacioInicial();
     } catch (e) {
       _error =
           'No se pudo cargar la disponibilidad de mesas. Intenta de nuevo.';
@@ -343,8 +442,10 @@ class TableSelectionViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _commit() =>
-      onSelectionChanged(isValidSelection ? List.of(_selected) : const []);
+  void _commit() {
+    onSelectionChanged(isValidSelection ? List.of(_selected) : const []);
+    onEspaciosChanged?.call(isValidSelection ? _espaciosDeSeleccion() : const []);
+  }
 
   /// Todas las mesas quedan unidas entre sí por enlaces de combinación.
   bool _isConnected(List<MesaModel> mesas) {

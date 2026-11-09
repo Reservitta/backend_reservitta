@@ -6,6 +6,7 @@ import '../models/mesa_model.dart';
 import '../models/reservation_model.dart';
 import '../models/table_live_status.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
+import 'plan_editor_view.dart';
 
 /// Color, ícono y etiqueta de cada estado de mesa en la vista de gestión (HU31-RF02).
 class TableLiveStyle {
@@ -86,7 +87,8 @@ class TableManagementView extends StatelessWidget {
             ),
           );
         }
-        final estados = operaciones.estadosMesas;
+        final todas = operaciones.estadosMesas;
+        final estados = operaciones.estadosMesasVisibles;
         final hayPlano = estados.isNotEmpty && estados.every((e) => e.mesa.tienePosicion);
 
         return RefreshIndicator(
@@ -103,14 +105,32 @@ class TableManagementView extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      const Text(
-                        'Mesas',
-                        style: TextStyle(
-                          fontFamily: 'serif',
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: _textDark,
-                        ),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Expanded(
+                            child: Text(
+                              'Mesas',
+                              style: TextStyle(
+                                fontFamily: 'serif',
+                                fontSize: 30,
+                                fontWeight: FontWeight.bold,
+                                color: _textDark,
+                              ),
+                            ),
+                          ),
+                          FilledButton.icon(
+                            key: const ValueKey('btn_editar_plano'),
+                            style: FilledButton.styleFrom(backgroundColor: _terracotta),
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) => PlanEditorView(restaurantId: operaciones.restaurantId),
+                              ),
+                            ),
+                            icon: const Icon(Icons.edit_location_alt_outlined, size: 18),
+                            label: Text(todas.isEmpty ? 'Crear mi plano' : 'Editar plano'),
+                          ),
+                        ],
                       ),
                       const SizedBox(height: 4),
                       const Text(
@@ -118,6 +138,10 @@ class TableManagementView extends StatelessWidget {
                         style: TextStyle(fontSize: 13.5, color: _textMuted),
                       ),
                       const SizedBox(height: 14),
+                      if (operaciones.zonas.isNotEmpty) ...[
+                        _SelectorEspacio(operaciones: operaciones),
+                        const SizedBox(height: 14),
+                      ],
                       const _Leyenda(),
                       const SizedBox(height: 14),
                       if (operaciones.error != null)
@@ -126,12 +150,23 @@ class TableManagementView extends StatelessWidget {
                           key: const ValueKey('mesas_error'),
                           style: const TextStyle(color: Colors.red),
                         )
+                      else if (todas.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 40),
+                          child: Text(
+                            'Este restaurante todavía no tiene mesas registradas.\n'
+                            'Toca "Crear mi plano" para armar tu mapa de mesas.',
+                            key: ValueKey('mesas_vacio'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(color: _textMuted),
+                          ),
+                        )
                       else if (estados.isEmpty)
                         const Padding(
                           padding: EdgeInsets.symmetric(vertical: 40),
                           child: Text(
-                            'Este restaurante todavía no tiene mesas registradas.',
-                            key: ValueKey('mesas_vacio'),
+                            'Este espacio todavía no tiene mesas.',
+                            key: ValueKey('espacio_vacio'),
                             textAlign: TextAlign.center,
                             style: TextStyle(color: _textMuted),
                           ),
@@ -152,14 +187,20 @@ class TableManagementView extends StatelessWidget {
   }
 
   Widget _plano(BuildContext context, List<TableLiveStatus> estados) {
-    var width = 0.0;
-    var height = 0.0;
+    // El plano empieza en la mesa más a la izquierda y arriba: así no queda un hueco
+    // entre el borde y las mesas cuando el espacio tiene pocas o están lejos del origen.
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var maxX = 0.0;
+    var maxY = 0.0;
     for (final e in estados) {
-      width = math.max(width, (e.mesa.x ?? 0) + e.mesa.ancho);
-      height = math.max(height, (e.mesa.y ?? 0) + e.mesa.alto);
+      minX = math.min(minX, e.mesa.x ?? 0);
+      minY = math.min(minY, e.mesa.y ?? 0);
+      maxX = math.max(maxX, (e.mesa.x ?? 0) + e.mesa.ancho);
+      maxY = math.max(maxY, (e.mesa.y ?? 0) + e.mesa.alto);
     }
-    width += _padding * 2;
-    height += _padding * 2;
+    final width = maxX - minX + _padding * 2;
+    final height = maxY - minY + _padding * 2;
 
     return Container(
       key: const ValueKey('mesas_plano'),
@@ -183,8 +224,8 @@ class TableManagementView extends StatelessWidget {
               children: [
                 for (final e in estados)
                   Positioned(
-                    left: (e.mesa.x ?? 0) + _padding,
-                    top: (e.mesa.y ?? 0) + _padding,
+                    left: (e.mesa.x ?? 0) - minX + _padding,
+                    top: (e.mesa.y ?? 0) - minY + _padding,
                     width: e.mesa.ancho,
                     height: e.mesa.alto,
                     child: _MesaTile(estado: e, onTap: () => _abrirMesa(context, e)),
@@ -302,6 +343,44 @@ class _MesaTile extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Pestañas con los espacios (pisos, patio…) del restaurante.
+class _SelectorEspacio extends StatelessWidget {
+  final AdminOperationsViewModel operaciones;
+
+  const _SelectorEspacio({required this.operaciones});
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      key: const ValueKey('selector_espacio_admin'),
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        for (final z in operaciones.zonas)
+          ChoiceChip(
+            key: ValueKey('chip_espacio_admin_${z.id}'),
+            selected: operaciones.zonaMesasId == z.id,
+            selectedColor: const Color(0xFFFFE3D6),
+            label: Text(
+              '${z.nombre} (${operaciones.estadosMesas.where((e) => e.mesa.zonaId == z.id).length})',
+            ),
+            onSelected: (_) => operaciones.seleccionarZonaMesas(z.id),
+          ),
+        // Las mesas que no están en ningún espacio no se esconden.
+        if (operaciones.mesasSinEspacio > 0)
+          ChoiceChip(
+            key: const ValueKey('chip_espacio_admin_sin_espacio'),
+            selected: operaciones.zonaMesasId == AdminOperationsViewModel.sinEspacioId,
+            selectedColor: const Color(0xFFFFE3D6),
+            label: Text('Sin espacio (${operaciones.mesasSinEspacio})'),
+            onSelected: (_) =>
+                operaciones.seleccionarZonaMesas(AdminOperationsViewModel.sinEspacioId),
+          ),
+      ],
     );
   }
 }

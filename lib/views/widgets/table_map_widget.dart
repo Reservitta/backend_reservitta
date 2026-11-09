@@ -88,15 +88,24 @@ class TableMapWidget extends StatelessWidget {
       return _TableList(viewModel: viewModel, onTapMesa: onTapMesa);
     }
 
-    final mesas = viewModel.plan.mesas.map((p) => p.mesa).toList();
-    var width = 0.0;
-    var height = 0.0;
+    final mesas = viewModel.mesasVisibles.map((p) => p.mesa).toList();
+    // El plano empieza en la mesa más a la izquierda y arriba (sin hueco hasta el origen).
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var maxX = 0.0;
+    var maxY = 0.0;
     for (final m in mesas) {
-      width = math.max(width, (m.x ?? 0) + m.ancho);
-      height = math.max(height, (m.y ?? 0) + m.alto);
+      minX = math.min(minX, m.x ?? 0);
+      minY = math.min(minY, m.y ?? 0);
+      maxX = math.max(maxX, (m.x ?? 0) + m.ancho);
+      maxY = math.max(maxY, (m.y ?? 0) + m.alto);
     }
-    width += _padding * 2;
-    height += _padding * 2;
+    if (mesas.isEmpty) {
+      minX = 0;
+      minY = 0;
+    }
+    final width = maxX - minX + _padding * 2;
+    final height = maxY - minY + _padding * 2;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -123,8 +132,8 @@ class TableMapWidget extends StatelessWidget {
                   children: [
                     for (final m in mesas)
                       Positioned(
-                        left: (m.x ?? 0) + _padding,
-                        top: (m.y ?? 0) + _padding,
+                        left: (m.x ?? 0) - minX + _padding,
+                        top: (m.y ?? 0) - minY + _padding,
                         width: m.ancho,
                         height: m.alto,
                         child: _TableTile(
@@ -234,7 +243,7 @@ class _TableList extends StatelessWidget {
             style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
           ),
         ),
-        for (final p in viewModel.plan.mesas)
+        for (final p in viewModel.mesasVisibles)
           Builder(
             builder: (context) {
               final state = viewModel.stateOf(p.mesa);
