@@ -198,9 +198,8 @@ class ReservationSummaryStep extends StatelessWidget {
   // TARJETAS DEL RESUMEN CON BOTONES "MODIFICAR"
   // ---------------------------------------------------------------------------
   Widget _buildSummaryCards() {
-    final mesasTexto = draft.mesasNombres.isNotEmpty
-        ? draft.mesasNombres.join(' + ')
-        : (draft.mesaIds.isNotEmpty ? draft.mesaIds.join(' + ') : 'Sin mesa');
+    final mesasTexto =
+        draft.mesasConEspacio.isNotEmpty ? draft.mesasConEspacio : 'Sin mesa';
 
     final sucursalTexto = draft.branch?.nombre ??
         (draft.restaurant.direccion.isNotEmpty ? draft.restaurant.direccion : 'Sucursal principal');

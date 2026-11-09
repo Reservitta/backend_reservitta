@@ -11,6 +11,7 @@ import '../models/order_status_flow.dart';
 import '../models/reservation_model.dart';
 import '../models/restaurant_time.dart';
 import '../models/table_live_status.dart';
+import '../models/zona_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../services/admin_alert_service.dart';
 import '../services/operations_config_service.dart';
@@ -39,6 +40,8 @@ class AdminOperationsViewModel extends ChangeNotifier {
   OperationsConfig _config = const OperationsConfig();
   List<ReservationModel> _reservasHoy = const [];
   List<MesaModel> _mesas = const [];
+  List<ZonaModel> _zonas = const [];
+  String? _zonaMesasId;
   List<ArrivalAlert> _alertas = const [];
   List<TableLiveStatus> _estadosMesas = const [];
   DailyMetrics _metricas = DailyMetrics.vacias;
@@ -52,6 +55,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
 
   StreamSubscription<List<ReservationModel>>? _reservasSub;
   StreamSubscription<List<MesaModel>>? _mesasSub;
+  StreamSubscription<List<ZonaModel>>? _zonasSub;
   Timer? _timer;
 
   AdminOperationsViewModel({
@@ -85,6 +89,47 @@ class AdminOperationsViewModel extends ChangeNotifier {
   List<MesaModel> get mesas => List.unmodifiable(_mesas);
   List<ArrivalAlert> get alertas => List.unmodifiable(_alertas);
   List<TableLiveStatus> get estadosMesas => List.unmodifiable(_estadosMesas);
+
+  /// Espacios (pisos, patio…) del restaurante (HU34).
+  List<ZonaModel> get zonas => List.unmodifiable(_zonas);
+
+  /// Id de la pestaña "Sin espacio": mesas que no pertenecen a ningún espacio existente.
+  static const String sinEspacioId = '__sin_espacio__';
+
+  /// Espacio que se está viendo en la vista de mesas; null mientras no haya espacios.
+  String? get zonaMesasId {
+    if (_zonas.isEmpty) return null;
+    final id = _zonaMesasId;
+    if (id == sinEspacioId && mesasSinEspacio > 0) return id;
+    if (id != null && _zonas.any((z) => z.id == id)) return id;
+    return _zonas.first.id;
+  }
+
+  /// Estado de las mesas del espacio activo (o de todas si no hay espacios).
+  List<TableLiveStatus> get estadosMesasVisibles {
+    final id = zonaMesasId;
+    if (id == null) return List.unmodifiable(_estadosMesas);
+    if (id == sinEspacioId) {
+      return List.unmodifiable([
+        for (final e in _estadosMesas)
+          if (!_zonas.any((z) => z.id == e.mesa.zonaId)) e,
+      ]);
+    }
+    return List.unmodifiable([
+      for (final e in _estadosMesas)
+        if (e.mesa.zonaId == id) e,
+    ]);
+  }
+
+  /// Mesas que no pertenecen a ningún espacio existente (cuando ya hay espacios).
+  int get mesasSinEspacio => _zonas.isEmpty
+      ? 0
+      : _estadosMesas.where((e) => !_zonas.any((z) => z.id == e.mesa.zonaId)).length;
+
+  void seleccionarZonaMesas(String id) {
+    _zonaMesasId = id;
+    notifyListeners();
+  }
   DailyMetrics get metricas => _metricas;
 
   /// Primera carga todavía en curso (para mostrar el indicador de carga).
@@ -131,6 +176,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
     if (_disposed) return;
     _suscribirReservas();
     _suscribirMesas();
+    _suscribirZonas();
     _timer?.cancel();
     if (tick > Duration.zero) {
       _timer = Timer.periodic(tick, (_) => _alTick());
@@ -141,6 +187,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
   Future<void> refrescar() async {
     await _reservasSub?.cancel();
     await _mesasSub?.cancel();
+    await _zonasSub?.cancel();
     await iniciar();
     // Espera a que llegue la primera lectura para que el indicador se cierre bien.
     for (var i = 0; i < 50 && cargando && !_disposed; i++) {
@@ -176,6 +223,19 @@ class AdminOperationsViewModel extends ChangeNotifier {
       _error = 'No se pudieron cargar las reservas del día.';
       notifyListeners();
     }
+  }
+
+  void _suscribirZonas() {
+    _zonasSub?.cancel();
+    try {
+      _zonasSub = _mesasService.zonasStream(restaurantId).listen(
+        (lista) {
+          _zonas = lista;
+          notifyListeners();
+        },
+        onError: (Object e) {},
+      );
+    } catch (_) {}
   }
 
   void _suscribirMesas() {
@@ -328,6 +388,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
     _timer?.cancel();
     _reservasSub?.cancel();
     _mesasSub?.cancel();
+    _zonasSub?.cancel();
     super.dispose();
   }
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:flutter/material.dart';
 import '../models/branch_model.dart';
 import '../models/mesa_model.dart';
@@ -326,6 +327,14 @@ class ReservationDraftViewModel extends ChangeNotifier {
       mesasNombres: mesas.map((m) => m.nombre).toList(),
       horario: () => null,
     );
+    notifyListeners();
+  }
+
+  /// Guarda los espacios (piso, patio…) de las mesas elegidas para mostrarlos en el
+  /// resumen. No cambia la selección ni el horario.
+  void setSelectedSpaces(List<String> espacios) {
+    if (listEquals(_draft.espaciosNombres, espacios)) return;
+    _draft = _draft.copyWith(espaciosNombres: List.unmodifiable(espacios));
     notifyListeners();
   }
 

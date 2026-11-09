@@ -40,8 +40,8 @@ void main() {
       nombre: 'Ana Pérez',
       correo: 'ana@example.com',
       telefono: '5512345678',
-      password: 'secret1',
-      confirmPassword: 'secret1',
+      password: 'secret12',
+      confirmPassword: 'secret12',
       nombreRestaurante: '',
     );
 

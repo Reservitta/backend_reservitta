@@ -401,9 +401,12 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
           child: _buildImageCard(
             title: '+ Logo',
             icon: Icons.storefront_outlined,
-            hasImage: _viewModel.logoBytes != null || _viewModel.logoUrl.isNotEmpty,
+            hasImage: _viewModel.tieneLogo,
             imageBytes: _viewModel.logoBytes,
             imageUrl: _viewModel.logoUrl,
+            removeKey: 'btn_quitar_logo',
+            removeTooltip: 'Quitar logo',
+            onRemove: _viewModel.quitarLogo,
             onTap: () => _showImageSourceDialog(isLogo: true),
           ),
         ),
@@ -413,10 +416,12 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
           child: _buildImageCard(
             title: '+ Foto principal',
             icon: Icons.photo_camera_outlined,
-            hasImage:
-                _viewModel.coverBytes != null || _viewModel.imagenPrincipalUrl.isNotEmpty,
+            hasImage: _viewModel.tieneFotoPrincipal,
             imageBytes: _viewModel.coverBytes,
             imageUrl: _viewModel.imagenPrincipalUrl,
+            removeKey: 'btn_quitar_foto_principal',
+            removeTooltip: 'Quitar foto principal',
+            onRemove: _viewModel.quitarFotoPrincipal,
             onTap: () => _showImageSourceDialog(isLogo: false),
           ),
         ),
@@ -431,6 +436,9 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
     Uint8List? imageBytes,
     String? imageUrl,
     required VoidCallback onTap,
+    VoidCallback? onRemove,
+    String removeKey = '',
+    String removeTooltip = 'Quitar imagen',
   }) {
     return InkWell(
       onTap: onTap,
@@ -466,6 +474,28 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                         child: Icon(Icons.edit, color: Colors.white, size: 24),
                       ),
                     ),
+                    if (onRemove != null)
+                      Positioned(
+                        top: 4,
+                        right: 4,
+                        child: Tooltip(
+                          message: removeTooltip,
+                          child: Material(
+                            color: Colors.white,
+                            shape: const CircleBorder(),
+                            elevation: 2,
+                            child: InkWell(
+                              key: ValueKey(removeKey),
+                              customBorder: const CircleBorder(),
+                              onTap: onRemove,
+                              child: const Padding(
+                                padding: EdgeInsets.all(6),
+                                child: Icon(Icons.close, size: 18, color: Color(0xFFC62828)),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               )
@@ -525,6 +555,23 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                     }
                   },
                 ),
+                if (isLogo ? _viewModel.tieneLogo : _viewModel.tieneFotoPrincipal)
+                  ListTile(
+                    key: ValueKey(isLogo ? 'opcion_quitar_logo' : 'opcion_quitar_foto_principal'),
+                    leading: const Icon(Icons.delete_outline, color: Color(0xFFC62828)),
+                    title: Text(
+                      isLogo ? 'Quitar logo' : 'Quitar foto principal',
+                      style: const TextStyle(color: Color(0xFFC62828)),
+                    ),
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      if (isLogo) {
+                        _viewModel.quitarLogo();
+                      } else {
+                        _viewModel.quitarFotoPrincipal();
+                      }
+                    },
+                  ),
               ],
             ),
           ),
