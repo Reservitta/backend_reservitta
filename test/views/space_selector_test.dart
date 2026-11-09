@@ -2,12 +2,14 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reservitta/models/mesa_model.dart';
+import 'package:reservitta/models/reservation_draft_model.dart';
 import 'package:reservitta/models/reservation_model.dart';
 import 'package:reservitta/models/restaurant_model.dart';
 import 'package:reservitta/services/availability_service.dart';
 import 'package:reservitta/services/reservation_service.dart';
 import 'package:reservitta/services/table_layout_service.dart';
 import 'package:reservitta/services/table_service.dart';
+import 'package:reservitta/viewmodels/reservation_draft_viewmodel.dart';
 import 'package:reservitta/viewmodels/table_selection_viewmodel.dart';
 import 'package:reservitta/views/widgets/table_selection_step.dart';
 
@@ -179,6 +181,106 @@ void main() {
       expect(vm.selected.single.nombre, 'A1');
       vm.seleccionarZona(patio.id);
       expect(vm.selected.single.nombre, 'A1');
+    });
+  });
+
+  group('Espacio de la mesa en el resumen (HU34-RF04)', () {
+    test('el texto del resumen suma el espacio a la mesa', () {
+      final base = ReservationDraftModel(restaurant: _restaurante, mesaIds: const ['m1'], mesasNombres: const ['Mesa 8']);
+      expect(base.mesasConEspacio, 'Mesa 8');
+      expect(base.copyWith(espaciosNombres: const ['Patio Trasero']).mesasConEspacio,
+          'Mesa 8 · Patio Trasero');
+      final dos = base.copyWith(mesasNombres: const ['M1', 'M2'], espaciosNombres: const ['Patio', 'Salón']);
+      expect(dos.mesasConEspacio, 'M1 + M2 · Patio, Salón');
+    });
+
+    test('sin nombres usa los ids y sin mesa queda vacío', () {
+      expect(ReservationDraftModel(restaurant: _restaurante, mesaIds: const ['a', 'b']).mesasConEspacio, 'a + b');
+      expect(ReservationDraftModel(restaurant: _restaurante).mesasConEspacio, '');
+    });
+
+    test('el borrador guarda los espacios sin tocar mesa ni horario', () {
+      final vm = ReservationDraftViewModel(restaurant: _restaurante);
+      addTearDown(vm.dispose);
+      vm.setSelectedTables(const [MesaModel(id: 'm1', nombre: 'Mesa 8', capacidad: 8)]);
+      vm.setSelectedSpaces(const ['Patio Trasero']);
+      expect(vm.draft.espaciosNombres, ['Patio Trasero']);
+      expect(vm.draft.mesaIds, ['m1']);
+      var avisos = 0;
+      vm.addListener(() => avisos++);
+      vm.setSelectedSpaces(const ['Patio Trasero']); // igual: no notifica
+      expect(avisos, 0);
+    });
+
+    test('elegir una mesa avisa su espacio y quitarla lo limpia', () async {
+      final piso = await layout.crearZona('r1', 'Segundo piso');
+      final patio = await layout.crearZona('r1', 'Patio');
+      await layout.guardarPlano(restauranteId: 'r1', mesas: [
+        mesa('A1', zona: piso.id),
+        mesa('P1', zona: patio.id),
+      ]);
+      final avisos = <List<String>>[];
+      final vm = TableSelectionViewModel(
+        restaurant: _restaurante,
+        availability: disponibilidad,
+        fecha: _fecha,
+        personas: 2,
+        duracionMin: 90,
+        onSelectionChanged: (_) {},
+        onEspaciosChanged: avisos.add,
+      );
+      addTearDown(vm.dispose);
+      await vm.load();
+      await vm.onTapMesa(vm.mesasVisibles.single.mesa);
+      expect(avisos.last, ['Segundo piso']);
+      await vm.onTapMesa(vm.selected.single);
+      expect(avisos.last, isEmpty);
+      vm.seleccionarZona(patio.id);
+      await vm.onTapMesa(vm.mesasVisibles.single.mesa);
+      expect(avisos.last, ['Patio']);
+    });
+
+    test('con un solo espacio no se agrega espacio al resumen', () async {
+      final z = await layout.crearZona('r1', 'Salón');
+      await layout.guardarPlano(restauranteId: 'r1', mesas: [mesa('A1', zona: z.id)]);
+      final avisos = <List<String>>[];
+      final vm = TableSelectionViewModel(
+        restaurant: _restaurante,
+        availability: disponibilidad,
+        fecha: _fecha,
+        personas: 2,
+        duracionMin: 90,
+        onSelectionChanged: (_) {},
+        onEspaciosChanged: avisos.add,
+      );
+      addTearDown(vm.dispose);
+      await vm.load();
+      await vm.onTapMesa(vm.mesasVisibles.single.mesa);
+      expect(avisos.last, isEmpty);
+    });
+
+    test('una mesa sin espacio no agrega un espacio inexistente', () async {
+      final patio = await layout.crearZona('r1', 'Patio');
+      await layout.crearZona('r1', 'Salón');
+      await layout.guardarPlano(restauranteId: 'r1', mesas: [
+        mesa('P1', zona: patio.id),
+        mesa('S1', x: 200),
+      ]);
+      final avisos = <List<String>>[];
+      final vm = TableSelectionViewModel(
+        restaurant: _restaurante,
+        availability: disponibilidad,
+        fecha: _fecha,
+        personas: 2,
+        duracionMin: 90,
+        onSelectionChanged: (_) {},
+        onEspaciosChanged: avisos.add,
+      );
+      addTearDown(vm.dispose);
+      await vm.load();
+      vm.seleccionarZona(TableSelectionViewModel.sinEspacioId);
+      await vm.onTapMesa(vm.mesasVisibles.single.mesa);
+      expect(avisos.last, isEmpty);
     });
   });
 

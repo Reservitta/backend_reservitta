@@ -24,6 +24,10 @@ class ReservationDraftModel {
   final int personas;
   final List<String> mesaIds;
   final List<String> mesasNombres;
+
+  /// Espacios (piso, patio…) de las mesas elegidas, solo para mostrarlos en el resumen
+  /// (HU34-RF04). No se guardan en la reserva.
+  final List<String> espaciosNombres;
   final TimeOfDay? horario;
   final String usuarioId; // HU14-RF02: ID de la cuenta creada o asociada a la reserva
 
@@ -50,6 +54,7 @@ class ReservationDraftModel {
     this.personas = 2, // Mínimo 1 (HU09-RF01)
     this.mesaIds = const [],
     this.mesasNombres = const [],
+    this.espaciosNombres = const [],
     this.horario,
     ReservationContactModel? contactData,
     this.usuarioId = '',
@@ -109,6 +114,14 @@ class ReservationDraftModel {
   // HU14-RF02: indica si la reserva tiene cuenta asociada
   bool get hasAccountAssociated => usuarioId.trim().isNotEmpty;
 
+  /// Mesas elegidas con su espacio, por ejemplo "Mesa 8 · Patio Trasero" (HU34-RF04).
+  String get mesasConEspacio {
+    final mesas = mesasNombres.isNotEmpty ? mesasNombres.join(' + ') : mesaIds.join(' + ');
+    if (mesas.isEmpty) return '';
+    if (espaciosNombres.isEmpty) return mesas;
+    return '$mesas · ${espaciosNombres.join(', ')}';
+  }
+
   /// Crea una copia inmutable actualizando únicamente los campos provistos.
   ReservationDraftModel copyWith({
     RestaurantModel? restaurant,
@@ -118,6 +131,7 @@ class ReservationDraftModel {
     int? personas,
     List<String>? mesaIds,
     List<String>? mesasNombres,
+    List<String>? espaciosNombres,
     TimeOfDay? Function()? horario,
     ReservationContactModel? Function()? contactData,
     String? usuarioId,
@@ -142,6 +156,7 @@ class ReservationDraftModel {
       personas: personas ?? this.personas,
       mesaIds: mesaIds ?? this.mesaIds,
       mesasNombres: mesasNombres ?? this.mesasNombres,
+      espaciosNombres: espaciosNombres ?? this.espaciosNombres,
       horario: horario != null ? horario() : this.horario,
       contactData: nextContact,
       usuarioId: usuarioId ?? this.usuarioId,

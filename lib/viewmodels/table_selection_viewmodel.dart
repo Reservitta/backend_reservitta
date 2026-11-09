@@ -84,6 +84,10 @@ class TableSelectionViewModel extends ChangeNotifier {
   /// Se llama con la selección válida (o vacía) cada vez que cambia, para
   /// guardarla en el borrador.
   final void Function(List<MesaModel> mesas) onSelectionChanged;
+
+  /// Se llama con los nombres de los espacios de la selección válida (piso, patio…),
+  /// o vacío si el restaurante no tiene varios espacios (HU34-RF04).
+  final void Function(List<String> espacios)? onEspaciosChanged;
   final List<String> initialSelectedIds;
 
   TableSelectionViewModel({
@@ -93,6 +97,7 @@ class TableSelectionViewModel extends ChangeNotifier {
     required this.personas,
     required this.duracionMin,
     required this.onSelectionChanged,
+    this.onEspaciosChanged,
     this.initialSelectedIds = const [],
   });
 
@@ -165,6 +170,18 @@ class TableSelectionViewModel extends ChangeNotifier {
         for (final p in _plan.mesas)
           if (_enEspacio(p.mesa, espacioId) && stateOf(p.mesa) == TableVisualState.disponible) p,
       ].length;
+
+  /// Nombres de los espacios de las mesas elegidas, sin repetir y en orden.
+  List<String> _espaciosDeSeleccion() {
+    if (!hayVariosEspacios) return const [];
+    final nombres = <String>[];
+    for (final m in _selected) {
+      for (final z in _plan.zonas) {
+        if (z.id == m.zonaId && !nombres.contains(z.nombre)) nombres.add(z.nombre);
+      }
+    }
+    return nombres;
+  }
 
   void seleccionarZona(String id) {
     if (_zonaActivaId == id) return;
@@ -425,8 +442,10 @@ class TableSelectionViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _commit() =>
-      onSelectionChanged(isValidSelection ? List.of(_selected) : const []);
+  void _commit() {
+    onSelectionChanged(isValidSelection ? List.of(_selected) : const []);
+    onEspaciosChanged?.call(isValidSelection ? _espaciosDeSeleccion() : const []);
+  }
 
   /// Todas las mesas quedan unidas entre sí por enlaces de combinación.
   bool _isConnected(List<MesaModel> mesas) {

@@ -331,7 +331,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   _buildSummaryRow(
                     icon: Icons.table_restaurant_outlined,
                     label: draft.mesaIds.length > 1 ? 'Mesas' : 'Mesa',
-                    value: draft.mesasNombres.join(' + '),
+                    value: draft.mesasConEspacio,
                   ),
                   const Divider(height: 18),
                   _buildSummaryRow(
@@ -1137,6 +1137,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       duracionMin: draft.duracionMin,
       initialSelectedIds: draft.mesaIds,
       onSelectionChanged: _viewModel.setSelectedTables,
+      onEspaciosChanged: _viewModel.setSelectedSpaces,
       onChangeStep: _viewModel.goToStep,
     );
   }

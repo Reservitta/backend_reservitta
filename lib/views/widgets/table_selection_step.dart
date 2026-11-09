@@ -18,6 +18,9 @@ class TableSelectionStep extends StatefulWidget {
   final List<String> initialSelectedIds;
   final void Function(List<MesaModel> mesas) onSelectionChanged;
 
+  /// Espacios (piso, patio…) de la mesa elegida, para el resumen (HU34-RF04).
+  final void Function(List<String> espacios)? onEspaciosChanged;
+
   /// Vuelve a un paso anterior para cambiar fecha, duración o personas.
   final void Function(int step) onChangeStep;
 
@@ -29,6 +32,7 @@ class TableSelectionStep extends StatefulWidget {
     required this.personas,
     required this.duracionMin,
     required this.onSelectionChanged,
+    this.onEspaciosChanged,
     required this.onChangeStep,
     this.initialSelectedIds = const [],
   });
@@ -55,6 +59,7 @@ class _TableSelectionStepState extends State<TableSelectionStep> {
       personas: widget.personas,
       duracionMin: widget.duracionMin,
       onSelectionChanged: widget.onSelectionChanged,
+      onEspaciosChanged: widget.onEspaciosChanged,
       initialSelectedIds: widget.initialSelectedIds,
     )..load();
   }
