@@ -5,6 +5,7 @@ import '../../models/platillo_model.dart';
 import '../../services/categoria_service.dart';
 import '../../utils/validators.dart';
 import '../../viewmodels/platillo_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Formulario modal para Alta y Edición de Platillo (HU24-RF04)
 /// Permite editar precio, descripción, imagen y disponibilidad sin salir de la lista principal.
@@ -22,13 +23,13 @@ class PlatilloFormDialog extends StatefulWidget {
     required this.categoriaService,
   });
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _primary = Color(0xFFE4572E);
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _cardBorder = AppColors.divisor;
   static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const Color _error = Color(0xFFD84A38);
 
   static Future<bool?> show(

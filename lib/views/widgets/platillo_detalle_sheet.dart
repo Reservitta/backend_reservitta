@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../viewmodels/pedido_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Resultado devuelto al cerrar el detalle de platillo (HU16-RF04, HU16-RF05, HU17-RF01).
 class PlatilloDetalleResult {
@@ -67,12 +68,12 @@ class PlatilloDetalleSheet extends StatefulWidget {
   static const int limitePorDefecto =
       PedidoViewModel.limiteCaracteresObservacionDefault; // 200
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _cardBorder = AppColors.divisor;
   static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const Color _dangerRed = Color(0xFFC62828);
 
   const PlatilloDetalleSheet({

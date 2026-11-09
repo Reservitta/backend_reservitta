@@ -8,6 +8,7 @@ import 'reservation_detail_view.dart';
 import 'widgets/alert_settings_sheet.dart';
 import 'widgets/arrival_alert_widgets.dart';
 import 'widgets/reservation_state_control.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de listado de reservas para administradores de restaurante (HU26-RF02)
 ///
@@ -42,13 +43,13 @@ class AdminReservationsView extends StatefulWidget {
     this.operaciones,
   });
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
   static const Color _creamAccent = Color(0xFFF3ECE1);
   static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   @override
   State<AdminReservationsView> createState() => _AdminReservationsViewState();

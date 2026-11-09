@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/restaurant_model.dart';
 import '../../services/availability_service.dart';
 import '../../viewmodels/time_slot_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso "Horario" del flujo de reserva: cuadrícula de horarios libres para la
 /// mesa elegida (HU11-RF02).
@@ -39,9 +40,9 @@ class TimeSlotStep extends StatefulWidget {
 class _TimeSlotStepState extends State<TimeSlotStep> {
   late final TimeSlotViewModel _vm;
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
+  static const Color terracotta = AppColors.marca;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
 
   @override
   void initState() {
@@ -174,7 +175,7 @@ class _TimeSlotStepState extends State<TimeSlotStep> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDE4D8)),
+        border: Border.all(color: AppColors.divisor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -237,12 +238,12 @@ class _SlotChip extends StatelessWidget {
           width: 112,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: selected ? const Color(0xFFB34A26) : Colors.white,
+            color: selected ? AppColors.marca : Colors.white,
             borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: selected
                   ? const Color(0xFF7E2F14)
-                  : const Color(0xFFEDE4D8),
+                  : AppColors.divisor,
               width: selected ? 2.5 : 1.5,
             ),
           ),
@@ -261,7 +262,7 @@ class _SlotChip extends StatelessWidget {
                     style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 16,
-                      color: selected ? Colors.white : const Color(0xFF2E241E),
+                      color: selected ? Colors.white : AppColors.texto,
                     ),
                   ),
                 ],
@@ -270,7 +271,7 @@ class _SlotChip extends StatelessWidget {
                 sublabel,
                 style: TextStyle(
                   fontSize: 12,
-                  color: selected ? Colors.white70 : const Color(0xFF7A6E65),
+                  color: selected ? Colors.white70 : AppColors.textoSuave,
                 ),
               ),
             ],

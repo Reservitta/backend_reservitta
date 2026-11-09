@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/mesa_model.dart';
 import '../../viewmodels/table_selection_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Colores e iconos de cada estado de mesa. El icono acompaña al color para que
 /// el estado no dependa solo del color (HU10-RF02, accesibilidad).
@@ -27,7 +28,7 @@ class TableStateStyle {
       case TableVisualState.disponible:
         return const TableStateStyle(
           fill: Color(0xFFE6F2E6),
-          border: Color(0xFF2E7D32),
+          border: AppColors.exito,
           foreground: Color(0xFF1B5E20),
           icon: Icons.check_circle_outline,
           label: 'Disponible',
@@ -50,7 +51,7 @@ class TableStateStyle {
         );
       case TableVisualState.seleccionada:
         return const TableStateStyle(
-          fill: Color(0xFFB34A26),
+          fill: AppColors.marca,
           border: Color(0xFF7E2F14),
           foreground: Colors.white,
           icon: Icons.check_circle,
@@ -117,7 +118,7 @@ class TableMapWidget extends StatelessWidget {
           decoration: BoxDecoration(
             color: const Color(0xFFFFFDF9),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFEDE4D8)),
+            border: Border.all(color: AppColors.divisor),
           ),
           child: InteractiveViewer(
             minScale: 0.8,
@@ -151,7 +152,7 @@ class TableMapWidget extends StatelessWidget {
         const SizedBox(height: 4),
         const Text(
           'Pellizca para acercar y arrastra para moverte por el plano.',
-          style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
+          style: TextStyle(fontSize: 12, color: AppColors.textoSuave),
         ),
       ],
     );
@@ -240,7 +241,7 @@ class _TableList extends StatelessWidget {
           padding: EdgeInsets.only(bottom: 8),
           child: Text(
             'Este restaurante aún no tiene plano. Elige una mesa de la lista.',
-            style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
+            style: TextStyle(fontSize: 12, color: AppColors.textoSuave),
           ),
         ),
         for (final p in viewModel.mesasVisibles)
@@ -326,7 +327,7 @@ class TableLegend extends StatelessWidget {
               const SizedBox(width: 6),
               Text(
                 TableStateStyle.of(e).label,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF2E241E)),
+                style: const TextStyle(fontSize: 12, color: AppColors.texto),
               ),
             ],
           ),

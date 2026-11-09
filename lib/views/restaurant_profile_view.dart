@@ -8,6 +8,7 @@ import '../models/branch_model.dart';
 import '../models/service_catalog_model.dart';
 import '../services/geocoding_service.dart';
 import '../viewmodels/restaurant_profile_viewmodel.dart';
+import '../theme/app_theme.dart';
 
 class RestaurantProfileView extends StatefulWidget {
   final String restaurantId;
@@ -29,13 +30,13 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
   late final RestaurantProfileViewModel _viewModel;
 
   // Paleta de colores cálidos y elegantes
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _cardBorder = AppColors.divisor;
   static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   // Nivel de zoom del mapa (5 – 18)
   int _mapZoom = 15;

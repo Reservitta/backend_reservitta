@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
+import '../theme/app_theme.dart';
 
 class AuthModalDialog extends StatefulWidget {
   final AuthMode initialMode;
@@ -267,11 +268,11 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           Center(
             child: TextButton.icon(
               key: const ValueKey('btn_continuar_como_invitado'),
-              icon: const Icon(Icons.arrow_forward_outlined, size: 16, color: Color(0xFFB34A26)),
+              icon: const Icon(Icons.arrow_forward_outlined, size: 16, color: AppColors.marca),
               label: const Text(
                 'Continuar reserva sin cuenta',
                 style: TextStyle(
-                  color: Color(0xFFB34A26),
+                  color: AppColors.marca,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 ),
@@ -695,7 +696,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
       decoration: BoxDecoration(
         color: const Color(0xFFFAF6F0),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEDE4D8)),
+        border: Border.all(color: AppColors.divisor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,7 +706,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2E241E),
+              color: AppColors.texto,
             ),
           ),
           const SizedBox(height: 8),
@@ -740,7 +741,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
   }
 
   Widget _buildConstraintRow(String label, bool isMet, String keySuffix) {
-    final color = isMet ? const Color(0xFF2E7D32) : const Color(0xFF7A6E65);
+    final color = isMet ? AppColors.exito : AppColors.textoSuave;
     return Row(
       key: ValueKey(keySuffix),
       mainAxisSize: MainAxisSize.min,

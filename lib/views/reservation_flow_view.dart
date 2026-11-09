@@ -23,6 +23,7 @@ import '../services/ocasion_service.dart';
 import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
+import '../theme/app_theme.dart';
 
 /// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01, HU13, HU14).
 /// Implementa los pasos: Sucursal, Fecha, Duración, Personas, Mesa, Horario,
@@ -148,11 +149,11 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   late DateTime _visibleMonth;
 
   // Paleta de colores institucional
-  static const Color terracotta = Color(0xFFB34A26);
+  static const Color terracotta = AppColors.marca;
   static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
   static const Color creamAccent = Color(0xFFF3ECE1);
 
   @override
@@ -264,7 +265,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     color: Colors.green.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Color(0xFF2E7D32), size: 28),
+                  child: const Icon(Icons.check, color: AppColors.exito, size: 28),
                 ),
                 const SizedBox(width: 14),
                 const Expanded(
@@ -1255,7 +1256,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         const SizedBox(height: 12),
         _buildInfoCard(
           icon: Icons.check_box_outlined,
-          iconColor: const Color(0xFF2E7D32),
+          iconColor: AppColors.exito,
           title: 'Confirmación inmediata',
           subtitle: 'Recibirás la confirmación por correo en segundos.',
         ),
@@ -1353,7 +1354,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E7D32),
+                    color: AppColors.exito,
                   ),
                 ),
               ),
@@ -2204,7 +2205,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   'Selecciona una sucursal para continuar',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFFB34A26),
+                    color: AppColors.marca,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

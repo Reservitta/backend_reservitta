@@ -6,6 +6,7 @@ import '../services/platillo_service.dart';
 import '../viewmodels/platillo_viewmodel.dart';
 import 'widgets/platillo_card.dart';
 import 'widgets/platillo_form_dialog.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de Gestión del Menú y Platillos (HU24-RF04 y HU32-RF01)
 /// Permite:
@@ -29,15 +30,15 @@ class PlatilloListView extends StatefulWidget {
     this.showAppBar = true,
   });
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _primary = Color(0xFFE4572E);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
   static const Color _creamAccent = Color(0xFFF3ECE1);
   static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
-  static const Color _success = Color(0xFF2E7D32);
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
+  static const Color _success = AppColors.exito;
   static const Color _error = Color(0xFFD84A38);
 
   @override

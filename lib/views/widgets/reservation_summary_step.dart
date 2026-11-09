@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/reservation_draft_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso 6: Pantalla de resumen de la reserva (HU12-RF01 y HU11-RF03).
 ///
@@ -36,11 +37,11 @@ class ReservationSummaryStep extends StatelessWidget {
   /// Si es true, renderiza un botón de acción inferior autónomo (útil para pruebas unitarias).
   final bool showActionButton;
 
-  static const Color terracotta = Color(0xFFB34A26);
+  static const Color terracotta = AppColors.marca;
   static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
   static const Color creamAccent = Color(0xFFF3ECE1);
 
   const ReservationSummaryStep({
@@ -104,14 +105,14 @@ class ReservationSummaryStep extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  Icon(Icons.check_circle_outline, color: Color(0xFF2E7D32), size: 16),
+                  Icon(Icons.check_circle_outline, color: AppColors.exito, size: 16),
                   SizedBox(width: 6),
                   Text(
                     '¡Borrador guardado!',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2E7D32),
+                      color: AppColors.exito,
                     ),
                   ),
                 ],

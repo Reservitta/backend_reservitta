@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../models/reservation_draft_model.dart';
 import '../../utils/validators.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso 7: Formulario de datos de contacto y creación de cuenta (HU13-RF01,
 /// HU13-RF02, HU14-RF01).
@@ -60,11 +61,11 @@ class ContactFormStep extends StatefulWidget {
     this.initialConfirmPassword = '',
   });
 
-  static const Color terracotta = Color(0xFFB34A26);
+  static const Color terracotta = AppColors.marca;
   static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
   static const Color creamAccent = Color(0xFFF3ECE1);
 
   @override
@@ -579,7 +580,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   }
 
   Widget _buildConstraintRow(String label, bool isMet, String keySuffix) {
-    final color = isMet ? const Color(0xFF2E7D32) : ContactFormStep.mutedText;
+    final color = isMet ? AppColors.exito : ContactFormStep.mutedText;
     return Row(
       key: ValueKey(keySuffix),
       mainAxisSize: MainAxisSize.min,

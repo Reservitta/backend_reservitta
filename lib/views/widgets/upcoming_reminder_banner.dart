@@ -2,6 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../../services/reminder_inbox_service.dart';
+import '../../theme/app_theme.dart';
 
 /// Recordatorio dentro de la app para el visitante con sesión (HU21-RF02): avisa de
 /// las reservas que están por comenzar. Si no se puede consultar, no muestra nada.
@@ -62,7 +63,7 @@ class _UpcomingReminderBannerState extends State<UpcomingReminderBanner> {
                           key: ValueKey('recordatorio_${r.reserva.id}'),
                           style: const TextStyle(
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF2E241E),
+                            color: AppColors.texto,
                           ),
                         ),
                       ),

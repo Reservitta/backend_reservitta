@@ -5,6 +5,7 @@ import '../models/ocasion_model.dart';
 import '../services/ocasion_service.dart';
 import '../viewmodels/ocasion_viewmodel.dart';
 import 'widgets/ocasion_form_dialog.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de gestión de Ocasiones Especiales y Experiencias para Administradores (HU33-RF01 y HU33-RF02)
 class OcasionListView extends StatefulWidget {
@@ -28,11 +29,11 @@ class OcasionListView extends StatefulWidget {
 class _OcasionListViewState extends State<OcasionListView> {
   late final OcasionViewModel _viewModel;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   @override
   void initState() {

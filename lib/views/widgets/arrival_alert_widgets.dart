@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/arrival_alert.dart';
+import '../../theme/app_theme.dart';
 
 /// Colores de una alerta de llegada (HU30-RF03): ámbar si está por llegar, rojo si se retrasa.
 class ArrivalAlertStyle {
@@ -126,17 +127,17 @@ class ArrivalAlertTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '$cliente · ${_hora(r.effectiveStart)} · $mesa · ${r.personas} pers.',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF2E241E)),
+                        style: const TextStyle(fontSize: 13, color: AppColors.texto),
                       ),
                       if (extras.isNotEmpty)
                         Text(
                           extras.join(' · '),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
+                          style: const TextStyle(fontSize: 12, color: AppColors.textoSuave),
                         ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Color(0xFF7A6E65)),
+                const Icon(Icons.chevron_right, color: AppColors.textoSuave),
               ],
             ),
           ),

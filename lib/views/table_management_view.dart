@@ -7,6 +7,7 @@ import '../models/reservation_model.dart';
 import '../models/table_live_status.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
 import 'plan_editor_view.dart';
+import '../theme/app_theme.dart';
 
 /// Color, ícono y etiqueta de cada estado de mesa en la vista de gestión (HU31-RF02).
 class TableLiveStyle {
@@ -27,14 +28,14 @@ class TableLiveStyle {
       case EstadoMesaVivo.disponible:
         return const TableLiveStyle(
           fill: Color(0xFFE6F2E6),
-          border: Color(0xFF2E7D32),
+          border: AppColors.exito,
           foreground: Color(0xFF1B5E20),
           icon: Icons.check_circle_outline,
         );
       case EstadoMesaVivo.ocupada:
         return const TableLiveStyle(
           fill: Color(0xFFFFE3D6),
-          border: Color(0xFFB34A26),
+          border: AppColors.marca,
           foreground: Color(0xFF7E2F14),
           icon: Icons.restaurant,
         );
@@ -69,9 +70,9 @@ class TableManagementView extends StatelessWidget {
     required this.onAbrirReserva,
   });
 
-  static const Color _terracotta = Color(0xFFB34A26);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _terracotta = AppColors.marca;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const double _padding = 24;
 
   @override
@@ -209,7 +210,7 @@ class TableManagementView extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF9),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDE4D8)),
+        border: Border.all(color: AppColors.divisor),
       ),
       child: InteractiveViewer(
         minScale: 0.8,
@@ -420,7 +421,7 @@ class _Leyenda extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(texto, style: const TextStyle(fontSize: 12, color: Color(0xFF2E241E))),
+              Text(texto, style: const TextStyle(fontSize: 12, color: AppColors.texto)),
             ],
           ),
       ],
@@ -512,9 +513,9 @@ class _MesaSheetState extends State<_MesaSheet> {
                 key: const ValueKey('mesa_reserva'),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBF8F4),
+                  color: AppColors.fondo,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFEDE4D8)),
+                  border: Border.all(color: AppColors.divisor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,7 +543,7 @@ class _MesaSheetState extends State<_MesaSheet> {
               const Text(
                 'No hay una reserva en curso en esta mesa.',
                 key: ValueKey('mesa_sin_reserva'),
-                style: TextStyle(color: Color(0xFF7A6E65)),
+                style: TextStyle(color: AppColors.textoSuave),
               ),
               const SizedBox(height: 10),
             ],
@@ -550,7 +551,7 @@ class _MesaSheetState extends State<_MesaSheet> {
               FilledButton.icon(
                 key: const ValueKey('btn_mesa_reactivar'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: AppColors.exito,
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: _procesando ? null : () => _cambiar(false),
@@ -574,7 +575,7 @@ class _MesaSheetState extends State<_MesaSheet> {
                 child: Text(
                   'Tiene una reserva en curso: al marcarla fuera de servicio dejará de ofrecerse para nuevas reservas.',
                   key: ValueKey('mesa_aviso_fuera_servicio'),
-                  style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
+                  style: TextStyle(fontSize: 12, color: AppColors.textoSuave),
                 ),
               ),
             if (_error != null)

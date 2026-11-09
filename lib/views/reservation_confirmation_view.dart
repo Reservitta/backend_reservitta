@@ -5,6 +5,7 @@ import '../models/reservation_model.dart';
 import '../models/reservation_notification_payload.dart';
 import '../services/confirmation_notification_service.dart';
 import '../services/reminder_service.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de confirmación con los datos de la reserva guardada (HU11-RF04, HU19-RF01, HU19-RF02).
 ///
@@ -38,11 +39,11 @@ class ReservationConfirmationView extends StatefulWidget {
     this.now,
   });
 
-  static const Color terracotta = Color(0xFFB34A26);
+  static const Color terracotta = AppColors.marca;
   static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
 
   static const _dias = ['L', 'M', 'Mi', 'J', 'V', 'S', 'D'];
   static const _meses = [
@@ -170,7 +171,7 @@ class _ReservationConfirmationViewState
             content: Text(
               'Comprobante reenviado con éxito por $canalNombre a ${result.destino}.',
             ),
-            backgroundColor: const Color(0xFF2E7D32),
+            backgroundColor: AppColors.exito,
             duration: const Duration(seconds: 4),
           ),
         );
@@ -227,7 +228,7 @@ class _ReservationConfirmationViewState
                       ),
                       child: const Icon(
                         Icons.check_circle,
-                        color: Color(0xFF2E7D32),
+                        color: AppColors.exito,
                         size: 56,
                       ),
                     ),
@@ -409,7 +410,7 @@ class _ReservationConfirmationViewState
             children: [
               Icon(
                 isWhatsApp ? Icons.phone_android : Icons.mark_email_read_outlined,
-                color: const Color(0xFF2E7D32),
+                color: AppColors.exito,
                 size: 20,
               ),
               const SizedBox(width: 10),
@@ -446,7 +447,7 @@ class _ReservationConfirmationViewState
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E7D32),
+                    color: AppColors.exito,
                   ),
                 ),
               ),
@@ -454,7 +455,7 @@ class _ReservationConfirmationViewState
                 key: const ValueKey('btn_reenviar_confirmacion'),
                 style: TextButton.styleFrom(
                   visualDensity: VisualDensity.compact,
-                  foregroundColor: const Color(0xFF2E7D32),
+                  foregroundColor: AppColors.exito,
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 ),
                 icon: _isResending

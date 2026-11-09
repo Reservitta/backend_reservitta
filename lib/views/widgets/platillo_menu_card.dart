@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Modo de visualización para la tarjeta del platillo
 enum PlatilloCardMode {
@@ -32,9 +33,9 @@ class PlatilloMenuCard extends StatelessWidget {
   final VoidCallback? onDecrementar;
   final VoidCallback? onTap;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
 
   const PlatilloMenuCard({
     super.key,
@@ -159,7 +160,7 @@ class PlatilloMenuCard extends StatelessWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Color(0xFF2E241E),
+                              color: AppColors.texto,
                             ),
                           ),
                         ),
@@ -191,7 +192,7 @@ class PlatilloMenuCard extends StatelessWidget {
                         platillo.descripcion,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF7A6E65),
+                          color: AppColors.textoSuave,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -218,7 +219,7 @@ class PlatilloMenuCard extends StatelessWidget {
                               tag,
                               style: const TextStyle(
                                 fontSize: 12,
-                                color: Color(0xFF7A6E65),
+                                color: AppColors.textoSuave,
                               ),
                             ),
                           );

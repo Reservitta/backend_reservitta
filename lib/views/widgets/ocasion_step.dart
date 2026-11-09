@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../models/ocasion_model.dart';
 import '../../models/platillo_model.dart';
 import '../../viewmodels/ocasion_selection_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
-const Color _terracotta = Color(0xFFB34A26);
-const Color _cardBorder = Color(0xFFEDE4D8);
-const Color _textDark = Color(0xFF2E241E);
-const Color _textMuted = Color(0xFF7A6E65);
+const Color _terracotta = AppColors.marca;
+const Color _cardBorder = AppColors.divisor;
+const Color _textDark = AppColors.texto;
+const Color _textMuted = AppColors.textoSuave;
 
 String _dinero(double v) => '\$${v.toStringAsFixed(2)} MXN';
 
@@ -203,7 +204,7 @@ class OcasionStep extends StatelessWidget {
                   key: ValueKey('precio_exp_${e.id}'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: e.esGratis ? const Color(0xFF2E7D32) : _terracotta,
+                    color: e.esGratis ? AppColors.exito : _terracotta,
                   ),
                 ),
               ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../services/preorden_cache_service.dart';
+import '../../theme/app_theme.dart';
 
 /// Modal bottom sheet para consultar, revisar y gestionar los platillos en la preorden en caché (HU24-RF05, HU16).
 /// Muestra los platillos agregados, sus precios, cantidades y las notas personalizadas del cliente.
@@ -94,7 +95,7 @@ class PreordenResumenSheet extends StatelessWidget {
                             style: TextStyle(
                               fontSize: 17,
                               fontWeight: FontWeight.w700,
-                              color: Color(0xFF2E241E),
+                              color: AppColors.texto,
                             ),
                           ),
                           Text(
@@ -149,7 +150,7 @@ class PreordenResumenSheet extends StatelessWidget {
                               'Aún no has agregado platillos a tu preorden.',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Color(0xFF7A6E65),
+                                color: AppColors.textoSuave,
                               ),
                               textAlign: TextAlign.center,
                             ),
@@ -173,7 +174,7 @@ class PreordenResumenSheet extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: const Color(0xFFFAF5ED),
                               borderRadius: BorderRadius.circular(14),
-                              border: Border.all(color: const Color(0xFFEDE4D8)),
+                              border: Border.all(color: AppColors.divisor),
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,7 +191,7 @@ class PreordenResumenSheet extends StatelessWidget {
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize: 14.5,
-                                              color: Color(0xFF2E241E),
+                                              color: AppColors.texto,
                                             ),
                                           ),
                                           const SizedBox(height: 2),
@@ -199,7 +200,7 @@ class PreordenResumenSheet extends StatelessWidget {
                                             style: const TextStyle(
                                               fontWeight: FontWeight.w700,
                                               fontSize: 13,
-                                              color: Color(0xFFB34A26),
+                                              color: AppColors.marca,
                                             ),
                                           ),
                                         ],
@@ -272,7 +273,7 @@ class PreordenResumenSheet extends StatelessWidget {
                             'Total estimado:',
                             style: TextStyle(
                               fontSize: 12,
-                              color: Color(0xFF7A6E65),
+                              color: AppColors.textoSuave,
                             ),
                           ),
                           Text(
@@ -280,7 +281,7 @@ class PreordenResumenSheet extends StatelessWidget {
                             style: const TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w800,
-                              color: Color(0xFFB34A26),
+                              color: AppColors.marca,
                             ),
                           ),
                         ],

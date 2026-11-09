@@ -5,6 +5,7 @@ import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
 import '../viewmodels/pedido_viewmodel.dart';
 import 'widgets/platillo_detalle_sheet.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla "Mi pedido" (HU16-RF06)
 ///
@@ -34,11 +35,11 @@ class MiPedidoView extends StatefulWidget {
     this.onContinuarOcasion,
   });
 
-  static const Color primaryTerracotta = Color(0xFFB34A26);
-  static const Color lightBg = Color(0xFFFBF8F4);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color textDark = Color(0xFF2E241E);
-  static const Color textMuted = Color(0xFF7A6E65);
+  static const Color primaryTerracotta = AppColors.marca;
+  static const Color lightBg = AppColors.fondo;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color textDark = AppColors.texto;
+  static const Color textMuted = AppColors.textoSuave;
 
   @override
   State<MiPedidoView> createState() => _MiPedidoViewState();

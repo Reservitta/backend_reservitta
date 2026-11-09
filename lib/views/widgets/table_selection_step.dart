@@ -6,6 +6,7 @@ import '../../services/availability_service.dart';
 import '../../viewmodels/table_selection_viewmodel.dart';
 import 'space_selector.dart';
 import 'table_map_widget.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso "Mesa" del flujo de reserva: plano, selección de mesa o combinación y
 /// mensajes cuando no hay mesas adecuadas (HU09-RF03, HU10-RF02/03/04).
@@ -44,10 +45,10 @@ class TableSelectionStep extends StatefulWidget {
 class _TableSelectionStepState extends State<TableSelectionStep> {
   late final TableSelectionViewModel _vm;
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color terracotta = AppColors.marca;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
 
   @override
   void initState() {
@@ -235,7 +236,7 @@ class _TableSelectionStepState extends State<TableSelectionStep> {
             style: TextStyle(
               fontWeight: FontWeight.w600,
               fontSize: 13,
-              color: valida ? const Color(0xFF2E7D32) : terracotta,
+              color: valida ? AppColors.exito : terracotta,
             ),
           ),
           if (!valida && faltan > 0)
@@ -302,13 +303,13 @@ class _InfoBanner extends StatelessWidget {
           Icon(
             warning ? Icons.info_outline : Icons.lightbulb_outline,
             size: 18,
-            color: warning ? const Color(0xFF7A5A00) : const Color(0xFF7A6E65),
+            color: warning ? const Color(0xFF7A5A00) : AppColors.textoSuave,
           ),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 12.5, color: Color(0xFF2E241E)),
+              style: const TextStyle(fontSize: 12.5, color: AppColors.texto),
             ),
           ),
         ],
@@ -342,25 +343,25 @@ class _MessageCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFEDE4D8)),
+        border: Border.all(color: AppColors.divisor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 36, color: const Color(0xFFB34A26)),
+          Icon(icon, size: 36, color: AppColors.marca),
           const SizedBox(height: 12),
           Text(
             title,
             style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF2E241E),
+              color: AppColors.texto,
             ),
           ),
           const SizedBox(height: 6),
           Text(
             detail,
-            style: const TextStyle(fontSize: 13.5, color: Color(0xFF7A6E65)),
+            style: const TextStyle(fontSize: 13.5, color: AppColors.textoSuave),
           ),
           if (suggestions.isNotEmpty) ...[
             const SizedBox(height: 12),

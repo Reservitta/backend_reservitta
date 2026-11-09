@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/reservation_draft_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Pantalla / Paso "¿Quieres preparar tu visita?" (HU15-RF01)
 ///
@@ -15,11 +16,11 @@ class PrepareVisitStep extends StatelessWidget {
   final VoidCallback onPersonalizarVisita;
   final bool isProcessing;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   const PrepareVisitStep({
     super.key,

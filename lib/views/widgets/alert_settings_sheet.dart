@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/operations_config.dart';
+import '../../theme/app_theme.dart';
 
 /// Ajustes de las alertas de llegada y del recordatorio (HU30-RF03, HU21-RF01): el
 /// administrador elige con cuánta anticipación se avisa, o desactiva las alertas.
@@ -157,7 +158,7 @@ class _AlertSettingsSheetState extends State<AlertSettingsSheet> {
               child: FilledButton(
                 key: const ValueKey('btn_guardar_ajustes_alertas'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFFB34A26),
+                  backgroundColor: AppColors.marca,
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: _guardando ? null : _guardar,

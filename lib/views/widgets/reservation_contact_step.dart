@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/reservation_draft_model.dart';
 import '../../services/contact_validation_service.dart';
 import '../../viewmodels/reservation_contact_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso / Modal para captura y validación temporal de datos de contacto (HU13-RF03)
 ///
@@ -13,10 +14,10 @@ class ReservationContactStep extends StatefulWidget {
   final VoidCallback? onBack;
   final ContactValidationService? validationService;
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color terracotta = AppColors.marca;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
   static const Color creamBg = Color(0xFFFAF6F0);
 
   const ReservationContactStep({

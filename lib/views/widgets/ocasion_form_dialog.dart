@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../models/experiencia_model.dart';
 import '../../models/ocasion_model.dart';
 import '../../viewmodels/ocasion_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Modal para crear o editar una ocasión especial y sus experiencias (HU33-RF01 y HU33-RF02)
 class OcasionFormDialog extends StatefulWidget {
@@ -45,9 +46,9 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
   late final TextEditingController _nombrePersonalizadoCtrl;
   late final TextEditingController _descripcionCtrl;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
 
   @override
   void initState() {

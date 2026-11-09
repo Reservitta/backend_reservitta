@@ -7,6 +7,7 @@ import '../models/table_layout_validator.dart';
 import '../models/zona_model.dart';
 import '../services/table_layout_service.dart';
 import '../viewmodels/plan_editor_viewmodel.dart';
+import '../theme/app_theme.dart';
 
 /// Editor del plano de mesas del administrador (HU34-RF03): espacios (pisos, patio…),
 /// mesas redondas, cuadradas o rectangulares que se arrastran a su lugar, con nombre,
@@ -23,11 +24,11 @@ class PlanEditorView extends StatefulWidget {
     this.viewModel,
   });
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color creamBg = Color(0xFFFBF8F4);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
+  static const Color terracotta = AppColors.marca;
+  static const Color creamBg = AppColors.fondo;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
   static const Color errorRed = Color(0xFFC62828);
 
   @override
@@ -628,7 +629,7 @@ class _MesaTile extends StatelessWidget {
               decoration: BoxDecoration(
                 color: seleccionada
                     ? const Color(0xFFFFE3D6)
-                    : const Color(0xFFEDE4D8),
+                    : AppColors.divisor,
                 shape: redonda ? BoxShape.circle : BoxShape.rectangle,
                 borderRadius: redonda ? null : BorderRadius.circular(10),
                 border: Border.all(

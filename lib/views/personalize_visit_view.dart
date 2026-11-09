@@ -14,6 +14,7 @@ import '../viewmodels/pedido_viewmodel.dart';
 import 'mi_pedido_view.dart';
 import 'widgets/platillo_detalle_sheet.dart';
 import 'widgets/platillo_menu_card.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de Personalización de Visita (HU16, HU15-RF02, HU16-RF02, HU16-RF04, HU16-RF05, HU17-RF01)
 ///
@@ -81,11 +82,11 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
 
   bool _isProcessing = false;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   static const List<String> _alergiasComunes = [
     'Gluten',

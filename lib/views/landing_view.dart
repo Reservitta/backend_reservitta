@@ -13,6 +13,7 @@ import 'mi_pedido_view.dart';
 import 'reservation_management_view.dart';
 import 'restaurant_detail_view.dart';
 import 'widgets/upcoming_reminder_banner.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
 /// Permite navegación libre del catálogo, filtros de ubicación por radio (HU02),
@@ -163,7 +164,7 @@ class _LandingViewState extends State<LandingView> {
                           color: Colors.white,
                         ),
                       ),
-                      backgroundColor: const Color(0xFFB34A26),
+                      backgroundColor: AppColors.marca,
                       onPressed: () => _abrirMiPedidoRapido(context),
                     ),
                   ),
@@ -335,17 +336,17 @@ class _LandingViewState extends State<LandingView> {
                 avatar: const Icon(
                   Icons.filter_alt_off,
                   size: 16,
-                  color: Color(0xFFB34A26),
+                  color: AppColors.marca,
                 ),
                 label: const Text(
                   'Limpiar filtros',
                   style: TextStyle(
-                    color: Color(0xFFB34A26),
+                    color: AppColors.marca,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                backgroundColor: const Color(0xFFFBF8F4),
-                side: const BorderSide(color: Color(0xFFB34A26), width: 1.2),
+                backgroundColor: AppColors.fondo,
+                side: const BorderSide(color: AppColors.marca, width: 1.2),
                 onPressed: () {
                   _searchController.clear();
                   _viewModel.clearFilters();
@@ -1036,7 +1037,7 @@ class _LandingViewState extends State<LandingView> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEDE4D8)),
+          border: Border.all(color: AppColors.divisor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(8),
@@ -1054,14 +1055,14 @@ class _LandingViewState extends State<LandingView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.restaurant, size: 18, color: Color(0xFFB34A26)),
+                    Icon(Icons.restaurant, size: 18, color: AppColors.marca),
                     SizedBox(width: 8),
                     Text(
                       'Acceso Rápido: Mi Pedido',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E241E),
+                        color: AppColors.texto,
                       ),
                     ),
                   ],
@@ -1077,7 +1078,7 @@ class _LandingViewState extends State<LandingView> {
             final button = FilledButton.icon(
               key: const ValueKey('btn_acceso_rapido_mi_pedido'),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB34A26),
+                backgroundColor: AppColors.marca,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -1085,7 +1086,7 @@ class _LandingViewState extends State<LandingView> {
               ),
               icon: const Icon(Icons.receipt_long, size: 18),
               label: const Text(
-                'Ver mi pedido (3 platillos)',
+                'Ver mi pedido',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               onPressed: () => _abrirMiPedidoRapido(context),
@@ -1213,7 +1214,7 @@ class _LandingViewState extends State<LandingView> {
                 actions: [
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFB34A26),
+                      backgroundColor: AppColors.marca,
                     ),
                     onPressed: () => Navigator.of(ctx).pop(),
                     child: const Text('Aceptar'),

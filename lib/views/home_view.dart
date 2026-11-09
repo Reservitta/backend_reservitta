@@ -13,6 +13,7 @@ import 'platillo_list_view.dart';
 import 'reservation_detail_view.dart';
 import 'restaurant_profile_view.dart';
 import 'table_management_view.dart';
+import '../theme/app_theme.dart';
 
 /// Secciones del panel de administración
 enum AdminSection {
@@ -42,9 +43,9 @@ class _HomeViewState extends State<HomeView> {
   AdminSection _seccionActual = AdminSection.menu;
 
   static const Color _sidebarBg = Color(0xFF1B110B);
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _textDark = Color(0xFF2E241E);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _textDark = AppColors.texto;
   static const Color _sidebarMuted = Color(0xFF9E8E83);
   static const Color _sidebarHeader = Color(0xFF7D6B5E);
 
@@ -504,7 +505,7 @@ class _HomeViewState extends State<HomeView> {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Perfil del restaurante actualizado con éxito.'),
-                backgroundColor: Color(0xFF2E7D32),
+                backgroundColor: AppColors.exito,
               ),
             );
           },

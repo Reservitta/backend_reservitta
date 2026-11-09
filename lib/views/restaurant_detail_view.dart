@@ -13,6 +13,7 @@ import 'reservation_flow_view.dart';
 // import 'widgets/preorden_item_dialog.dart';
 import 'widgets/platillo_menu_card.dart';
 import 'widgets/preorden_resumen_sheet.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla pública de detalle del restaurante (HU01-RF03, HU05)
 /// Accesible libremente sin necesidad de iniciar sesión o registrarse.
@@ -409,7 +410,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                     child: FilledButton.icon(
                       key: const ValueKey('boton_reservar_mesa'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFB34A26),
+                        backgroundColor: AppColors.marca,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(

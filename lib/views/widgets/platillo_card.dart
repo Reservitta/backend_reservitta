@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Tarjeta para cada platillo en la lista de gestión del menú (HU24-RF04)
 /// Incluye un switch directo para cambiar disponibilidad con un solo toque,
@@ -11,13 +12,13 @@ class PlatilloCard extends StatelessWidget {
   final VoidCallback onEditar;
   final VoidCallback onEliminar;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _cardBorder = AppColors.divisor;
   static const Color _creamLight = Color(0xFFFAF5ED);
   static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const Color _error = Color(0xFFD84A38);
 
   const PlatilloCard({
