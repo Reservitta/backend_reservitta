@@ -253,60 +253,89 @@ class _LandingViewState extends State<LandingView> {
 
   Widget _buildHeroSection(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-      color: theme.colorScheme.primaryContainer.withAlpha(40),
+      padding: const EdgeInsets.fromLTRB(20, 36, 20, 28),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFFBE9E0), AppColors.fondo],
+        ),
+      ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 760),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 'Bienvenido a Reservitta',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                  color: AppColors.texto,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 'Explora y descubre restaurantes asociados, consulta sus menús y reserva tu mesa.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: AppColors.textoSuave,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 22),
 
               // Buscador de texto
-              TextField(
-                key: const ValueKey('campo_buscar_restaurantes'),
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar restaurantes por nombre o dirección...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-        tooltip: 'Borrar búsqueda',
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            _viewModel.setSearchQuery('');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: theme.colorScheme.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(32),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.marca.withValues(alpha: 0.14),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                onChanged: (val) {
-                  _viewModel.setSearchQuery(val);
-                },
+                child: TextField(
+                  key: const ValueKey('campo_buscar_restaurantes'),
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar restaurantes por nombre o dirección...',
+                    prefixIcon: const Icon(Icons.search, color: AppColors.marca),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            tooltip: 'Borrar búsqueda',
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              _viewModel.setSearchQuery('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.superficie,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(32),
+                      borderSide: const BorderSide(color: AppColors.marca, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                  ),
+                  onChanged: (val) {
+                    _viewModel.setSearchQuery(val);
+                  },
+                ),
               ),
             ],
           ),
@@ -771,7 +800,9 @@ class _LandingViewState extends State<LandingView> {
           return SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
-              mainAxisExtent: 270,
+              // Crece con el tamaño de letra del sistema para que el texto no se corte.
+              mainAxisExtent: 312 +
+                  (MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0) - 1) * 110,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
             ),
@@ -1246,9 +1277,14 @@ class _RestaurantCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 2,
+      elevation: 0,
+      color: AppColors.superficie,
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.divisor),
+      ),
       child: InkWell(
         onTap: onTap,
         child: Column(
@@ -1256,31 +1292,39 @@ class _RestaurantCard extends StatelessWidget {
           children: [
             // Imagen o Portada
             SizedBox(
-              height: 135,
+              height: 150,
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    color: theme.colorScheme.primaryContainer.withAlpha(80),
-                    child: _buildRestaurantCoverImage(restaurant.imagenPrincipalUrl, theme),
+                  _buildRestaurantCoverImage(
+                    restaurant.imagenPrincipalUrl,
+                    theme,
+                    nombre: restaurant.nombre,
                   ),
                   Positioned(
                     top: 10,
                     right: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade700,
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white.withValues(alpha: 0.95),
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: const Text(
-                        'DISPONIBLE',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12,
-                        ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, size: 8, color: AppColors.exito),
+                          SizedBox(width: 6),
+                          Text(
+                            'Disponible',
+                            style: TextStyle(
+                              color: AppColors.exito,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1319,17 +1363,21 @@ class _RestaurantCard extends StatelessWidget {
 
             // Contenido
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     restaurant.nombre,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: AppColors.texto,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
 
                   // Dirección y distancia
                   Row(
@@ -1363,23 +1411,23 @@ class _RestaurantCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
 
                   // Botón de acción: sólo Ver Detalle
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
+                    child: FilledButton.tonalIcon(
                       key: ValueKey('boton_ver_detalle_${restaurant.id}'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: const Color(0xFFFBE9E0),
+                        foregroundColor: AppColors.marca,
                       ),
                       onPressed: onTap,
-                      child: const Text(
+                      iconAlignment: IconAlignment.end,
+                      icon: const Icon(Icons.arrow_forward, size: 18),
+                      label: const Text(
                         'Ver Detalle',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -1393,10 +1441,14 @@ class _RestaurantCard extends StatelessWidget {
   }
 
 
-  Widget _buildRestaurantCoverImage(String rawUrl, ThemeData theme) {
+  Widget _buildRestaurantCoverImage(
+    String rawUrl,
+    ThemeData theme, {
+    String nombre = '',
+  }) {
     final trimmedUrl = rawUrl.trim();
     if (trimmedUrl.isEmpty) {
-      return _buildFallbackCover(theme);
+      return _buildFallbackCover(theme, nombre);
     }
 
     String finalUrl = trimmedUrl;
@@ -1430,30 +1482,43 @@ class _RestaurantCard extends StatelessWidget {
       },
       errorBuilder: (context, error, stackTrace) {
         debugPrint('[Reservitta Image Error] $error - URL: $finalUrl');
-        return _buildFallbackCover(theme);
+        return _buildFallbackCover(theme, nombre);
       },
     );
   }
 
-  Widget _buildFallbackCover(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.restaurant,
-            size: 40,
-            color: theme.colorScheme.primary.withAlpha(160),
+  /// Portada sin foto: degradado cálido con la inicial del restaurante.
+  Widget _buildFallbackCover(ThemeData theme, [String nombre = '']) {
+    final limpio = nombre.trim();
+    final inicial = limpio.isEmpty ? null : limpio.characters.first.toUpperCase();
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFBE9E0), Color(0xFFF3C9B6)],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.85),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Sin imagen disponible',
-            style: TextStyle(
-              fontSize: 12,
-              color: theme.colorScheme.onSurfaceVariant.withAlpha(140),
-            ),
-          ),
-        ],
+          child: inicial == null
+              ? const Icon(Icons.restaurant, size: 30, color: AppColors.marca)
+              : Text(
+                  inicial,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.marca,
+                  ),
+                ),
+        ),
       ),
     );
   }
