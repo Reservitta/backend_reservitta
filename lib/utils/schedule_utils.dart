@@ -35,6 +35,20 @@ class ScheduleUtils {
     }
   }
 
+  /// Horarios ordenados de lunes a domingo (los días desconocidos van al final).
+  static List<MapEntry<String, DaySchedule>> sortedSchedule(
+    Map<String, DaySchedule> horarios,
+  ) {
+    int posicion(String dia) {
+      final i = standardDays.indexOf(normalizeDayName(dia));
+      return i < 0 ? standardDays.length : i;
+    }
+
+    final lista = horarios.entries.toList();
+    lista.sort((a, b) => posicion(a.key).compareTo(posicion(b.key)));
+    return lista;
+  }
+
   /// Normaliza una cadena de nombre de día: elimina acentos, espacios y pasa a minúsculas
   static String normalizeDayName(String day) {
     var clean = day.trim().toLowerCase();

@@ -3,7 +3,9 @@ import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reservitta/models/categoria_model.dart';
 import 'package:reservitta/models/platillo_model.dart';
+import 'package:reservitta/models/restaurant_model.dart';
 import 'package:reservitta/services/restaurant_service.dart';
+import 'package:reservitta/utils/schedule_utils.dart';
 
 const _dias = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
 
@@ -33,6 +35,7 @@ final _jueves14 = DateTime(2026, 11, 5, 14);
 
 void main() {
   setUpAll(() => FakeFirebaseFirestore());
+  horariosTests();
 
   late FakeFirebaseFirestore db;
   late RestaurantService svc;
@@ -355,5 +358,21 @@ void main() {
       final m = await svc.getMenuByCategoriesStream('r1').first;
       expect(m.first.nombre, 'Entradas');
     });
+  });
+}
+
+void horariosTests() {
+  test('los horarios se muestran de lunes a domingo aunque lleguen desordenados', () {
+    const d = DaySchedule(abierto: true, apertura: '12:00', cierre: '22:00');
+    final orden = ScheduleUtils.sortedSchedule({
+      'miercoles': d,
+      'jueves': d,
+      'domingo': d,
+      'Lunes': d,
+      'martes': d,
+      'extraño': d,
+      'sábado': d,
+    }).map((e) => e.key).toList();
+    expect(orden, ['Lunes', 'martes', 'miercoles', 'jueves', 'sábado', 'domingo', 'extraño']);
   });
 }

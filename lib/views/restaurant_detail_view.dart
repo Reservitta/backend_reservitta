@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/categoria_service.dart';
 import '../services/platillo_service.dart';
 import '../services/preorden_cache_service.dart';
+import '../utils/schedule_utils.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'reservation_flow_view.dart';
@@ -334,7 +335,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Column(
-                        children: r.horarios.entries.map((e) {
+                        children: ScheduleUtils.sortedSchedule(r.horarios).map((e) {
                           final s = e.value;
                           final dia = e.key[0].toUpperCase() + e.key.substring(1);
                           return Padding(
