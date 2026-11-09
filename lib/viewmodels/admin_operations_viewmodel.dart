@@ -93,10 +93,14 @@ class AdminOperationsViewModel extends ChangeNotifier {
   /// Espacios (pisos, patio…) del restaurante (HU34).
   List<ZonaModel> get zonas => List.unmodifiable(_zonas);
 
+  /// Id de la pestaña "Sin espacio": mesas que no pertenecen a ningún espacio existente.
+  static const String sinEspacioId = '__sin_espacio__';
+
   /// Espacio que se está viendo en la vista de mesas; null mientras no haya espacios.
   String? get zonaMesasId {
     if (_zonas.isEmpty) return null;
     final id = _zonaMesasId;
+    if (id == sinEspacioId && mesasSinEspacio > 0) return id;
     if (id != null && _zonas.any((z) => z.id == id)) return id;
     return _zonas.first.id;
   }
@@ -105,6 +109,12 @@ class AdminOperationsViewModel extends ChangeNotifier {
   List<TableLiveStatus> get estadosMesasVisibles {
     final id = zonaMesasId;
     if (id == null) return List.unmodifiable(_estadosMesas);
+    if (id == sinEspacioId) {
+      return List.unmodifiable([
+        for (final e in _estadosMesas)
+          if (!_zonas.any((z) => z.id == e.mesa.zonaId)) e,
+      ]);
+    }
     return List.unmodifiable([
       for (final e in _estadosMesas)
         if (e.mesa.zonaId == id) e,

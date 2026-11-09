@@ -187,14 +187,20 @@ class TableManagementView extends StatelessWidget {
   }
 
   Widget _plano(BuildContext context, List<TableLiveStatus> estados) {
-    var width = 0.0;
-    var height = 0.0;
+    // El plano empieza en la mesa más a la izquierda y arriba: así no queda un hueco
+    // entre el borde y las mesas cuando el espacio tiene pocas o están lejos del origen.
+    var minX = double.infinity;
+    var minY = double.infinity;
+    var maxX = 0.0;
+    var maxY = 0.0;
     for (final e in estados) {
-      width = math.max(width, (e.mesa.x ?? 0) + e.mesa.ancho);
-      height = math.max(height, (e.mesa.y ?? 0) + e.mesa.alto);
+      minX = math.min(minX, e.mesa.x ?? 0);
+      minY = math.min(minY, e.mesa.y ?? 0);
+      maxX = math.max(maxX, (e.mesa.x ?? 0) + e.mesa.ancho);
+      maxY = math.max(maxY, (e.mesa.y ?? 0) + e.mesa.alto);
     }
-    width += _padding * 2;
-    height += _padding * 2;
+    final width = maxX - minX + _padding * 2;
+    final height = maxY - minY + _padding * 2;
 
     return Container(
       key: const ValueKey('mesas_plano'),
@@ -218,8 +224,8 @@ class TableManagementView extends StatelessWidget {
               children: [
                 for (final e in estados)
                   Positioned(
-                    left: (e.mesa.x ?? 0) + _padding,
-                    top: (e.mesa.y ?? 0) + _padding,
+                    left: (e.mesa.x ?? 0) - minX + _padding,
+                    top: (e.mesa.y ?? 0) - minY + _padding,
                     width: e.mesa.ancho,
                     height: e.mesa.alto,
                     child: _MesaTile(estado: e, onTap: () => _abrirMesa(context, e)),
@@ -363,6 +369,16 @@ class _SelectorEspacio extends StatelessWidget {
               '${z.nombre} (${operaciones.estadosMesas.where((e) => e.mesa.zonaId == z.id).length})',
             ),
             onSelected: (_) => operaciones.seleccionarZonaMesas(z.id),
+          ),
+        // Las mesas que no están en ningún espacio no se esconden.
+        if (operaciones.mesasSinEspacio > 0)
+          ChoiceChip(
+            key: const ValueKey('chip_espacio_admin_sin_espacio'),
+            selected: operaciones.zonaMesasId == AdminOperationsViewModel.sinEspacioId,
+            selectedColor: const Color(0xFFFFE3D6),
+            label: Text('Sin espacio (${operaciones.mesasSinEspacio})'),
+            onSelected: (_) =>
+                operaciones.seleccionarZonaMesas(AdminOperationsViewModel.sinEspacioId),
           ),
       ],
     );

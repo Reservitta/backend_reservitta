@@ -524,6 +524,78 @@ void main() {
       expect(find.text('Plano de mesas'), findsOneWidget);
     });
 
+    AdminOperationsViewModel crearOps() {
+      final ops = AdminOperationsViewModel(
+        restaurantId: 'r1',
+        reservas: ReservationService(firestore: db),
+        mesasService: TableStatusService(firestore: db),
+        configService: OperationsConfigService(firestore: db),
+        alertService: AdminAlertService(firestore: db, gateway: _NoPush()),
+        reminderService: ReminderService(firestore: db),
+        tick: Duration.zero,
+        sincronizar: false,
+      );
+      addTearDown(ops.dispose);
+      return ops;
+    }
+
+    testWidgets('las mesas sin espacio no se esconden: tienen su propia pestaña', (tester) async {
+      pantalla(tester);
+      final patio = await svc.crearZona('r1', 'Patio');
+      await svc.guardarPlano(restauranteId: 'r1', mesas: [
+        MesaModel(id: '', nombre: 'P1', capacidad: 4, x: 20, y: 20, zonaId: patio.id),
+        const MesaModel(id: '', nombre: 'Suelta 1', capacidad: 2, x: 20, y: 20),
+        const MesaModel(id: '', nombre: 'Suelta 2', capacidad: 2, x: 200, y: 20),
+      ]);
+      final ops = crearOps();
+      await ops.iniciar();
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: TableManagementView(operaciones: ops, onAbrirReserva: (_) {})),
+      ));
+      await tester.pumpAndSettle();
+      expect(k('chip_espacio_admin_sin_espacio'), findsOneWidget);
+      expect(find.text('Sin espacio (2)'), findsOneWidget);
+      expect(find.text('P1'), findsOneWidget);
+      await tester.tap(k('chip_espacio_admin_sin_espacio'));
+      await tester.pumpAndSettle();
+      expect(find.text('Suelta 1'), findsOneWidget);
+      expect(find.text('Suelta 2'), findsOneWidget);
+      expect(find.text('P1'), findsNothing);
+    });
+
+    testWidgets('si todas las mesas tienen espacio no aparece "Sin espacio"', (tester) async {
+      pantalla(tester);
+      final patio = await svc.crearZona('r1', 'Patio');
+      await svc.guardarPlano(restauranteId: 'r1', mesas: [
+        MesaModel(id: '', nombre: 'P1', capacidad: 4, x: 20, y: 20, zonaId: patio.id),
+      ]);
+      final ops = crearOps();
+      await ops.iniciar();
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: TableManagementView(operaciones: ops, onAbrirReserva: (_) {})),
+      ));
+      await tester.pumpAndSettle();
+      expect(k('chip_espacio_admin_sin_espacio'), findsNothing);
+    });
+
+    testWidgets('una mesa lejos del origen se dibuja arriba a la izquierda, no arrinconada', (tester) async {
+      pantalla(tester);
+      await svc.guardarPlano(restauranteId: 'r1', mesas: [
+        const MesaModel(id: '', nombre: 'Lejos', capacidad: 4, x: 900, y: 600),
+      ]);
+      final ops = crearOps();
+      await ops.iniciar();
+      await tester.pumpWidget(MaterialApp(
+        home: Scaffold(body: TableManagementView(operaciones: ops, onAbrirReserva: (_) {})),
+      ));
+      await tester.pumpAndSettle();
+      // El plano se ajusta a sus mesas: una sola mesa queda al centro, no en una esquina.
+      final plano = tester.getCenter(k('mesas_plano'));
+      final mesa = tester.getCenter(find.text('Lejos'));
+      expect((mesa.dx - plano.dx).abs(), lessThan(80));
+      expect((mesa.dy - plano.dy).abs(), lessThan(80));
+    });
+
     testWidgets('con espacios muestra una pestaña por espacio y filtra sus mesas', (tester) async {
       pantalla(tester);
       final piso = await svc.crearZona('r1', 'Segundo piso');
