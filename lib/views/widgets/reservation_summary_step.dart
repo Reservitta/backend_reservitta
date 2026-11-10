@@ -37,6 +37,12 @@ class ReservationSummaryStep extends StatelessWidget {
   /// Si es true, renderiza un botón de acción inferior autónomo (útil para pruebas unitarias).
   final bool showActionButton;
 
+  /// Versión web: tarjeta con los datos destacados en lugar de una lista.
+  final bool vistaWeb;
+
+  /// Contenido destacado que va arriba del resumen (p. ej. personalizar la visita).
+  final Widget? destacado;
+
   static const Color terracotta = AppColors.marca;
   static const Color creamBg = AppColors.fondo;
   static const Color darkText = AppColors.texto;
@@ -54,10 +60,13 @@ class ReservationSummaryStep extends StatelessWidget {
     this.onRequireAuth,
     this.confirmButtonText,
     this.showActionButton = false,
+    this.vistaWeb = false,
+    this.destacado,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (vistaWeb) return _buildWeb(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -83,6 +92,289 @@ class ReservationSummaryStep extends StatelessWidget {
           _buildStandaloneActionButton(),
         ],
       ],
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // VISTA WEB: resumen en tarjeta con datos destacados
+  // ---------------------------------------------------------------------------
+  Widget _buildWeb(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const Text(
+          'Resumen de tu reserva',
+          style: TextStyle(
+            fontFamily: AppTheme.familiaTitulos,
+            fontWeight: FontWeight.w700,
+            fontVariations: [FontVariation('wght', 700)],
+            fontSize: 30,
+            color: darkText,
+          ),
+        ),
+        const SizedBox(height: 6),
+        const Text(
+          'Revisa que todo esté bien. Puedes cambiar cualquier dato antes de continuar.',
+          style: TextStyle(fontSize: 15, color: mutedText),
+        ),
+        const SizedBox(height: 22),
+        if (!isAuthenticated) ...[
+          _buildAuthRequiredBanner(context),
+          const SizedBox(height: 18),
+        ],
+        if (destacado != null) ...[
+          destacado!,
+          const SizedBox(height: 22),
+        ],
+        _buildTicketWeb(),
+        if (showActionButton && onConfirm != null) ...[
+          const SizedBox(height: 24),
+          _buildStandaloneActionButton(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTicketWeb() {
+    final mesasTexto = draft.mesasConEspacio.isNotEmpty ? draft.mesasConEspacio : 'Sin mesa';
+    final sucursalTexto = draft.branch?.nombre ??
+        (draft.restaurant.direccion.isNotEmpty ? draft.restaurant.direccion : 'Sucursal principal');
+    final direccion = draft.branch?.direccion ?? '';
+
+    Widget tile({
+      required Key cardKey,
+      required Key buttonKey,
+      required IconData icon,
+      required String label,
+      required String value,
+      required VoidCallback onEdit,
+      String? detalle,
+    }) {
+      return Container(
+        key: cardKey,
+        padding: const EdgeInsets.fromLTRB(18, 16, 12, 12),
+        decoration: BoxDecoration(
+          color: AppColors.fondo,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: cardBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: AppColors.marcaSuave,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 18, color: terracotta),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: mutedText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                fontSize: 22,
+                height: 1.15,
+                color: darkText,
+              ),
+            ),
+            if (detalle != null && detalle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(detalle, style: const TextStyle(fontSize: 13, color: mutedText)),
+            ],
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                key: buttonKey,
+                style: TextButton.styleFrom(
+                  foregroundColor: terracotta,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text(
+                  'Modificar',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final tiles = <Widget>[
+      tile(
+        cardKey: const ValueKey('summary_card_fecha'),
+        buttonKey: const ValueKey('btn_modificar_fecha'),
+        icon: Icons.calendar_today_outlined,
+        label: 'Fecha de visita',
+        value: draft.formattedDate.isNotEmpty ? draft.formattedDate : 'Sin fecha',
+        onEdit: () => onEditStep(1),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_horario'),
+        buttonKey: const ValueKey('btn_modificar_horario'),
+        icon: Icons.schedule,
+        label: 'Horario',
+        value: draft.formattedTimeRange.isNotEmpty ? draft.formattedTimeRange : 'Sin horario',
+        onEdit: () => onEditStep(5),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_duracion'),
+        buttonKey: const ValueKey('btn_modificar_duracion'),
+        icon: Icons.timer_outlined,
+        label: 'Duración',
+        value: draft.formattedDuration,
+        onEdit: () => onEditStep(2),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_personas'),
+        buttonKey: const ValueKey('btn_modificar_personas'),
+        icon: Icons.groups_outlined,
+        label: 'Personas',
+        value: draft.personas == 1 ? '1 persona' : '${draft.personas} personas',
+        onEdit: () => onEditStep(3),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_mesas'),
+        buttonKey: const ValueKey('btn_modificar_mesas'),
+        icon: Icons.table_restaurant_outlined,
+        label: draft.mesaIds.length > 1 ? 'Mesas' : 'Mesa',
+        value: mesasTexto,
+        onEdit: () => onEditStep(4),
+      ),
+      if (draft.contactoNombre.isNotEmpty ||
+          draft.contactoCorreo.isNotEmpty ||
+          draft.contactoTelefono.isNotEmpty)
+        tile(
+          cardKey: const ValueKey('summary_card_contacto_nombre'),
+          buttonKey: const ValueKey('btn_modificar_contacto_nombre'),
+          icon: Icons.person_outline,
+          label: 'Contacto',
+          value: draft.contactoNombre.isNotEmpty ? draft.contactoNombre : draft.contactoCorreo,
+          detalle: [
+            if (draft.contactoNombre.isNotEmpty && draft.contactoCorreo.isNotEmpty) draft.contactoCorreo,
+            if (draft.contactoTelefono.isNotEmpty) draft.contactoTelefono,
+          ].join(' · '),
+          onEdit: () => onEditStep(7),
+        ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.marca.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Cabecera tipo boleto: restaurante y sucursal
+            Container(
+              key: const ValueKey('summary_card_restaurante'),
+              padding: const EdgeInsets.fromLTRB(24, 22, 16, 20),
+              color: AppColors.marcaSuave,
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.marca,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.restaurant_menu, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          draft.restaurant.nombre,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.familiaTitulos,
+                            fontWeight: FontWeight.w700,
+                            fontVariations: [FontVariation('wght', 700)],
+                            fontSize: 26,
+                            color: darkText,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          direccion.isNotEmpty ? '$sucursalTexto · $direccion' : sucursalTexto,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14, color: mutedText),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    key: const ValueKey('btn_modificar_sucursal'),
+                    style: TextButton.styleFrom(foregroundColor: terracotta),
+                    onPressed: () => onEditStep(0),
+                    child: const Text(
+                      'Cambiar sucursal',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final columnas = c.maxWidth >= 760 ? 3 : (c.maxWidth >= 460 ? 2 : 1);
+                  const hueco = 14.0;
+                  final ancho = (c.maxWidth - hueco * (columnas - 1)) / columnas;
+                  return Wrap(
+                    spacing: hueco,
+                    runSpacing: hueco,
+                    children: [
+                      for (final t in tiles) SizedBox(width: ancho, child: t),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

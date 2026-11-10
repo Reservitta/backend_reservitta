@@ -257,7 +257,7 @@ void main() {
       final vm = await enResumen(tester);
 
       expect(find.byKey(const ValueKey('tarjeta_personalizar')), findsOneWidget);
-      expect(find.text('Personaliza tu visita (opcional)'), findsOneWidget);
+      expect(find.text('Personaliza tu visita'), findsOneWidget);
       expect(find.byKey(const ValueKey('btn_personalizar_resumen')), findsOneWidget);
       expect(vm.draft.tienePersonalizacion, isFalse);
       // El estado de la barra marca "Resumen" como etapa en curso.
@@ -272,12 +272,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Tu visita está personalizada'), findsOneWidget);
-      expect(find.text('1 platillo pre-ordenado'.replaceFirst('ordenado', 'ordenados')), findsOneWidget);
+      expect(find.text('1 platillo pre-ordenado'), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('btn_quitar_personalizacion')));
       await tester.pumpAndSettle();
       expect(vm.draft.tienePersonalizacion, isFalse);
-      expect(find.text('Personaliza tu visita (opcional)'), findsOneWidget);
+      expect(find.text('Personaliza tu visita'), findsOneWidget);
     });
 
     testWidgets('en pantallas angostas no aparece (usa el paso aparte)', (tester) async {

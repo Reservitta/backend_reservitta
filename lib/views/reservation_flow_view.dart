@@ -549,7 +549,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                         )
                       : Center(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 680),
+                            constraints: BoxConstraints(maxWidth: step == 6 ? 1000 : 680),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 20),
                               child: _buildCurrentStepContent(step),
@@ -561,7 +561,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               if (!enFormulario)
                 Center(
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 680),
+                    constraints: BoxConstraints(maxWidth: step == 6 ? 1000 : 680),
                     child: _buildBottomActionBar(step),
                   ),
                 ),
@@ -764,97 +764,143 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildStep6ResumenSelection() {
-    final resumen = _buildResumenBase();
-    if (!_esPantallaUnica || !widget.enablePrepareVisitStep) return resumen;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        resumen,
-        const SizedBox(height: 20),
-        _buildTarjetaPersonalizar(),
-      ],
+    final web = _esPantallaUnica && widget.enablePrepareVisitStep;
+    return _buildResumenBase(
+      vistaWeb: web,
+      destacado: web ? _buildTarjetaPersonalizar() : null,
     );
   }
 
-  /// Opción de personalizar la visita dentro del resumen (pre-orden, alergias,
-  /// ocasión especial). Es opcional: sin personalizar se reserva igual.
+  /// Opción de personalizar la visita, destacada arriba del resumen (pre-orden,
+  /// alergias, ocasión especial). Es opcional: sin personalizar se reserva igual.
   Widget _buildTarjetaPersonalizar() {
     final draft = _viewModel.draft;
     final personalizada = draft.tienePersonalizacion;
 
     final detalles = <String>[
       if (draft.preordenItems.isNotEmpty)
-        '${draft.preordenItems.length} ${draft.preordenItems.length == 1 ? 'platillo' : 'platillos'} pre-ordenados',
+        '${draft.preordenItems.length} ${draft.preordenItems.length == 1 ? 'platillo pre-ordenado' : 'platillos pre-ordenados'}',
       if (draft.alergias.isNotEmpty || draft.notasAlergias.trim().isNotEmpty) 'Alergias indicadas',
       if (draft.ocasionEspecial != null) 'Ocasión especial',
     ];
 
     return Container(
       key: const ValueKey('tarjeta_personalizar'),
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: personalizada ? AppColors.marca : cardBorder,
-          width: personalizada ? 1.6 : 1,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.marca, Color(0xFF8A5530)],
         ),
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.marca.withValues(alpha: 0.28),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 44,
-            height: 44,
-            decoration: const BoxDecoration(
-              color: AppColors.marcaSuave,
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.18),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              personalizada ? Icons.check_circle_outline : Icons.restaurant_menu,
-              color: AppColors.marca,
+              personalizada ? Icons.check_rounded : Icons.auto_awesome,
+              color: Colors.white,
+              size: 28,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 18),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  personalizada ? 'Tu visita está personalizada' : 'Personaliza tu visita (opcional)',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: darkText,
-                  ),
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        personalizada ? 'Tu visita está personalizada' : 'Personaliza tu visita',
+                        style: const TextStyle(
+                          fontFamily: AppTheme.familiaTitulos,
+                          fontWeight: FontWeight.w700,
+                          fontVariations: [FontVariation('wght', 700)],
+                          fontSize: 24,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                    if (!personalizada) ...[
+                      const SizedBox(width: 10),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.22),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Opcional',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   personalizada
                       ? detalles.join(' · ')
-                      : 'Pre-ordena platillos, avisa de alergias o indica una ocasión especial. Si no quieres, reserva así.',
-                  style: const TextStyle(fontSize: 13, color: mutedText, height: 1.35),
-                ),
-                const SizedBox(height: 12),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      key: const ValueKey('btn_personalizar_resumen'),
-                      onPressed: _personalizarDesdeResumen,
-                      icon: Icon(personalizada ? Icons.edit_outlined : Icons.tune, size: 18),
-                      label: Text(personalizada ? 'Editar personalización' : 'Personalizar mi visita'),
-                    ),
-                    if (personalizada)
-                      TextButton(
-                        key: const ValueKey('btn_quitar_personalizacion'),
-                        onPressed: _viewModel.clearPersonalizacion,
-                        child: const Text('Quitar'),
-                      ),
-                  ],
+                      : 'Pre-ordena tus platillos, avisa de alergias o celebra una ocasión especial. Si prefieres, reserva sin personalizar.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
                 ),
               ],
+            ),
+          ),
+          const SizedBox(width: 18),
+          SizedBox(
+            width: 230,
+            child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              FilledButton.icon(
+                key: const ValueKey('btn_personalizar_resumen'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: Colors.white,
+                  foregroundColor: AppColors.marca,
+                  minimumSize: const Size(0, 50),
+                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                ),
+                onPressed: _personalizarDesdeResumen,
+                icon: Icon(personalizada ? Icons.edit_outlined : Icons.tune, size: 18),
+                label: Text(
+                  personalizada ? 'Editar' : 'Personalizar mi visita',
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              if (personalizada)
+                TextButton(
+                  key: const ValueKey('btn_quitar_personalizacion'),
+                  style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  onPressed: _viewModel.clearPersonalizacion,
+                  child: const Text('Quitar'),
+                ),
+            ],
             ),
           ),
         ],
@@ -886,9 +932,11 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     );
   }
 
-  Widget _buildResumenBase() {
+  Widget _buildResumenBase({bool vistaWeb = false, Widget? destacado}) {
     final draft = _viewModel.draft;
     return ReservationSummaryStep(
+      vistaWeb: vistaWeb,
+      destacado: destacado,
       key: ValueKey(
         'step_resumen_${draft.fecha}_${draft.duracionMin}_${draft.personas}_${draft.mesaIds.join(',')}_${draft.horario?.hour}_${draft.horario?.minute}',
       ),
