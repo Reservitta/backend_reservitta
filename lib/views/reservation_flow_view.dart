@@ -23,6 +23,7 @@ import '../services/ocasion_service.dart';
 import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
+import '../utils/schedule_utils.dart';
 import '../theme/app_theme.dart';
 
 /// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01, HU13, HU14).
@@ -1234,34 +1235,112 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               child: CircularProgressIndicator(color: terracotta),
             ),
           )
+        else if (_viewModel.sinSucursales)
+          _buildSinSucursales()
         else
           ..._viewModel.branches.map((b) => _buildBranchCard(b)),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
 
-        // 3 Tarjetas informativas del flujo
-        _buildInfoCard(
-          icon: Icons.calendar_month_outlined,
-          iconColor: Colors.blue.shade400,
-          title: 'Selecciona fecha y duración',
-          subtitle: 'Elige el día y cuánto tiempo planeas quedarte.',
-        ),
-        const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.chair_outlined,
-          iconColor: terracotta,
-          title: 'Elige tu mesa',
-          subtitle: 'Visualiza el restaurante y selecciona la mesa ideal para tu grupo.',
-        ),
-        const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.check_box_outlined,
-          iconColor: AppColors.exito,
-          title: 'Confirmación inmediata',
-          subtitle: 'Recibirás la confirmación por correo en segundos.',
-        ),
+        // Lo que sigue, en una sola línea (sin tarjetas que confundan)
+        if (!_viewModel.sinSucursales && !_viewModel.isLoadingBranches)
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, size: 18, color: mutedText),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Después elegirás la fecha, la duración, las personas y tu mesa.',
+                  style: TextStyle(fontSize: 13, color: mutedText, height: 1.35),
+                ),
+              ),
+            ],
+          ),
       ],
     );
+  }
+
+  /// El restaurante no tiene sucursales registradas (o no se pudieron consultar).
+  Widget _buildSinSucursales() {
+    final fallo = _viewModel.sucursalesNoCargaron;
+    return Container(
+      key: const ValueKey('sin_sucursales'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: cardBorder),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.storefront_outlined, size: 36, color: mutedText),
+          const SizedBox(height: 10),
+          Text(
+            fallo
+                ? 'No pudimos cargar las sucursales'
+                : 'Este restaurante aún no tiene sucursales disponibles',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: darkText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            fallo
+                ? 'Revisa tu conexión e inténtalo de nuevo en unos minutos.'
+                : 'Por ahora no se puede reservar aquí. Prueba con otro restaurante.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: mutedText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Estado de apertura de hoy según los horarios reales del restaurante.
+  /// Devuelve null si el restaurante no registró horarios.
+  ({String texto, Color color, Color fondo})? _estadoAperturaHoy() {
+    final r = widget.restaurant;
+    if (r.horarios.isEmpty) return null;
+    final ahora = _viewModel.clockNow;
+
+    const verde = (color: AppColors.exito, fondo: Color(0xFFE8F5E9));
+    const rojo = (color: AppColors.error, fondo: Color(0xFFFDECEA));
+    const ambar = (color: AppColors.acento, fondo: Color(0xFFFFF3D6));
+
+    DaySchedule? hoy;
+    final nombreHoy = ScheduleUtils.dayOfWeekToName(ahora.weekday);
+    for (final e in r.horarios.entries) {
+      if (ScheduleUtils.normalizeDayName(e.key) == nombreHoy) {
+        hoy = e.value;
+        break;
+      }
+    }
+
+    if (r.isOpenAt(ahora)) {
+      return (
+        texto: hoy != null ? 'Abierto hasta ${hoy.cierre}' : 'Abierto',
+        color: verde.color,
+        fondo: verde.fondo,
+      );
+    }
+    if (hoy != null && hoy.abierto && r.isActivo) {
+      final apertura = ScheduleUtils.parseTimeToMinutes(hoy.apertura);
+      final minutos = ahora.hour * 60 + ahora.minute;
+      if (apertura != null && minutos < apertura) {
+        return (
+          texto: 'Abre a las ${hoy.apertura}',
+          color: ambar.color,
+          fondo: ambar.fondo,
+        );
+      }
+      return (texto: 'Cerrado ahora', color: rojo.color, fondo: rojo.fondo);
+    }
+    return (texto: 'Cerrado hoy', color: rojo.color, fondo: rojo.fondo);
   }
 
   Widget _buildBranchCard(BranchModel branch) {
@@ -1342,22 +1421,23 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               ),
               const SizedBox(width: 8),
 
-              // Tag Abierto / Cerrado
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Abierto',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.exito,
+              // Estado de apertura según los horarios reales
+              if (_estadoAperturaHoy() case final estado?)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: estado.fondo,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    estado.texto,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: estado.color,
+                    ),
                   ),
                 ),
-              ),
 
               if (isSelected) ...[
                 const SizedBox(width: 8),
@@ -1373,49 +1453,6 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cardBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: mutedText),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -2201,8 +2238,10 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   border: Border.all(color: AppColors.marca),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  'Selecciona una sucursal para continuar',
+                child: Text(
+                  _viewModel.sinSucursales
+                      ? 'No hay sucursales disponibles para reservar'
+                      : 'Selecciona una sucursal para continuar',
                   style: TextStyle(
                     fontSize: 13,
                     color: AppColors.marca,

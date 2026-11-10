@@ -26,6 +26,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
   int _currentStep = 0; // 0: Sucursal, 1: Fecha, 2: Duración, 3: Personas, 4: Mesa, 5: Horario, 6: Resumen, 7: Datos
   int? _maxFromTables; // Mayor grupo que las mesas reales pueden sentar
   List<BranchModel> _branches = [];
+  bool _branchesLoadFailed = false;
   bool _isLoadingBranches = false;
   String? _errorMessage;
 
@@ -87,59 +88,31 @@ class ReservationDraftViewModel extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   Future<void> _initBranches() async {
     _isLoadingBranches = true;
+    _branchesLoadFailed = false;
     notifyListeners();
 
     try {
       if (restaurantService != null) {
-        final list = await restaurantService!.getBranches(restaurant.id);
-        if (list.isNotEmpty) {
-          _branches = list;
-        } else {
-          _branches = _generateDefaultBranches();
-        }
+        _branches = await restaurantService!.getBranches(restaurant.id);
       } else {
-        _branches = _generateDefaultBranches();
+        _branches = [];
       }
     } catch (_) {
-      _branches = _generateDefaultBranches();
+      // No se inventan sucursales: sin datos reales no se puede reservar.
+      _branches = [];
+      _branchesLoadFailed = true;
     } finally {
       _isLoadingBranches = false;
       notifyListeners();
     }
   }
 
-  /// Si el restaurante no cuenta con sucursales creadas en la subcolección,
-  /// provee una lista representativa de sucursales para la experiencia del usuario.
-  List<BranchModel> _generateDefaultBranches() {
-    final baseName = restaurant.nombre;
-    final baseDir = restaurant.direccion.isNotEmpty
-        ? restaurant.direccion
-        : 'Av. Principal 125, Centro Histórico';
+  /// true si el restaurante no tiene ninguna sucursal registrada.
+  /// Sin sucursales no se puede iniciar una reserva.
+  bool get sinSucursales => !_isLoadingBranches && _branches.isEmpty;
 
-    return [
-      BranchModel(
-        id: '${restaurant.id}_centro',
-        nombre: '$baseName — Centro',
-        direccion: baseDir,
-        telefono: restaurant.telefono,
-        esPrincipal: true,
-      ),
-      BranchModel(
-        id: '${restaurant.id}_norte',
-        nombre: '$baseName — Norte',
-        direccion: 'Blvd. Norte 450, Fracc. Los Pinos',
-        telefono: restaurant.telefono,
-        esPrincipal: false,
-      ),
-      BranchModel(
-        id: '${restaurant.id}_plaza',
-        nombre: '$baseName — Plaza',
-        direccion: 'Plaza Comercial Sur, Local 12, Av. Industrial',
-        telefono: restaurant.telefono,
-        esPrincipal: false,
-      ),
-    ];
-  }
+  /// true si no se pudieron consultar las sucursales (falla de red o permisos).
+  bool get sucursalesNoCargaron => _branchesLoadFailed;
 
   /// Calcula el máximo de personas con las mesas registradas del restaurante.
   Future<void> _initTables() async {
