@@ -172,9 +172,10 @@ class _ContactFormStepState extends State<ContactFormStep> {
           const Text(
             '¿Cómo te contactamos?',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 30,
               fontFamily: AppTheme.familiaTitulos,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
               color: ContactFormStep.darkText,
             ),
           ),
@@ -232,9 +233,22 @@ class _ContactFormStepState extends State<ContactFormStep> {
               ],
             ),
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final dos = c.maxWidth >= 620;
+                final ancho = dos ? (c.maxWidth - 20) / 2 : c.maxWidth;
+                Widget campo(List<Widget> hijos) => SizedBox(
+                      width: ancho,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: hijos,
+                      ),
+                    );
+                return Wrap(
+                  spacing: 20,
+                  runSpacing: 14,
+                  children: [
+                    campo([
                 // Nombre completo
                 _buildSectionLabel('Nombre completo'),
                 const SizedBox(height: 6),
@@ -252,8 +266,9 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   validator: AppValidators.validateName,
                   onChanged: widget.onNameChanged,
                 ),
-                const SizedBox(height: 18),
 
+                    ]),
+                    campo([
                 // Correo electrónico
                 _buildSectionLabel('Correo electrónico'),
                 const SizedBox(height: 6),
@@ -271,8 +286,9 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   validator: AppValidators.validateEmail,
                   onChanged: widget.onEmailChanged,
                 ),
-                const SizedBox(height: 18),
 
+                    ]),
+                    campo([
                 // Teléfono
                 _buildSectionLabel('Teléfono (${widget.phoneDigits} dígitos)'),
                 const SizedBox(height: 6),
@@ -295,7 +311,10 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   ),
                   onChanged: widget.onPhoneChanged,
                 ),
-              ],
+                    ]),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 20),
