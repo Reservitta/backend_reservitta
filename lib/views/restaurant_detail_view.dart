@@ -181,7 +181,13 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
       appBar: AppBar(
         title: Text(
           r.nombre,
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            fontFamily: AppTheme.familiaTitulos,
+            fontWeight: FontWeight.w700,
+            fontVariations: [FontVariation('wght', 700)],
+          ),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -200,7 +206,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                 key: const ValueKey('btn_appbar_preorden_cache'),
                 icon: Badge(
                   label: Text('$count'),
-                  backgroundColor: const Color(0xFFE4572E),
+                  backgroundColor: AppColors.acento,
                   child: const Icon(Icons.shopping_bag_outlined),
                 ),
                 tooltip: 'Ver preorden en caché',
@@ -208,256 +214,365 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
               );
             },
           ),
+          const SizedBox(width: 8),
         ],
       ),
-      body: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-            // Cabecera con imagen o portada
-            Container(
-              height: 220,
-              width: double.infinity,
-              color: theme.colorScheme.primaryContainer.withAlpha(80),
-              child: r.imagenPrincipalUrl.isNotEmpty
-                  ? Image.network(
-                      r.imagenPrincipalUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => _buildFallbackBanner(theme, r),
-                    )
-                  : _buildFallbackBanner(theme, r),
-            ),
-
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Título y Estado
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          r.nombre,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          r.estado.toUpperCase(),
-                          style: TextStyle(
-                            color: Colors.green.shade800,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
+      body: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildPortada(theme, r),
+            Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1120),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 48),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final dosColumnas = constraints.maxWidth >= 860;
+                      final principal = _buildColumnaPrincipal(theme, r);
+                      final lateral = _buildColumnaReserva(theme, r);
+                      if (dosColumnas) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: principal),
+                            const SizedBox(width: 32),
+                            SizedBox(width: 360, child: lateral),
+                          ],
+                        );
+                      }
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          lateral,
+                          const SizedBox(height: 28),
+                          principal,
+                        ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 12),
-
-                  // Dirección
-                  if (r.direccion.isNotEmpty) ...[
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(Icons.location_on_outlined, size: 20, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            r.direccion,
-                            style: theme.textTheme.bodyMedium,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  // Teléfono
-                  if (r.telefono.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Icon(Icons.phone_outlined, size: 20, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(r.telefono, style: theme.textTheme.bodyMedium),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  // Correo
-                  if (r.correo.isNotEmpty) ...[
-                    Row(
-                      children: [
-                        Icon(Icons.email_outlined, size: 20, color: theme.colorScheme.primary),
-                        const SizedBox(width: 8),
-                        Text(r.correo, style: theme.textTheme.bodyMedium),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-
-                  // Descripción
-                  if (r.descripcion.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      r.descripcion,
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-
-                  // Horarios
-                  if (r.horarios.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'Horarios de Atención',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest.withAlpha(80),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Column(
-                        children: r.horarios.entries.map((e) {
-                          final s = e.value;
-                          final dia = e.key[0].toUpperCase() + e.key.substring(1);
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(dia, style: const TextStyle(fontWeight: FontWeight.w500)),
-                                Text(
-                                  s.abierto ? '${s.apertura} - ${s.cierre}' : 'Cerrado',
-                                  style: TextStyle(
-                                    color: s.abierto ? Colors.green.shade700 : Colors.red.shade400,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                  ],
-
-                  // Servicios disponibles
-                  if (r.serviciosIds.isNotEmpty || r.serviciosPersonalizados.isNotEmpty) ...[
-                    const SizedBox(height: 24),
-                    Text(
-                      'Servicios e Instalaciones',
-                      style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: [
-                        ...r.serviciosIds.map((id) => Chip(
-                              label: Text(_formatearServicio(id)),
-                              avatar: const Icon(Icons.check, size: 16),
-                            )),
-                        ...r.serviciosPersonalizados.map((p) => Chip(
-                              label: Text(p),
-                              avatar: const Icon(Icons.star_outline, size: 16),
-                            )),
-                      ],
-                    ),
-                  ],
-
-                  const SizedBox(height: 32),
-                  const Divider(),
-                  const SizedBox(height: 16),
-
-                  // Menú del restaurante
-                  Row(
-                    children: [
-                      Icon(Icons.restaurant_menu, color: theme.colorScheme.primary),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Menú y Platillos',
-                        style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  _buildMenuSection(theme),
-
-                  const SizedBox(height: 36),
-
-                  // Botón al final de la información del restaurante: "Haz tu Reserva"
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    child: FilledButton.icon(
-                      key: const ValueKey('boton_reservar_mesa'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.marca,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        elevation: 3,
-                      ),
-                      icon: const Icon(Icons.calendar_month_outlined, size: 22),
-                      label: const Text(
-                        'Haz tu Reserva',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                      onPressed: _onReservarPressed,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                ),
               ),
             ),
           ],
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 
-  Widget _buildFallbackBanner(ThemeData theme, RestaurantModel r) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+  /// Portada a todo el ancho con el nombre y la dirección sobre la foto.
+  Widget _buildPortada(ThemeData theme, RestaurantModel r) {
+    final Widget fondo = r.imagenPrincipalUrl.isNotEmpty
+        ? Image.network(
+            r.imagenPrincipalUrl,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => _buildFallbackBanner(theme, r),
+          )
+        : _buildFallbackBanner(theme, r);
+    final conFoto = r.imagenPrincipalUrl.isNotEmpty;
+
+    return SizedBox(
+      height: 300,
+      child: Stack(
+        fit: StackFit.expand,
         children: [
-          Icon(Icons.restaurant, size: 64, color: theme.colorScheme.primary),
-          const SizedBox(height: 8),
-          Text(
-            r.nombre,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
-              color: theme.colorScheme.primary,
+          fondo,
+          DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Colors.transparent,
+                  (conFoto ? Colors.black : AppColors.marca).withValues(alpha: 0.72),
+                ],
+                stops: const [0.35, 1],
+              ),
+            ),
+          ),
+          Align(
+            alignment: Alignment.bottomCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1120),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 22),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.95),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.circle, size: 8, color: AppColors.exito),
+                          const SizedBox(width: 6),
+                          Text(
+                            r.estado.toUpperCase(),
+                            style: const TextStyle(
+                              color: AppColors.exito,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      r.nombre,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.familiaTitulos,
+                        fontWeight: FontWeight.w700,
+                        fontVariations: [FontVariation('wght', 700)],
+                        fontSize: 38,
+                        height: 1.1,
+                        letterSpacing: -0.6,
+                        color: Colors.white,
+                      ),
+                    ),
+                    if (r.direccion.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 18, color: Colors.white),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              r.direccion,
+                              style: const TextStyle(color: Colors.white, fontSize: 15),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _titulo(String texto, {IconData? icono}) {
+    return Row(
+      children: [
+        if (icono != null) ...[
+          Icon(icono, color: AppColors.marca, size: 24),
+          const SizedBox(width: 10),
+        ],
+        Flexible(
+          child: Text(
+            texto,
+            style: const TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              fontSize: 24,
+              color: AppColors.texto,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  /// Descripción, servicios y menú.
+  Widget _buildColumnaPrincipal(ThemeData theme, RestaurantModel r) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (r.descripcion.isNotEmpty) ...[
+          Text(
+            r.descripcion,
+            style: theme.textTheme.bodyLarge?.copyWith(
+              color: AppColors.textoSuave,
+              height: 1.55,
+            ),
+          ),
+          const SizedBox(height: 32),
+        ],
+
+        // Servicios disponibles
+        if (r.serviciosIds.isNotEmpty || r.serviciosPersonalizados.isNotEmpty) ...[
+          _titulo('Servicios e Instalaciones'),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              ...r.serviciosIds.map((id) => Chip(
+                    label: Text(_formatearServicio(id)),
+                    avatar: const Icon(Icons.check, size: 16, color: AppColors.exito),
+                    backgroundColor: AppColors.superficie,
+                  )),
+              ...r.serviciosPersonalizados.map((p) => Chip(
+                    label: Text(p),
+                    avatar: const Icon(Icons.star_outline, size: 16, color: AppColors.acento),
+                    backgroundColor: AppColors.superficie,
+                  )),
+            ],
+          ),
+          const SizedBox(height: 32),
+        ],
+
+        // Menú del restaurante
+        _titulo('Menú y Platillos', icono: Icons.restaurant_menu),
+        const SizedBox(height: 16),
+        _buildMenuSection(theme),
+      ],
+    );
+  }
+
+  /// Tarjeta lateral: reservar, contacto y horarios.
+  Widget _buildColumnaReserva(ThemeData theme, RestaurantModel r) {
+    return Card(
+      elevation: 0,
+      color: AppColors.superficie,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: const BorderSide(color: AppColors.divisor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Reserva tu mesa',
+              style: TextStyle(
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                fontSize: 22,
+                color: AppColors.texto,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Elige fecha, hora y la mesa que prefieras.',
+              style: TextStyle(color: AppColors.textoSuave, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            FilledButton.icon(
+              key: const ValueKey('boton_reservar_mesa'),
+              style: FilledButton.styleFrom(
+                minimumSize: const Size.fromHeight(54),
+              ),
+              icon: const Icon(Icons.calendar_month_outlined, size: 22),
+              label: const Text(
+                'Haz tu Reserva',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+              ),
+              onPressed: _onReservarPressed,
+            ),
+
+            // Contacto
+            if (r.telefono.isNotEmpty || r.correo.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              const Divider(),
+              const SizedBox(height: 12),
+              if (r.telefono.isNotEmpty)
+                _filaContacto(Icons.phone_outlined, r.telefono),
+              if (r.correo.isNotEmpty)
+                _filaContacto(Icons.email_outlined, r.correo),
+            ],
+
+            // Horarios
+            if (r.horarios.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 14),
+              const Text(
+                'Horarios de Atención',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  color: AppColors.texto,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ...r.horarios.entries.map((e) {
+                final h = e.value;
+                final dia = e.key[0].toUpperCase() + e.key.substring(1);
+                return Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 4),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(dia, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      Text(
+                        h.abierto ? '${h.apertura} - ${h.cierre}' : 'Cerrado',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w600,
+                          color: h.abierto ? AppColors.exito : AppColors.error,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _filaContacto(IconData icono, String texto) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Icon(icono, size: 20, color: AppColors.marca),
+          const SizedBox(width: 12),
+          Expanded(child: Text(texto, style: const TextStyle(fontSize: 15))),
+        ],
+      ),
+    );
+  }
+
+  /// Portada sin foto: degradado café con la inicial del restaurante.
+  Widget _buildFallbackBanner(ThemeData theme, RestaurantModel r) {
+    final nombre = r.nombre.trim();
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.marcaSuave, AppColors.marcaMedia],
+        ),
+      ),
+      child: Align(
+        alignment: const Alignment(0, -0.35),
+        child: Container(
+          width: 88,
+          height: 88,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.85),
+            shape: BoxShape.circle,
+          ),
+          child: nombre.isEmpty
+              ? const Icon(Icons.restaurant, size: 40, color: AppColors.marca)
+              : Text(
+                  nombre.characters.first.toUpperCase(),
+                  style: const TextStyle(
+                    fontFamily: AppTheme.familiaTitulos,
+                    fontSize: 40,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.marca,
+                  ),
+                ),
+        ),
       ),
     );
   }
@@ -508,9 +623,12 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: Text(
                           cat.nombre,
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.familiaTitulos,
+                            fontWeight: FontWeight.w700,
+                            fontVariations: [FontVariation('wght', 700)],
+                            fontSize: 19,
+                            color: AppColors.marca,
                           ),
                         ),
                       ),
@@ -536,133 +654,6 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
     return PlatilloMenuCard(
       platillo: p,
       mode: PlatilloCardMode.readOnly,
-    );
-  }
-
-  Widget _oldBuildDishTile(ThemeData theme, PlatilloModel p) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: theme.colorScheme.outlineVariant.withAlpha(100)),
-      ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        // Preordenar reservado para etapas posteriores del flujo de reserva
-        onTap: null,
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer.withAlpha(50),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: p.imagenUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Image.network(
-                          p.imagenUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) => Icon(
-                            Icons.fastfood_outlined,
-                            color: theme.colorScheme.primary,
-                          ),
-                        ),
-                      )
-                    : Icon(
-                        Icons.fastfood_outlined,
-                        color: theme.colorScheme.primary,
-                      ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            p.nombre,
-                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                          ),
-                        ),
-                        if (p.permitePersonalizacion)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFEBF3FA),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: const Text(
-                              'Personalizable',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF1E5288),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                    if (p.descripcion.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(
-                        p.descripcion,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: theme.colorScheme.onSurfaceVariant,
-                        ),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          '\$${p.precio.toStringAsFixed(2)} MXN',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.primary,
-                            fontSize: 14,
-                          ),
-                        ),
-                        // NOTA: Botón de preordenar conservado para el formulario de reserva
-                        // (se integrará más adelante en los pasos posteriores actualmente bajo construcción)
-                        /*
-                        OutlinedButton.icon(
-                          key: ValueKey('btn_preordenar_${p.id}'),
-                          icon: const Icon(Icons.add_shopping_cart, size: 14),
-                          label: const Text('Preordenar', style: TextStyle(fontSize: 12)),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            visualDensity: VisualDensity.compact,
-                          ),
-                          onPressed: () async {
-                            final item = await PreordenItemDialog.show(context, platillo: p);
-                            if (item != null && mounted) {
-                              _procesarPreordenItem(item);
-                            }
-                          },
-                        ),
-                        */
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
