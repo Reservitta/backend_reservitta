@@ -344,220 +344,150 @@ class _LandingViewState extends State<LandingView> {
     );
   }
 
-  /// Barra horizontal que combina el control de Ubicación (HU02-RF03 Criterio 1)
-  /// y los filtros por servicios de restaurantes
+  /// Barra de búsqueda con tres campos (ubicación, fecha y hora, personas) y los
+  /// filtros por servicios debajo. HU02-RF03, HU03-RF02 y HU04-RF02.
   Widget _buildFiltersBar(ThemeData theme) {
-    final isLocationActive = _viewModel.isLocationFilterActive;
+    final segmentos = [
+      _SegmentoFiltro(
+        key: const ValueKey('boton_filtro_ubicacion'),
+        icono: _viewModel.isLocationFilterActive
+            ? Icons.my_location
+            : Icons.location_on_outlined,
+        titulo: 'Dónde',
+        valor: _viewModel.isLocationFilterActive
+            ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
+            : 'Cerca de mí / Ubicación',
+        activo: _viewModel.isLocationFilterActive,
+        onTap: () => LocationFilterSheet.show(context, _viewModel),
+      ),
+      _SegmentoFiltro(
+        key: const ValueKey('boton_filtro_fecha_hora'),
+        icono: _viewModel.isDateTimeFilterActive
+            ? Icons.event_available
+            : Icons.calendar_today_outlined,
+        titulo: 'Cuándo',
+        valor: _viewModel.isDateTimeFilterActive
+            ? _viewModel.selectedDateTimeFormatted!
+            : 'Fecha y hora',
+        activo: _viewModel.isDateTimeFilterActive,
+        onTap: _openNativeDateTimePicker,
+      ),
+      _SegmentoFiltro(
+        key: const ValueKey('boton_filtro_cantidad_personas'),
+        icono: _viewModel.isGuestCountFilterActive
+            ? Icons.group
+            : Icons.group_outlined,
+        titulo: 'Cuántos',
+        valor: _viewModel.isGuestCountFilterActive
+            ? _viewModel.selectedGuestCountFormatted!
+            : 'Personas',
+        activo: _viewModel.isGuestCountFilterActive,
+        onTap: _openGuestCountPicker,
+      ),
+    ];
 
-    return Container(
-      height: 52,
-      margin: const EdgeInsets.only(top: 12),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        scrollDirection: Axis.horizontal,
+    final servicios = _viewModel.availableServices;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Botón directo para limpiar todos los filtros con un solo toque
-          if (_viewModel.hasActiveFilters)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ActionChip(
-                key: const ValueKey('boton_limpiar_filtros_barra'),
-                avatar: const Icon(
-                  Icons.filter_alt_off,
-                  size: 16,
-                  color: AppColors.marca,
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.superficie,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: AppColors.divisor),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.marca.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
-                label: const Text(
-                  'Limpiar filtros',
-                  style: TextStyle(
-                    color: AppColors.marca,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                backgroundColor: AppColors.fondo,
-                side: const BorderSide(color: AppColors.marca, width: 1.2),
-                onPressed: () {
-                  _searchController.clear();
-                  _viewModel.clearFilters();
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(20),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final ancho = constraints.maxWidth >= 640;
+                  if (ancho) {
+                    return IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < segmentos.length; i++) ...[
+                            if (i > 0)
+                              const VerticalDivider(width: 1, color: AppColors.divisor),
+                            Expanded(child: segmentos[i]),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (var i = 0; i < segmentos.length; i++) ...[
+                        if (i > 0) const Divider(height: 1, color: AppColors.divisor),
+                        segmentos[i],
+                      ],
+                    ],
+                  );
                 },
               ),
             ),
-
-          // Control principal de filtro de ubicación (HU02-RF03 Criterio 1)
-          ActionChip(
-            key: const ValueKey('boton_filtro_ubicacion'),
-            elevation: isLocationActive ? 2 : 0,
-            shadowColor: theme.colorScheme.primary.withAlpha(90),
-            avatar: Icon(
-              isLocationActive ? Icons.my_location : Icons.location_on,
-              size: 18,
-              color: isLocationActive
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
-            ),
-            side: BorderSide(
-              color: isLocationActive
-                  ? Colors.transparent
-                  : theme.colorScheme.primary.withAlpha(120),
-              width: 1.2,
-            ),
-            backgroundColor: isLocationActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primaryContainer.withAlpha(70),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
+          ),
+          if (_viewModel.hasActiveFilters || servicios.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  isLocationActive
-                      ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
-                      : 'Cerca de mí / Ubicación',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isLocationActive
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                if (isLocationActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
+                // Botón directo para limpiar todos los filtros con un solo toque
+                if (_viewModel.hasActiveFilters)
+                  ActionChip(
+                    key: const ValueKey('boton_limpiar_filtros_barra'),
+                    avatar: const Icon(
+                      Icons.filter_alt_off,
+                      size: 16,
+                      color: AppColors.marca,
                     ),
+                    label: const Text(
+                      'Limpiar filtros',
+                      style: TextStyle(
+                        color: AppColors.marca,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    backgroundColor: AppColors.marcaSuave,
+                    side: BorderSide.none,
+                    onPressed: () {
+                      _searchController.clear();
+                      _viewModel.clearFilters();
+                    },
                   ),
-                ],
+
+                // Chips de servicios disponibles
+                for (final s in servicios)
+                  FilterChip(
+                    key: ValueKey('filtro_servicio_${s.id}'),
+                    selected: _viewModel.selectedServiceId == s.id,
+                    label: Text(s.nombre),
+                    showCheckmark: true,
+                    checkmarkColor: AppColors.sobreMarca,
+                    selectedColor: AppColors.marca,
+                    backgroundColor: AppColors.superficie,
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: _viewModel.selectedServiceId == s.id
+                          ? AppColors.sobreMarca
+                          : AppColors.texto,
+                    ),
+                    onSelected: (_) => _viewModel.toggleServiceFilter(s.id),
+                  ),
               ],
             ),
-            onPressed: () {
-              LocationFilterSheet.show(context, _viewModel);
-            },
-          ),
-          const SizedBox(width: 8),
-
-          // Control de filtro de fecha y hora (HU03-RF02 Criterios 1, 2, 3)
-          ActionChip(
-            key: const ValueKey('boton_filtro_fecha_hora'),
-            elevation: _viewModel.isDateTimeFilterActive ? 2 : 0,
-            shadowColor: theme.colorScheme.primary.withAlpha(90),
-            avatar: Icon(
-              _viewModel.isDateTimeFilterActive
-                  ? Icons.event_available
-                  : Icons.calendar_today_outlined,
-              size: 18,
-              color: _viewModel.isDateTimeFilterActive
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
-            ),
-            side: BorderSide(
-              color: _viewModel.isDateTimeFilterActive
-                  ? Colors.transparent
-                  : theme.colorScheme.primary.withAlpha(120),
-              width: 1.2,
-            ),
-            backgroundColor: _viewModel.isDateTimeFilterActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primaryContainer.withAlpha(70),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _viewModel.isDateTimeFilterActive
-                      ? _viewModel.selectedDateTimeFormatted!
-                      : 'Fecha y hora',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _viewModel.isDateTimeFilterActive
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                if (_viewModel.isDateTimeFilterActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            onPressed: _openNativeDateTimePicker,
-          ),
-          const SizedBox(width: 8),
-
-          // Control de filtro de cantidad de personas (HU04-RF02 Criterios 1, 2, 3)
-          ActionChip(
-            key: const ValueKey('boton_filtro_cantidad_personas'),
-            elevation: _viewModel.isGuestCountFilterActive ? 2 : 0,
-            shadowColor: theme.colorScheme.primary.withAlpha(90),
-            avatar: Icon(
-              _viewModel.isGuestCountFilterActive
-                  ? Icons.group
-                  : Icons.group_outlined,
-              size: 18,
-              color: _viewModel.isGuestCountFilterActive
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
-            ),
-            side: BorderSide(
-              color: _viewModel.isGuestCountFilterActive
-                  ? Colors.transparent
-                  : theme.colorScheme.primary.withAlpha(120),
-              width: 1.2,
-            ),
-            backgroundColor: _viewModel.isGuestCountFilterActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primaryContainer.withAlpha(70),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _viewModel.isGuestCountFilterActive
-                      ? _viewModel.selectedGuestCountFormatted!
-                      : 'Personas',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _viewModel.isGuestCountFilterActive
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                if (_viewModel.isGuestCountFilterActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            onPressed: _openGuestCountPicker,
-          ),
-          const SizedBox(width: 8),
-
-          // Chips de servicios disponibles
-          ..._viewModel.availableServices.map((s) {
-            final isSelected = _viewModel.selectedServiceId == s.id;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                key: ValueKey('filtro_servicio_${s.id}'),
-                selected: isSelected,
-                label: Text(s.nombre),
-                onSelected: (_) => _viewModel.toggleServiceFilter(s.id),
-              ),
-            );
-          }),
+          ],
         ],
       ),
     );
@@ -1520,6 +1450,77 @@ class _RestaurantCard extends StatelessWidget {
                     color: AppColors.marca,
                   ),
                 ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Un campo de la barra de búsqueda: título pequeño arriba y el valor abajo.
+class _SegmentoFiltro extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String valor;
+  final bool activo;
+  final VoidCallback onTap;
+
+  const _SegmentoFiltro({
+    super.key,
+    required this.icono,
+    required this.titulo,
+    required this.valor,
+    required this.activo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: activo,
+      label: '$titulo: $valor',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          color: activo ? AppColors.marcaSuave : null,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(icono, size: 22, color: AppColors.marca),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textoSuave,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      valor,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                        color: activo ? AppColors.marca : AppColors.texto,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.expand_more, size: 20, color: AppColors.textoSuave),
+            ],
+          ),
         ),
       ),
     );
