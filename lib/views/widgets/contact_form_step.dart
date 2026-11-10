@@ -173,7 +173,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
             '¿Cómo te contactamos?',
             style: TextStyle(
               fontSize: 22,
-              fontFamily: 'serif',
+              fontFamily: AppTheme.familiaTitulos,
               fontWeight: FontWeight.bold,
               color: ContactFormStep.darkText,
             ),

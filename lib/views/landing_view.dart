@@ -258,7 +258,7 @@ class _LandingViewState extends State<LandingView> {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Color(0xFFFBE9E0), AppColors.fondo],
+          colors: [Color(0xFFF1E6DA), AppColors.fondo],
         ),
       ),
       child: Center(
@@ -1370,8 +1370,10 @@ class _RestaurantCard extends StatelessWidget {
                   Text(
                     restaurant.nombre,
                     style: const TextStyle(
+                      fontFamily: AppTheme.familiaTitulos,
                       fontWeight: FontWeight.w700,
-                      fontSize: 18,
+                      fontVariations: [FontVariation('wght', 700)],
+                      fontSize: 19,
                       color: AppColors.texto,
                     ),
                     maxLines: 1,
@@ -1419,7 +1421,7 @@ class _RestaurantCard extends StatelessWidget {
                     child: FilledButton.tonalIcon(
                       key: ValueKey('boton_ver_detalle_${restaurant.id}'),
                       style: FilledButton.styleFrom(
-                        backgroundColor: const Color(0xFFFBE9E0),
+                        backgroundColor: AppColors.marcaSuave,
                         foregroundColor: AppColors.marca,
                       ),
                       onPressed: onTap,
@@ -1496,7 +1498,7 @@ class _RestaurantCard extends StatelessWidget {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFFBE9E0), Color(0xFFF3C9B6)],
+          colors: [AppColors.marcaSuave, AppColors.marcaMedia],
         ),
       ),
       child: Center(

@@ -77,6 +77,12 @@ flutter:
     - assets/images/
     - .env
 
+  # Fraunces (SIL OFL, ver assets/fonts/OFL-Fraunces.txt): letra de los títulos.
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces.ttf
+
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 

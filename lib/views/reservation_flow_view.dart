@@ -513,7 +513,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             'Haz tu reserva',
             style: TextStyle(
               fontSize: 24,
-              fontFamily: 'serif',
+              fontFamily: AppTheme.familiaTitulos,
               fontWeight: FontWeight.bold,
               color: darkText,
             ),
@@ -1192,7 +1192,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             'Elige cuándo quieres visitarnos y nosotros nos encargamos del resto.',
             style: TextStyle(
               fontSize: 18,
-              fontFamily: 'serif',
+              fontFamily: AppTheme.familiaTitulos,
               fontWeight: FontWeight.bold,
               color: Colors.white,
               height: 1.3,
@@ -1432,7 +1432,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           '¿Qué día quieres visitarnos?',
           style: TextStyle(
             fontSize: 22,
-            fontFamily: 'serif',
+            fontFamily: AppTheme.familiaTitulos,
             fontWeight: FontWeight.bold,
             color: darkText,
           ),
@@ -1592,7 +1592,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 '$mesNombre $year',
                 style: const TextStyle(
                   fontSize: 16,
-                  fontFamily: 'serif',
+                  fontFamily: AppTheme.familiaTitulos,
                   fontWeight: FontWeight.bold,
                   color: darkText,
                 ),
@@ -1865,7 +1865,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           '¿Cuánto tiempo planeas quedarte?',
           style: TextStyle(
             fontSize: 22,
-            fontFamily: 'serif',
+            fontFamily: AppTheme.familiaTitulos,
             fontWeight: FontWeight.bold,
             color: darkText,
           ),
@@ -1996,7 +1996,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           '¿Para cuántas personas?',
           style: TextStyle(
             fontSize: 22,
-            fontFamily: 'serif',
+            fontFamily: AppTheme.familiaTitulos,
             fontWeight: FontWeight.bold,
             color: darkText,
           ),
@@ -2053,7 +2053,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     key: const ValueKey('texto_contador_personas'),
                     style: const TextStyle(
                       fontSize: 54,
-                      fontFamily: 'serif',
+                      fontFamily: AppTheme.familiaTitulos,
                       fontWeight: FontWeight.bold,
                       color: darkText,
                       height: 1.0,

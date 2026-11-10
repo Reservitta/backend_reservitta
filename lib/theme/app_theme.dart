@@ -7,16 +7,25 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  static const marca = Color(0xFFB34A26);
+  /// Café: color principal de la marca.
+  static const marca = Color(0xFF6F4528);
+
+  /// Caramelo oscuro: acentos y detalles (también cumple contraste para texto).
+  static const acento = Color(0xFF9A5B13);
+
+  /// Café muy claro para fondos tonales (botones suaves, portadas sin foto).
+  static const marcaSuave = Color(0xFFF1E6DA);
+  static const marcaMedia = Color(0xFFE3CDB5);
   static const sobreMarca = Color(0xFFFFFFFF);
-  static const fondo = Color(0xFFFBF8F4);
+  /// Blanco perla.
+  static const fondo = Color(0xFFFAF7F2);
   static const superficie = Color(0xFFFFFFFF);
-  static const texto = Color(0xFF2E241E);
-  static const textoSuave = Color(0xFF6B5F56);
-  static const divisor = Color(0xFFEDE4D8);
+  static const texto = Color(0xFF2B1D14);
+  static const textoSuave = Color(0xFF6A5B50);
+  static const divisor = Color(0xFFE9E1D6);
 
   /// Borde de campos y controles: contraste mínimo de 3:1 contra el fondo.
-  static const borde = Color(0xFF8A7B70);
+  static const borde = Color(0xFF8C7B6E);
   static const error = Color(0xFFB3261E);
   static const exito = Color(0xFF2E7D32);
 }
@@ -36,6 +45,30 @@ class AppSpacing {
 
 class AppTheme {
   AppTheme._();
+
+  /// Letra de los títulos: Fraunces, serif suave y con carácter gastronómico.
+  /// El texto corrido usa la letra básica del sistema para que se lea fácil.
+  static const familiaTitulos = 'Fraunces';
+
+  static TextTheme _textos(TextTheme base) {
+    TextStyle? titulo(TextStyle? e, FontWeight peso) => e?.copyWith(
+          fontFamily: familiaTitulos,
+          fontWeight: peso,
+          fontVariations: [FontVariation('wght', peso.value.toDouble())],
+          color: AppColors.texto,
+        );
+    return base
+        .copyWith(
+          displayLarge: titulo(base.displayLarge, FontWeight.w700),
+          displayMedium: titulo(base.displayMedium, FontWeight.w700),
+          displaySmall: titulo(base.displaySmall, FontWeight.w700),
+          headlineLarge: titulo(base.headlineLarge, FontWeight.w700),
+          headlineMedium: titulo(base.headlineMedium, FontWeight.w700),
+          headlineSmall: titulo(base.headlineSmall, FontWeight.w600),
+          titleLarge: titulo(base.titleLarge, FontWeight.w600),
+        )
+        .apply(bodyColor: AppColors.texto, displayColor: AppColors.texto);
+  }
 
   static ThemeData get claro {
     final esquema = ColorScheme.fromSeed(seedColor: AppColors.marca).copyWith(
@@ -61,6 +94,7 @@ class AppTheme {
       useMaterial3: true,
       colorScheme: esquema,
       scaffoldBackgroundColor: AppColors.fondo,
+      textTheme: _textos(ThemeData(brightness: Brightness.light).textTheme),
       visualDensity: VisualDensity.standard,
       materialTapTargetSize: MaterialTapTargetSize.padded,
       appBarTheme: const AppBarTheme(

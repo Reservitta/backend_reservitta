@@ -280,7 +280,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                       const Text(
                                         'Menú',
                                         style: TextStyle(
-                                          fontFamily: 'serif',
+                                          fontFamily: AppTheme.familiaTitulos,
                                           fontSize: 28,
                                           fontWeight: FontWeight.bold,
                                           color: PlatilloListView._textDark,

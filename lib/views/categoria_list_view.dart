@@ -244,7 +244,7 @@ class _CategoriaListViewState extends State<CategoriaListView> {
                                       Text(
                                         'Categorías',
                                         style: TextStyle(
-                                          fontFamily: 'serif',
+                                          fontFamily: AppTheme.familiaTitulos,
                                           fontSize: 28,
                                           fontWeight: FontWeight.bold,
                                           color: CategoriaListView._textDark,

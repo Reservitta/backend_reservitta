@@ -234,7 +234,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                 const Text(
                   'Reservas',
                   style: TextStyle(
-                    fontFamily: 'serif',
+                    fontFamily: AppTheme.familiaTitulos,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AdminReservationsView._textDark,

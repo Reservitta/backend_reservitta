@@ -115,7 +115,7 @@ class DashboardView extends StatelessWidget {
               const Text(
                 'Dashboard',
                 style: TextStyle(
-                  fontFamily: 'serif',
+                  fontFamily: AppTheme.familiaTitulos,
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: _textDark,

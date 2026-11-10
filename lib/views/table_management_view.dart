@@ -113,7 +113,7 @@ class TableManagementView extends StatelessWidget {
                             child: Text(
                               'Mesas',
                               style: TextStyle(
-                                fontFamily: 'serif',
+                                fontFamily: AppTheme.familiaTitulos,
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
                                 color: _textDark,

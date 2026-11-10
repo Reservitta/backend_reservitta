@@ -30,6 +30,7 @@ void main() {
           greaterThanOrEqualTo(4.5),
         );
         expect(contraste(AppColors.marca, fondo), greaterThanOrEqualTo(4.5));
+        expect(contraste(AppColors.acento, fondo), greaterThanOrEqualTo(4.5));
         expect(contraste(AppColors.error, fondo), greaterThanOrEqualTo(4.5));
         expect(contraste(AppColors.exito, fondo), greaterThanOrEqualTo(4.5));
       }

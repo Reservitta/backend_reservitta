@@ -59,7 +59,7 @@ class OrdersView extends StatelessWidget {
                       const Text(
                         'Pedidos',
                         style: TextStyle(
-                          fontFamily: 'serif',
+                          fontFamily: AppTheme.familiaTitulos,
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
                           color: _textDark,
