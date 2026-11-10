@@ -476,7 +476,9 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 680),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width >= anchoPantallaUnica ? 1400 : 680,
+                  ),
                   child: Column(
                     children: [
                       // Encabezado
@@ -513,12 +515,13 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     final enFormulario = step <= 5;
     final etapa = enFormulario ? _etapaWeb : (step == 6 ? 5 : 6);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1120),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
-          child: Column(
+    // Datos de contacto y preparar visita son formularios de campos: se centran
+    // con un ancho cómodo; el resto usa todo el ancho de la pantalla.
+    final anchoContenido = (step == 7 || step == 8) ? 900.0 : double.infinity;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
             children: [
               EncabezadoReservaWeb(
                 etapaActual: etapa,
@@ -549,7 +552,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                         )
                       : Center(
                           child: ConstrainedBox(
-                            constraints: BoxConstraints(maxWidth: step == 6 ? 1000 : 680),
+                            constraints: BoxConstraints(maxWidth: anchoContenido),
                             child: Padding(
                               padding: const EdgeInsets.only(bottom: 20),
                               child: _buildCurrentStepContent(step),
@@ -561,13 +564,11 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               if (!enFormulario)
                 Center(
                   child: ConstrainedBox(
-                    constraints: BoxConstraints(maxWidth: step == 6 ? 1000 : 680),
+                    constraints: BoxConstraints(maxWidth: anchoContenido),
                     child: _buildBottomActionBar(step),
                   ),
                 ),
             ],
-          ),
-        ),
       ),
     );
   }
@@ -786,122 +787,100 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
 
     return Container(
       key: const ValueKey('tarjeta_personalizar'),
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppColors.marca, Color(0xFF8A5530)],
-        ),
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.marca.withValues(alpha: 0.28),
-            blurRadius: 24,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        color: AppColors.marcaSuave,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.marca, width: 1.4),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.18),
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: AppColors.marca,
               shape: BoxShape.circle,
             ),
             child: Icon(
               personalizada ? Icons.check_rounded : Icons.auto_awesome,
               color: Colors.white,
-              size: 28,
+              size: 22,
             ),
           ),
-          const SizedBox(width: 18),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
                   children: [
-                    Flexible(
-                      child: Text(
-                        personalizada ? 'Tu visita está personalizada' : 'Personaliza tu visita',
-                        style: const TextStyle(
-                          fontFamily: AppTheme.familiaTitulos,
-                          fontWeight: FontWeight.w700,
-                          fontVariations: [FontVariation('wght', 700)],
-                          fontSize: 24,
-                          color: Colors.white,
-                        ),
+                    Text(
+                      personalizada ? 'Tu visita está personalizada' : 'Personaliza tu visita',
+                      style: const TextStyle(
+                        fontFamily: AppTheme.familiaTitulos,
+                        fontWeight: FontWeight.w700,
+                        fontVariations: [FontVariation('wght', 700)],
+                        fontSize: 19,
+                        color: darkText,
                       ),
                     ),
-                    if (!personalizada) ...[
-                      const SizedBox(width: 10),
+                    if (!personalizada)
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.22),
+                          color: Colors.white,
                           borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: AppColors.marca.withValues(alpha: 0.35)),
                         ),
                         child: const Text(
                           'Opcional',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppColors.marca,
                           ),
                         ),
                       ),
-                    ],
                   ],
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
                 Text(
                   personalizada
                       ? detalles.join(' · ')
-                      : 'Pre-ordena tus platillos, avisa de alergias o celebra una ocasión especial. Si prefieres, reserva sin personalizar.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    height: 1.4,
-                    color: Colors.white.withValues(alpha: 0.9),
-                  ),
+                      : 'Pre-ordena platillos, avisa de alergias o celebra una ocasión especial.',
+                  style: const TextStyle(fontSize: 14, height: 1.35, color: mutedText),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 18),
-          SizedBox(
-            width: 230,
-            child: Column(
+          const SizedBox(width: 16),
+          Row(
             mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (personalizada)
+                TextButton(
+                  key: const ValueKey('btn_quitar_personalizacion'),
+                  onPressed: _viewModel.clearPersonalizacion,
+                  child: const Text('Quitar'),
+                ),
               FilledButton.icon(
                 key: const ValueKey('btn_personalizar_resumen'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colors.white,
-                  foregroundColor: AppColors.marca,
-                  minimumSize: const Size(0, 50),
-                  padding: const EdgeInsets.symmetric(horizontal: 22),
+                  minimumSize: const Size(0, 46),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
                 ),
                 onPressed: _personalizarDesdeResumen,
                 icon: Icon(personalizada ? Icons.edit_outlined : Icons.tune, size: 18),
                 label: Text(
                   personalizada ? 'Editar' : 'Personalizar mi visita',
-                  style: const TextStyle(fontWeight: FontWeight.w800),
+                  style: const TextStyle(fontWeight: FontWeight.w700),
                 ),
               ),
-              if (personalizada)
-                TextButton(
-                  key: const ValueKey('btn_quitar_personalizacion'),
-                  style: TextButton.styleFrom(foregroundColor: Colors.white),
-                  onPressed: _viewModel.clearPersonalizacion,
-                  child: const Text('Quitar'),
-                ),
             ],
-            ),
           ),
         ],
       ),

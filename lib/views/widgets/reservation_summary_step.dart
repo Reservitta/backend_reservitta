@@ -359,7 +359,9 @@ class ReservationSummaryStep extends StatelessWidget {
               padding: const EdgeInsets.all(20),
               child: LayoutBuilder(
                 builder: (context, c) {
-                  final columnas = c.maxWidth >= 760 ? 3 : (c.maxWidth >= 460 ? 2 : 1);
+                  final columnas = (c.maxWidth >= 1100 && tiles.length == 5)
+                      ? 5
+                      : (c.maxWidth >= 760 ? 3 : (c.maxWidth >= 460 ? 2 : 1));
                   const hueco = 14.0;
                   final ancho = (c.maxWidth - hueco * (columnas - 1)) / columnas;
                   return Wrap(
