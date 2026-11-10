@@ -150,11 +150,11 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
 
   // Paleta de colores institucional
   static const Color terracotta = AppColors.marca;
-  static const Color creamBg = Color(0xFFFAF6F0);
+  static const Color creamBg = AppColors.fondo;
   static const Color darkText = AppColors.texto;
   static const Color mutedText = AppColors.textoSuave;
   static const Color cardBorder = AppColors.divisor;
-  static const Color creamAccent = Color(0xFFF3ECE1);
+  static const Color creamAccent = AppColors.marcaSuave;
 
   @override
   void initState() {
@@ -457,7 +457,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+                  constraints: const BoxConstraints(maxWidth: 680),
                   child: Column(
                     children: [
                       // Encabezado
@@ -512,7 +512,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           const Text(
             'Haz tu reserva',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 28,
               fontFamily: AppTheme.familiaTitulos,
               fontWeight: FontWeight.bold,
               color: darkText,
@@ -619,7 +619,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                           ),
                           const SizedBox(height: 4),
                           SizedBox(
-                            width: 32,
+                            width: double.infinity,
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.center,
@@ -1469,7 +1469,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               borderRadius: BorderRadius.circular(14),
               border: Border.all(
                 color: _viewModel.isDateSelectable(_viewModel.draft.fecha!)
-                    ? const Color(0xFFE89375)
+                    ? AppColors.marca
                     : Colors.red.shade300,
                 width: 1.5,
               ),
@@ -2198,7 +2198,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE89375)),
+                  border: Border.all(color: AppColors.marca),
                 ),
                 alignment: Alignment.center,
                 child: const Text(
@@ -2218,8 +2218,8 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               child: FilledButton(
                 key: const ValueKey('btn_comenzar_reserva'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: canAdvance ? terracotta : const Color(0xFFE6DACB),
-                  foregroundColor: canAdvance ? Colors.white : const Color(0xFF8A7B6D),
+                  backgroundColor: canAdvance ? terracotta : AppColors.divisor,
+                  foregroundColor: canAdvance ? Colors.white : AppColors.textoSuave,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
@@ -2252,10 +2252,10 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       style: FilledButton.styleFrom(
         backgroundColor: (canAdvance && !_isProcessing)
             ? terracotta
-            : const Color(0xFFE6DACB),
+            : AppColors.divisor,
         foregroundColor: (canAdvance && !_isProcessing)
             ? Colors.white
-            : const Color(0xFF8A7B6D),
+            : AppColors.textoSuave,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),

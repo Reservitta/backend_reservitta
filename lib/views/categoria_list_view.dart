@@ -31,8 +31,8 @@ class CategoriaListView extends StatefulWidget {
   static const Color _primary = Color(0xFFE4572E);
   static const Color _lightBg = AppColors.fondo;
   static const Color _cardBorder = AppColors.divisor;
-  static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _creamLight = Color(0xFFFAF5ED);
+  static const Color _creamAccent = AppColors.marcaSuave;
+  static const Color _creamLight = AppColors.fondo;
   static const Color _textDark = AppColors.texto;
   static const Color _textMuted = AppColors.textoSuave;
   static const Color _error = Color(0xFFD84A38);

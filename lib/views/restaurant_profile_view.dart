@@ -34,7 +34,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
   static const Color _lightBg = AppColors.fondo;
   static const Color _cardBg = Color(0xFFFFFFFF);
   static const Color _cardBorder = AppColors.divisor;
-  static const Color _creamAccent = Color(0xFFF3ECE1);
+  static const Color _creamAccent = AppColors.marcaSuave;
   static const Color _textDark = AppColors.texto;
   static const Color _textMuted = AppColors.textoSuave;
 

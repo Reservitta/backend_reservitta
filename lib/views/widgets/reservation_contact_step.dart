@@ -18,7 +18,7 @@ class ReservationContactStep extends StatefulWidget {
   static const Color darkText = AppColors.texto;
   static const Color mutedText = AppColors.textoSuave;
   static const Color cardBorder = AppColors.divisor;
-  static const Color creamBg = Color(0xFFFAF6F0);
+  static const Color creamBg = AppColors.fondo;
 
   const ReservationContactStep({
     super.key,

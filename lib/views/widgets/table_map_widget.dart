@@ -61,7 +61,7 @@ class TableStateStyle {
         return const TableStateStyle(
           fill: Color(0xFFEDEAE6),
           border: Color(0xFFBDB3A7),
-          foreground: Color(0xFF8A7B6D),
+          foreground: AppColors.textoSuave,
           icon: Icons.event_busy_outlined,
           label: 'No disponible',
         );

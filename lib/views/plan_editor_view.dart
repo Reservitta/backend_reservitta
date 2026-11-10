@@ -602,7 +602,7 @@ class _MesaTile extends StatelessWidget {
         ? PlanEditorView.errorRed
         : seleccionada
         ? PlanEditorView.terracotta
-        : const Color(0xFF8A7B6D);
+        : AppColors.textoSuave;
 
     return Positioned(
       left: mesa.x ?? 0,

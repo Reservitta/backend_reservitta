@@ -694,7 +694,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
       key: const ValueKey('modal_password_constraints'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF6F0),
+        color: AppColors.fondo,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.divisor),
       ),

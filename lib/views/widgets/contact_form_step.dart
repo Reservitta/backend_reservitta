@@ -62,11 +62,11 @@ class ContactFormStep extends StatefulWidget {
   });
 
   static const Color terracotta = AppColors.marca;
-  static const Color creamBg = Color(0xFFFAF6F0);
+  static const Color creamBg = AppColors.fondo;
   static const Color darkText = AppColors.texto;
   static const Color mutedText = AppColors.textoSuave;
   static const Color cardBorder = AppColors.divisor;
-  static const Color creamAccent = Color(0xFFF3ECE1);
+  static const Color creamAccent = AppColors.marcaSuave;
 
   @override
   State<ContactFormStep> createState() => _ContactFormStepState();
