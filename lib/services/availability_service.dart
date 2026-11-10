@@ -704,6 +704,49 @@ class AvailabilityService {
     );
   }
 
+  /// Plano con el estado de cada mesa en una hora concreta ([inicio]): ocupada si
+  /// otra reserva se traslapa con [inicio, inicio + duracionMin]. Sin plano
+  /// configurado devuelve todas las mesas para mostrarlas en lista.
+  Future<FloorPlanResult> getFloorPlanAtTime({
+    required RestaurantModel restaurant,
+    required DateTime inicio,
+    int duracionMin = 90,
+  }) async {
+    final todas = await _loadMesas(restaurant);
+    if (todas.isEmpty) return const FloorPlanResult.sinPlano();
+
+    final conPosicion = todas.where((m) => m.tienePosicion).toList();
+    final configurado = conPosicion.isNotEmpty;
+    final mesas = configurado ? conPosicion : todas;
+
+    final zonas = await _loadZonas(restaurant.id);
+    final disponibilidad = await checkAvailability(
+      restaurant: restaurant,
+      inicio: inicio,
+      duracionMin: duracionMin,
+    );
+    final reason = disponibilidad.reason == AvailabilityFailure.sinDisponibilidad
+        ? null
+        : disponibilidad.reason;
+
+    return FloorPlanResult(
+      configurado: configurado,
+      zonas: zonas,
+      reason: reason,
+      mesas: [
+        for (final m in mesas)
+          PlanoMesa(
+            mesa: m,
+            estado: reason != null
+                ? MesaEstado.noDisponible
+                : (disponibilidad.mesasBloqueadasIds.contains(m.id)
+                    ? MesaEstado.ocupada
+                    : MesaEstado.disponible),
+          ),
+      ],
+    );
+  }
+
   /// Mesas que se pueden reservar: las que el administrador marcó fuera de servicio
   /// (HU31-RF01) no se ofrecen.
   Future<List<MesaModel>> _loadMesas(RestaurantModel restaurant) async {

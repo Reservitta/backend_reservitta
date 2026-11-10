@@ -25,6 +25,7 @@ import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
 import '../utils/schedule_utils.dart';
 import '../theme/app_theme.dart';
+import 'widgets/reservation_web_form.dart';
 
 /// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01, HU13, HU14).
 /// Implementa los pasos: Sucursal, Fecha, Duración, Personas, Mesa, Horario,
@@ -146,6 +147,9 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   /// Cambia cuando la selección se invalida para recargar los pasos de mesa y horario.
   int _stepReload = 0;
 
+  /// Etapa (0 a 4) que reporta el formulario web de una sola pantalla.
+  int _etapaWeb = 0;
+
   // Mes visible en el selector de calendario
   late DateTime _visibleMonth;
 
@@ -193,8 +197,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     super.dispose();
   }
 
+  /// En pantallas anchas los pasos 1 a 5 son una sola vista.
+  bool get _esPantallaUnica =>
+      MediaQuery.sizeOf(context).width >= anchoPantallaUnica;
+
   void _handleBack() {
-    if (_viewModel.currentStep > 0) {
+    if (_esPantallaUnica && _viewModel.currentStep >= 1 && _viewModel.currentStep <= 5) {
+      _viewModel.goToStep(0);
+    } else if (_viewModel.currentStep > 0) {
       // Retrocede en el flujo conservando los datos ya elegidos (HU07-RF01)
       _viewModel.previousStep();
     } else {
@@ -452,6 +462,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         animation: _viewModel,
         builder: (context, _) {
           final step = _viewModel.currentStep;
+          final pantallaUnica = _esPantallaUnica && step >= 1;
+
+          if (pantallaUnica) {
+            return Scaffold(
+              backgroundColor: creamBg,
+              body: SafeArea(child: _buildPantallaUnica(step)),
+            );
+          }
 
           return Scaffold(
             backgroundColor: creamBg,
@@ -484,6 +502,72 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // PANTALLA ÚNICA (WEB): fecha, duración, personas, horario y mesa en una vista
+  // ---------------------------------------------------------------------------
+  Widget _buildPantallaUnica(int step) {
+    final enFormulario = step <= 5;
+    final etapa = enFormulario ? _etapaWeb : (step == 6 ? 5 : 6);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1120),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            children: [
+              EncabezadoReservaWeb(
+                etapaActual: etapa,
+                onVolver: _handleBack,
+                onCancelar: _confirmCancelFlow,
+                onIrAEtapa: enFormulario
+                    ? null
+                    : (i) => _viewModel.goToStep(i <= 4 ? 1 : 6),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: enFormulario
+                      ? FormularioReservaWeb(
+                          viewModel: _viewModel,
+                          restaurant: widget.restaurant,
+                          availability: _availabilityService,
+                          recarga: _stepReload,
+                          procesando: _isProcessing,
+                          onEtapaCambia: (e) {
+                            if (e != _etapaWeb && mounted) {
+                              setState(() => _etapaWeb = e);
+                            }
+                          },
+                          onContinuar: () {
+                            _viewModel.goToStep(5);
+                            _revalidateThenAdvance();
+                          },
+                        )
+                      : Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 680),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: _buildCurrentStepContent(step),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              if (!enFormulario)
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 680),
+                    child: _buildBottomActionBar(step),
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -680,6 +764,129 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildStep6ResumenSelection() {
+    final resumen = _buildResumenBase();
+    if (!_esPantallaUnica || !widget.enablePrepareVisitStep) return resumen;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        resumen,
+        const SizedBox(height: 20),
+        _buildTarjetaPersonalizar(),
+      ],
+    );
+  }
+
+  /// Opción de personalizar la visita dentro del resumen (pre-orden, alergias,
+  /// ocasión especial). Es opcional: sin personalizar se reserva igual.
+  Widget _buildTarjetaPersonalizar() {
+    final draft = _viewModel.draft;
+    final personalizada = draft.tienePersonalizacion;
+
+    final detalles = <String>[
+      if (draft.preordenItems.isNotEmpty)
+        '${draft.preordenItems.length} ${draft.preordenItems.length == 1 ? 'platillo' : 'platillos'} pre-ordenados',
+      if (draft.alergias.isNotEmpty || draft.notasAlergias.trim().isNotEmpty) 'Alergias indicadas',
+      if (draft.ocasionEspecial != null) 'Ocasión especial',
+    ];
+
+    return Container(
+      key: const ValueKey('tarjeta_personalizar'),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: personalizada ? AppColors.marca : cardBorder,
+          width: personalizada ? 1.6 : 1,
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: AppColors.marcaSuave,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              personalizada ? Icons.check_circle_outline : Icons.restaurant_menu,
+              color: AppColors.marca,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  personalizada ? 'Tu visita está personalizada' : 'Personaliza tu visita (opcional)',
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: darkText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  personalizada
+                      ? detalles.join(' · ')
+                      : 'Pre-ordena platillos, avisa de alergias o indica una ocasión especial. Si no quieres, reserva así.',
+                  style: const TextStyle(fontSize: 13, color: mutedText, height: 1.35),
+                ),
+                const SizedBox(height: 12),
+                Wrap(
+                  spacing: 10,
+                  runSpacing: 8,
+                  children: [
+                    OutlinedButton.icon(
+                      key: const ValueKey('btn_personalizar_resumen'),
+                      onPressed: _personalizarDesdeResumen,
+                      icon: Icon(personalizada ? Icons.edit_outlined : Icons.tune, size: 18),
+                      label: Text(personalizada ? 'Editar personalización' : 'Personalizar mi visita'),
+                    ),
+                    if (personalizada)
+                      TextButton(
+                        key: const ValueKey('btn_quitar_personalizacion'),
+                        onPressed: _viewModel.clearPersonalizacion,
+                        child: const Text('Quitar'),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Abre la pantalla de personalizar y, al confirmar, vuelve al resumen
+  /// (no crea la reserva todavía).
+  Future<void> _personalizarDesdeResumen() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PersonalizeVisitView(
+          restaurant: widget.restaurant,
+          draft: _viewModel.draft,
+          categoriaService: widget.categoriaService,
+          platilloService: widget.platilloService,
+          ocasionService: widget.ocasionService,
+          authService: _authService,
+          isAuthenticated: _hasRealSession,
+          onConfirm: (actualizado) async {
+            _viewModel.setPreordenItems(actualizado.preordenItems);
+            _viewModel.setAlergias(actualizado.alergias, notas: actualizado.notasAlergias);
+            _viewModel.setOcasionEspecial(actualizado.ocasionEspecial, actualizado.experiencias);
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumenBase() {
     final draft = _viewModel.draft;
     return ReservationSummaryStep(
       key: ValueKey(
@@ -842,7 +1049,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           return;
         }
       }
-      if (widget.enablePrepareVisitStep) {
+      if (widget.enablePrepareVisitStep && !_esPantallaUnica) {
         _viewModel.goToStep(8);
       } else {
         await _bookReservation();

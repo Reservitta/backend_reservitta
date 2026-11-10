@@ -90,6 +90,10 @@ class TableSelectionViewModel extends ChangeNotifier {
   final void Function(List<String> espacios)? onEspaciosChanged;
   final List<String> initialSelectedIds;
 
+  /// Hora de inicio ya elegida. Con ella el plano muestra qué mesas están libres
+  /// a esa hora; sin ella, a nivel de día.
+  final DateTime? inicio;
+
   TableSelectionViewModel({
     required this.restaurant,
     required this.availability,
@@ -99,6 +103,7 @@ class TableSelectionViewModel extends ChangeNotifier {
     required this.onSelectionChanged,
     this.onEspaciosChanged,
     this.initialSelectedIds = const [],
+    this.inicio,
   });
 
   bool _isLoading = true;
@@ -260,17 +265,32 @@ class TableSelectionViewModel extends ChangeNotifier {
     _error = null;
     notifyListeners();
     try {
-      _plan = await availability.getFloorPlanForDate(
-        restaurant: restaurant,
-        fecha: fecha,
-        duracionMin: duracionMin,
-      );
-      _suggestions = await availability.findSuitableTablesForDate(
-        restaurant: restaurant,
-        fecha: fecha,
-        personas: personas,
-        duracionMin: duracionMin,
-      );
+      final hora = inicio;
+      if (hora != null) {
+        _plan = await availability.getFloorPlanAtTime(
+          restaurant: restaurant,
+          inicio: hora,
+          duracionMin: duracionMin,
+        );
+        _suggestions = await availability.findSuitableTables(
+          restaurant: restaurant,
+          inicio: hora,
+          personas: personas,
+          duracionMin: duracionMin,
+        );
+      } else {
+        _plan = await availability.getFloorPlanForDate(
+          restaurant: restaurant,
+          fecha: fecha,
+          duracionMin: duracionMin,
+        );
+        _suggestions = await availability.findSuitableTablesForDate(
+          restaurant: restaurant,
+          fecha: fecha,
+          personas: personas,
+          duracionMin: duracionMin,
+        );
+      }
       _restoreSelection();
       _elegirEspacioInicial();
     } catch (e) {

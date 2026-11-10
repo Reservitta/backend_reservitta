@@ -286,7 +286,7 @@ class ReservationDraftViewModel extends ChangeNotifier {
 
   /// Guarda en el borrador la mesa o combinación elegida. Cambiar de mesa
   /// invalida el horario, porque los horarios libres dependen de las mesas.
-  void setSelectedTables(List<MesaModel> mesas) {
+  void setSelectedTables(List<MesaModel> mesas, {bool conservarHorario = false}) {
     final newIds = mesas.map((m) => m.id).toList();
     final oldIds = _draft.mesaIds;
     final sameTables = newIds.length == oldIds.length &&
@@ -298,7 +298,20 @@ class ReservationDraftViewModel extends ChangeNotifier {
     _draft = _draft.copyWith(
       mesaIds: newIds,
       mesasNombres: mesas.map((m) => m.nombre).toList(),
-      horario: () => null,
+      horario: conservarHorario ? () => _draft.horario : () => null,
+    );
+    notifyListeners();
+  }
+
+  /// Elige la hora de inicio antes que la mesa (pantalla web de una sola vista).
+  /// Cambiar la hora descarta las mesas: pueden no estar libres a la nueva hora.
+  void selectHorario(TimeOfDay hora) {
+    if (_draft.horario == hora) return;
+    _draft = _draft.copyWith(
+      horario: () => hora,
+      mesaIds: const [],
+      mesasNombres: const [],
+      espaciosNombres: const [],
     );
     notifyListeners();
   }

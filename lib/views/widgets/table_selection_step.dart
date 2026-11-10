@@ -17,6 +17,9 @@ class TableSelectionStep extends StatefulWidget {
   final int personas;
   final int duracionMin;
   final List<String> initialSelectedIds;
+
+  /// Hora ya elegida: el plano muestra las mesas libres a esa hora.
+  final DateTime? inicio;
   final void Function(List<MesaModel> mesas) onSelectionChanged;
 
   /// Espacios (piso, patio…) de la mesa elegida, para el resumen (HU34-RF04).
@@ -36,6 +39,7 @@ class TableSelectionStep extends StatefulWidget {
     this.onEspaciosChanged,
     required this.onChangeStep,
     this.initialSelectedIds = const [],
+    this.inicio,
   });
 
   @override
@@ -62,6 +66,7 @@ class _TableSelectionStepState extends State<TableSelectionStep> {
       onSelectionChanged: widget.onSelectionChanged,
       onEspaciosChanged: widget.onEspaciosChanged,
       initialSelectedIds: widget.initialSelectedIds,
+      inicio: widget.inicio,
     )..load();
   }
 
