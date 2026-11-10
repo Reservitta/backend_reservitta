@@ -192,44 +192,58 @@ class _LandingViewState extends State<LandingView> {
           ),
           body: RefreshIndicator(
             onRefresh: _viewModel.refresh,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1080),
-                child: CustomScrollView(
+            // Ocupa todo el ancho: el fondo del encabezado llega a los bordes y
+            // el contenido se limita a un ancho cómodo de lectura y se centra.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final lateral = ((constraints.maxWidth - 1240) / 2).clamp(0.0, 10000.0);
+                Widget centrado(Widget sliver) => SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: lateral),
+                      sliver: sliver,
+                    );
+                return CustomScrollView(
                   controller: _scrollController,
                   slivers: [
-                    // 1. Hero Banner y Buscador
+                    // 1. Hero Banner y Buscador (a todo el ancho)
                     SliverToBoxAdapter(
                       child: _buildHeroSection(theme),
                     ),
 
                     // 1.5. Menú especial de acceso rápido a "Mi pedido" (solo con sesión iniciada)
                     if (_viewModel.isUserAuthenticated)
-                      SliverToBoxAdapter(
-                        child: _buildAccesoRapidoMiPedido(theme),
+                      centrado(
+                        SliverToBoxAdapter(
+                          child: _buildAccesoRapidoMiPedido(theme),
+                        ),
                       ),
 
                     // 1.6. Recordatorio de reservas próximas (HU21-RF02)
                     if (_viewModel.isUserAuthenticated)
-                      SliverToBoxAdapter(
-                        child: UpcomingReminderBanner(
-                          cargar: widget.cargarRecordatorios,
+                      centrado(
+                        SliverToBoxAdapter(
+                          child: UpcomingReminderBanner(
+                            cargar: widget.cargarRecordatorios,
+                          ),
                         ),
                       ),
 
                     // 2. Filtros de Ubicación y Servicios
-                    SliverToBoxAdapter(
-                      child: _buildFiltersBar(theme),
+                    centrado(
+                      SliverToBoxAdapter(
+                        child: _buildFiltersBar(theme),
+                      ),
                     ),
 
                     // 3. Barra de Filtros Activos
                     if (_viewModel.hasActiveFilters)
-                      SliverToBoxAdapter(
-                        child: _buildActiveFiltersBar(theme),
+                      centrado(
+                        SliverToBoxAdapter(
+                          child: _buildActiveFiltersBar(theme),
+                        ),
                       ),
 
                     // 4. Lista o Grid de Restaurantes
-                    _buildRestaurantsContent(theme),
+                    centrado(_buildRestaurantsContent(theme)),
 
                     // 5. Indicador de carga de más elementos al final
                     if (_viewModel.isLoadingMore)
@@ -242,8 +256,8 @@ class _LandingViewState extends State<LandingView> {
 
                     const SliverToBoxAdapter(child: SizedBox(height: 32)),
                   ],
-                ),
-              ),
+                );
+              },
             ),
           ),
         );
@@ -719,7 +733,9 @@ class _LandingViewState extends State<LandingView> {
         builder: (context, constraints) {
           final width = constraints.crossAxisExtent;
           final int crossAxisCount;
-          if (width > 800) {
+          if (width > 1100) {
+            crossAxisCount = 4;
+          } else if (width > 800) {
             crossAxisCount = 3;
           } else if (width > 500) {
             crossAxisCount = 2;
