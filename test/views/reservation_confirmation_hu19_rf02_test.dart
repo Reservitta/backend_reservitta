@@ -329,4 +329,60 @@ void main() {
       expect(onDoneCalled, isTrue);
     });
   });
+
+  group('Rediseño de la confirmación', () {
+    Future<void> abrir(WidgetTester tester, ReservationModel r, {double ancho = 1400}) async {
+      tester.view.physicalSize = Size(ancho, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      await tester.pumpWidget(MaterialApp(home: ReservationConfirmationView(reservation: r)));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('en pantalla ancha usa dos columnas: boleto a la izquierda y acciones a la derecha',
+        (tester) async {
+      await abrir(tester, reservaTest);
+
+      final boleto = tester.getRect(find.byKey(const ValueKey('confirmation_details')));
+      final volver = tester.getRect(find.byKey(const ValueKey('btn_confirmation_done')));
+      expect(volver.left, greaterThan(boleto.right), reason: 'las acciones van a la derecha');
+      expect(find.text('Qué sigue'), findsOneWidget);
+      expect(find.byKey(const ValueKey('codigo_reserva')), findsOneWidget);
+      expect(find.text('res_abc123'), findsOneWidget);
+    });
+
+    testWidgets('en pantalla angosta todo va en una sola columna', (tester) async {
+      await abrir(tester, reservaTest, ancho: 500);
+
+      final boleto = tester.getRect(find.byKey(const ValueKey('confirmation_details')));
+      final volver = tester.getRect(find.byKey(const ValueKey('btn_confirmation_done')));
+      expect(volver.top, greaterThan(boleto.bottom));
+    });
+
+    testWidgets('sin enlace de gestión no ofrece gestionar; con enlace sí', (tester) async {
+      await abrir(tester, reservaTest);
+      expect(find.byKey(const ValueKey('btn_gestionar_desde_confirmacion')), findsNothing);
+
+      final conEnlace = reservaTest.copyWith(tokenGestion: 'ABCDEFGHJKMNPQRSTUVW');
+      await abrir(tester, conEnlace);
+      expect(find.byKey(const ValueKey('btn_gestionar_desde_confirmacion')), findsOneWidget);
+    });
+
+    testWidgets('una reserva sin mesa explica que el restaurante la asigna', (tester) async {
+      final sinMesa = ReservationModel.create(
+        id: 'res_sin_mesa',
+        restauranteId: 'rest_001',
+        restauranteNombre: 'Miel Aurum',
+        fechaLocal: '2026-11-20',
+        inicio: DateTime(2026, 11, 20, 14, 0),
+        duracionMin: 90,
+        personas: 2,
+        usuarioId: 'u',
+        estado: 'confirmada',
+      );
+      await abrir(tester, sinMesa);
+      expect(find.text('El restaurante te la asignará'), findsOneWidget);
+    });
+  });
 }

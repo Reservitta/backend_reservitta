@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../models/notification_delivery_result.dart';
 import '../models/operations_config.dart';
 import '../models/reservation_model.dart';
@@ -6,6 +7,7 @@ import '../models/reservation_notification_payload.dart';
 import '../services/confirmation_notification_service.dart';
 import '../services/reminder_service.dart';
 import '../theme/app_theme.dart';
+import 'reservation_management_view.dart';
 
 /// Pantalla de confirmación con los datos de la reserva guardada (HU11-RF04, HU19-RF01, HU19-RF02).
 ///
@@ -203,190 +205,474 @@ class _ReservationConfirmationViewState
 
   @override
   Widget build(BuildContext context) {
-    final mesas = widget.reservation.mesasNombres.isNotEmpty
-        ? widget.reservation.mesasNombres.join(' + ')
-        : (widget.reservation.mesaIds.isNotEmpty
-            ? widget.reservation.mesaIds.join(' + ')
+    final r = widget.reservation;
+    final mesas = r.mesasNombres.isNotEmpty
+        ? r.mesasNombres.join(' + ')
+        : (r.mesaIds.isNotEmpty
+            ? r.mesaIds.join(' + ')
             : 'El restaurante te la asignará');
+
+    final banner = _deliveryResult == null
+        ? _buildPendingDeliveryBanner()
+        : (_deliveryResult!.exitoso
+            ? _buildSuccessDeliveryBanner()
+            : _buildFailureDeliveryBanner());
+
+    final ticket = _buildTicket(mesas);
+    final siguiente = _buildQueSigue();
 
     return PopScope(
       canPop: false,
       child: Scaffold(
         backgroundColor: ReservationConfirmationView.creamBg,
         body: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 520),
-              child: ListView(
-                padding: const EdgeInsets.all(24),
-                children: [
-                  const SizedBox(height: 12),
-                  Center(
-                    child: Container(
-                      padding: const EdgeInsets.all(18),
-                      decoration: BoxDecoration(
-                        color: Colors.green.shade50,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.check_circle,
-                        color: AppColors.exito,
-                        size: 56,
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildEncabezado(),
+                Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1240),
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 8, 24, 40),
+                      child: LayoutBuilder(
+                        builder: (context, c) {
+                          if (c.maxWidth >= 900) {
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 3, child: ticket),
+                                const SizedBox(width: 28),
+                                Expanded(
+                                  flex: 2,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      banner,
+                                      const SizedBox(height: 18),
+                                      siguiente,
+                                      const SizedBox(height: 22),
+                                      _buildAcciones(),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              banner,
+                              const SizedBox(height: 18),
+                              ticket,
+                              const SizedBox(height: 18),
+                              siguiente,
+                              const SizedBox(height: 22),
+                              _buildAcciones(),
+                            ],
+                          );
+                        },
                       ),
                     ),
                   ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    '¡Reserva confirmada!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Encabezado con la palomita, el título y el código de la reserva.
+  Widget _buildEncabezado() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 40, 24, 28),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.marcaSuave, AppColors.fondo],
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 84,
+            height: 84,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              shape: BoxShape.circle,
+              border: Border.all(color: AppColors.exito.withValues(alpha: 0.35), width: 3),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.exito.withValues(alpha: 0.18),
+                  blurRadius: 22,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: const Icon(Icons.check_rounded, color: AppColors.exito, size: 48),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            '¡Reserva confirmada!',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              fontSize: 38,
+              height: 1.1,
+              letterSpacing: -0.6,
+              color: ReservationConfirmationView.darkText,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'Te esperamos. Estos son los datos de tu visita.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 16, color: ReservationConfirmationView.mutedText),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            key: const ValueKey('codigo_reserva'),
+            padding: const EdgeInsets.fromLTRB(16, 6, 6, 6),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: ReservationConfirmationView.cardBorder),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.confirmation_number_outlined,
+                    size: 20, color: ReservationConfirmationView.terracotta),
+                const SizedBox(width: 10),
+                const Text(
+                  'Código de reserva',
+                  style: TextStyle(fontSize: 13, color: ReservationConfirmationView.mutedText),
+                ),
+                const SizedBox(width: 12),
+                Flexible(
+                  child: Text(
+                    widget.reservation.id,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.6,
                       color: ReservationConfirmationView.darkText,
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  const Text(
-                    'Te esperamos. Estos son los datos de tu visita.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
+                ),
+                IconButton(
+                  key: const ValueKey('btn_copiar_codigo'),
+                  tooltip: 'Copiar código',
+                  icon: const Icon(Icons.copy_rounded, size: 18),
+                  onPressed: () async {
+                    await Clipboard.setData(ClipboardData(text: widget.reservation.id));
+                    if (!mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Código copiado'),
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  },
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Boleto con los datos principales destacados y el resto en lista.
+  Widget _buildTicket(String mesas) {
+    final r = widget.reservation;
+
+    Widget destacado(IconData icono, String etiqueta, String valor, {String? unidad}) {
+      return Expanded(
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+          decoration: BoxDecoration(
+            color: AppColors.fondo,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: ReservationConfirmationView.cardBorder),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(icono, size: 18, color: ReservationConfirmationView.terracotta),
+                  const SizedBox(width: 8),
+                  Text(
+                    etiqueta,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
                       color: ReservationConfirmationView.mutedText,
                     ),
                   ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              Text(
+                valor,
+                style: const TextStyle(
+                  fontFamily: AppTheme.familiaTitulos,
+                  fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
+                  fontSize: 22,
+                  height: 1.15,
+                  color: ReservationConfirmationView.darkText,
+                ),
+              ),
+              if (unidad != null) ...[
+                const SizedBox(height: 2),
+                Text(
+                  unidad,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: ReservationConfirmationView.mutedText,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      );
+    }
 
-                  // -----------------------------------------------------------
-                  // HU19-RF02 Criterio 1: Confirmación enviada con éxito
-                  // -----------------------------------------------------------
-                  if (_deliveryResult != null && _deliveryResult!.exitoso) ...[
-                    const SizedBox(height: 16),
-                    _buildSuccessDeliveryBanner(),
-                  ],
-
-                  // -----------------------------------------------------------
-                  // HU19-RF02 Criterio 2: Envío fallido pero reserva confirmada
-                  // -----------------------------------------------------------
-                  if (_deliveryResult != null && !_deliveryResult!.exitoso) ...[
-                    const SizedBox(height: 16),
-                    _buildFailureDeliveryBanner(),
-                  ],
-
-                  // -----------------------------------------------------------
-                  // Caso sin notificación previa enviada (opción manual)
-                  // -----------------------------------------------------------
-                  if (_deliveryResult == null) ...[
-                    const SizedBox(height: 16),
-                    _buildPendingDeliveryBanner(),
-                  ],
-
-                  const SizedBox(height: 24),
-                  Container(
-                    key: const ValueKey('confirmation_details'),
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: ReservationConfirmationView.cardBorder,
+    return Container(
+      key: const ValueKey('confirmation_details'),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: ReservationConfirmationView.cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.marca.withValues(alpha: 0.07),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Container(
+              padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
+              color: AppColors.marca,
+              child: Row(
+                children: [
+                  const Icon(Icons.storefront, color: Colors.white, size: 26),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Text(
+                      r.restauranteNombre,
+                      style: const TextStyle(
+                        fontFamily: AppTheme.familiaTitulos,
+                        fontWeight: FontWeight.w700,
+                        fontVariations: [FontVariation('wght', 700)],
+                        fontSize: 24,
+                        color: Colors.white,
                       ),
-                    ),
-                    child: Column(
-                      children: [
-                        _row(Icons.storefront, 'Restaurante',
-                            widget.reservation.restauranteNombre),
-                        _row(Icons.calendar_today, 'Fecha', _fecha),
-                        _row(Icons.schedule, 'Horario', _horario),
-                        _row(Icons.timer_outlined, 'Duración', _duracion),
-                        _row(Icons.people_outline, 'Personas',
-                            '${widget.reservation.personas}'),
-                        _row(Icons.table_restaurant_outlined,
-                            widget.reservation.mesaIds.length > 1 ? 'Mesas' : 'Mesa', mesas),
-                        _row(
-                          Icons.notifications_active_outlined,
-                          'Canal de confirmación',
-                          _canalConfirmacionTexto,
-                        ),
-                        if (widget.reservation.contactoNombre.isNotEmpty)
-                          _row(Icons.person_outline, 'Nombre',
-                              widget.reservation.contactoNombre),
-                        if (widget.reservation.contactoCorreo.isNotEmpty)
-                          _row(Icons.email_outlined, 'Correo',
-                              widget.reservation.contactoCorreo),
-                        if (widget.reservation.contactoTelefono.isNotEmpty)
-                          _row(Icons.phone_outlined, 'Teléfono',
-                              widget.reservation.contactoTelefono),
-                        if (widget.reservation.esOcasionEspecial)
-                          _row(Icons.celebration_outlined, 'Ocasión',
-                              widget.reservation.nombreOcasionEspecial),
-                        if (widget.reservation.tienePreorden)
-                          _row(Icons.restaurant_menu, 'Pedido',
-                              _dinero(widget.reservation.subtotalPreorden)),
-                        if (widget.reservation.totalExperiencias > 0)
-                          _row(Icons.auto_awesome_outlined, 'Experiencias',
-                              _dinero(widget.reservation.totalExperiencias)),
-                        if (widget.reservation.totalPersonalizacion > 0)
-                          _row(Icons.payments_outlined, 'Total por pagar',
-                              _dinero(widget.reservation.totalPersonalizacion)),
-                        _row(Icons.verified_outlined, 'Estado', _estado),
-                        _row(
-                          Icons.confirmation_number_outlined,
-                          'Código',
-                          widget.reservation.id,
-                          last: true,
-                        ),
-                      ],
                     ),
                   ),
-                  if (_textoRecordatorio != null) ...[
-                    const SizedBox(height: 14),
-                    Row(
-                      key: const ValueKey('aviso_recordatorio'),
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Icon(Icons.notifications_active_outlined,
-                            size: 18, color: ReservationConfirmationView.mutedText),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            _textoRecordatorio!,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: ReservationConfirmationView.mutedText,
-                            ),
-                          ),
-                        ),
-                      ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                  ],
-                  const SizedBox(height: 28),
-                  SizedBox(
-                    height: 52,
-                    child: FilledButton(
-                      key: const ValueKey('btn_confirmation_done'),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: ReservationConfirmationView.terracotta,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      onPressed: widget.onDone ??
-                          () => Navigator.of(context)
-                              .popUntil((route) => route.isFirst),
-                      child: const Text(
-                        'Volver al inicio',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    child: Text(
+                      _estado,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  LayoutBuilder(
+                    builder: (context, c) {
+                      final bloques = [
+                        destacado(Icons.calendar_today_outlined, 'Fecha', _fecha),
+                        destacado(Icons.schedule, 'Horario', _horario),
+                        destacado(Icons.groups_outlined, 'Personas', '${r.personas}',
+                            unidad: r.personas == 1 ? 'persona' : 'personas'),
+                      ];
+                      if (c.maxWidth >= 560) {
+                        return IntrinsicHeight(
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              for (var i = 0; i < bloques.length; i++) ...[
+                                if (i > 0) const SizedBox(width: 12),
+                                bloques[i],
+                              ],
+                            ],
+                          ),
+                        );
+                      }
+                      return Column(
+                        children: [
+                          for (var i = 0; i < bloques.length; i++) ...[
+                            if (i > 0) const SizedBox(height: 10),
+                            Row(children: [bloques[i]]),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 20),
+                  _row(Icons.timer_outlined, 'Duración', _duracion),
+                  _row(Icons.table_restaurant_outlined,
+                      r.mesaIds.length > 1 ? 'Mesas' : 'Mesa', mesas),
+                  _row(
+                    Icons.notifications_active_outlined,
+                    'Canal de confirmación',
+                    _canalConfirmacionTexto,
+                  ),
+                  if (r.contactoNombre.isNotEmpty)
+                    _row(Icons.person_outline, 'Nombre', r.contactoNombre),
+                  if (r.contactoCorreo.isNotEmpty)
+                    _row(Icons.email_outlined, 'Correo', r.contactoCorreo),
+                  if (r.contactoTelefono.isNotEmpty)
+                    _row(Icons.phone_outlined, 'Teléfono', r.contactoTelefono),
+                  if (r.esOcasionEspecial)
+                    _row(Icons.celebration_outlined, 'Ocasión', r.nombreOcasionEspecial),
+                  if (r.tienePreorden)
+                    _row(Icons.restaurant_menu, 'Pedido', _dinero(r.subtotalPreorden)),
+                  if (r.totalExperiencias > 0)
+                    _row(Icons.auto_awesome_outlined, 'Experiencias',
+                        _dinero(r.totalExperiencias)),
+                  if (r.totalPersonalizacion > 0)
+                    _row(Icons.payments_outlined, 'Total por pagar',
+                        _dinero(r.totalPersonalizacion),
+                        last: true)
+                  else
+                    const SizedBox.shrink(),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
+    );
+  }
+
+  /// Aviso del recordatorio y recomendaciones para la visita.
+  Widget _buildQueSigue() {
+    final recordatorio = _textoRecordatorio;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ReservationConfirmationView.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Qué sigue',
+            style: TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              fontSize: 20,
+              color: ReservationConfirmationView.darkText,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (recordatorio != null)
+            Row(
+              key: const ValueKey('aviso_recordatorio'),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.notifications_active_outlined,
+                    size: 20, color: ReservationConfirmationView.terracotta),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    recordatorio,
+                    style: const TextStyle(
+                      fontSize: 14,
+                      height: 1.4,
+                      color: ReservationConfirmationView.darkText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          if (recordatorio != null) const SizedBox(height: 12),
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.schedule, size: 20, color: ReservationConfirmationView.terracotta),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Llega unos minutos antes de tu hora para que te acomoden con calma.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: ReservationConfirmationView.darkText,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAcciones() {
+    final token = widget.reservation.tokenGestion;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        FilledButton(
+          key: const ValueKey('btn_confirmation_done'),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52)),
+          onPressed: widget.onDone ??
+              () => Navigator.of(context).popUntil((route) => route.isFirst),
+          child: const Text(
+            'Volver al inicio',
+            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+          ),
+        ),
+        if (token.isNotEmpty) ...[
+          const SizedBox(height: 10),
+          OutlinedButton.icon(
+            key: const ValueKey('btn_gestionar_desde_confirmacion'),
+            style: OutlinedButton.styleFrom(minimumSize: const Size.fromHeight(48)),
+            icon: const Icon(Icons.event_note_outlined, size: 20),
+            label: const Text('Gestionar mi reserva'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => ReservationManagementView(initialCode: token),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 
