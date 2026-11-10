@@ -71,125 +71,7 @@ class _LandingViewState extends State<LandingView> {
       listenable: _viewModel,
       builder: (context, _) {
         return Scaffold(
-          appBar: AppBar(
-            elevation: 1,
-            titleSpacing: 12,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.restaurant_menu, color: theme.colorScheme.primary, size: 20),
-                const SizedBox(width: 5),
-                const Text(
-                  'Reservitta',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                ),
-              ],
-            ),
-            actions: [
-              // Con o sin sesión se puede gestionar una reserva con su código.
-              IconButton(
-                key: const ValueKey('boton_header_gestionar_reserva'),
-                tooltip: 'Gestionar mi reserva',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.event_note_outlined, size: 20),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ReservationManagementView(),
-                    ),
-                  );
-                },
-              ),
-              if (!_viewModel.isUserAuthenticated) ...[
-                TextButton(
-                  key: const ValueKey('boton_header_registrarse'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: () {
-                    AuthModalDialog.show(
-                      context,
-                      initialMode: AuthMode.registerRoleSelection,
-                    );
-                  },
-                  child: const Text(
-                    'Crear Cuenta',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, right: 10),
-                  child: FilledButton(
-                    key: const ValueKey('boton_header_iniciar_sesion'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      visualDensity: VisualDensity.compact,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () {
-                      AuthModalDialog.show(
-                        context,
-                        initialMode: AuthMode.login,
-                      );
-                    },
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.login, size: 15),
-                        SizedBox(width: 4),
-                        Text(
-                          'Iniciar Sesión',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ] else ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Center(
-                    child: ActionChip(
-                      key: const ValueKey('btn_header_mi_pedido'),
-                      avatar: const Icon(Icons.receipt_long, size: 16, color: Colors.white),
-                      label: const Text(
-                        'Mi pedido',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      backgroundColor: AppColors.marca,
-                      onPressed: () => _abrirMiPedidoRapido(context),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Center(
-                    child: Chip(
-                      avatar: const Icon(Icons.person, size: 16),
-                      label: Text(
-                        _viewModel.currentUserName ?? 'Mi Cuenta',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Cerrar sesión',
-                  onPressed: () => _viewModel.signOut(),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
+          appBar: _buildEncabezado(context, theme),
           body: RefreshIndicator(
             onRefresh: _viewModel.refresh,
             // Ocupa todo el ancho: el fondo del encabezado llega a los bordes y
@@ -262,6 +144,179 @@ class _LandingViewState extends State<LandingView> {
           ),
         );
       },
+    );
+  }
+
+  /// Encabezado: logo con su sello a la izquierda y los accesos a la derecha.
+  /// En pantallas angostas los botones se reducen a íconos para que todo quepa.
+  PreferredSizeWidget _buildEncabezado(BuildContext context, ThemeData theme) {
+    final ancho = MediaQuery.sizeOf(context).width;
+    final amplio = ancho >= 920;
+    final medio = ancho >= 520;
+
+    void gestionarReserva() {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ReservationManagementView()),
+      );
+    }
+
+    return AppBar(
+      toolbarHeight: 72,
+      backgroundColor: AppColors.superficie,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: const Border(bottom: BorderSide(color: AppColors.divisor)),
+      titleSpacing: amplio ? 28 : 16,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.marca,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Icon(
+              Icons.restaurant_menu,
+              color: AppColors.sobreMarca,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Flexible(
+            child: Text(
+            'Reservitta',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              fontSize: 26,
+              letterSpacing: -0.4,
+              color: AppColors.texto,
+            ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        // Con o sin sesión se puede gestionar una reserva con su código.
+        if (amplio)
+          TextButton.icon(
+            key: const ValueKey('boton_header_gestionar_reserva'),
+            icon: const Icon(Icons.event_note_outlined, size: 20),
+            label: const Text(
+              'Gestionar mi reserva',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.texto),
+            onPressed: gestionarReserva,
+          )
+        else
+          IconButton(
+            key: const ValueKey('boton_header_gestionar_reserva'),
+            tooltip: 'Gestionar mi reserva',
+            icon: const Icon(Icons.event_note_outlined),
+            onPressed: gestionarReserva,
+          ),
+        if (!_viewModel.isUserAuthenticated) ...[
+          if (medio)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: OutlinedButton(
+                key: const ValueKey('boton_header_registrarse'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.marca,
+                  side: const BorderSide(color: AppColors.marca, width: 1.4),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                ),
+                onPressed: () => AuthModalDialog.show(
+                  context,
+                  initialMode: AuthMode.registerRoleSelection,
+                ),
+                child: const Text(
+                  'Crear Cuenta',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            )
+          else
+            TextButton(
+              key: const ValueKey('boton_header_registrarse'),
+              onPressed: () => AuthModalDialog.show(
+                context,
+                initialMode: AuthMode.registerRoleSelection,
+              ),
+              child: const Text(
+                'Crear Cuenta',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.only(left: 8, right: amplio ? 28 : 12),
+            child: FilledButton.icon(
+              key: const ValueKey('boton_header_iniciar_sesion'),
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: medio ? 22 : 14),
+              ),
+              onPressed: () =>
+                  AuthModalDialog.show(context, initialMode: AuthMode.login),
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text(
+                'Iniciar Sesión',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ] else ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Center(
+              child: ActionChip(
+                key: const ValueKey('btn_header_mi_pedido'),
+                avatar: const Icon(
+                  Icons.receipt_long,
+                  size: 16,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Mi pedido',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                backgroundColor: AppColors.marca,
+                side: BorderSide.none,
+                onPressed: () => _abrirMiPedidoRapido(context),
+              ),
+            ),
+          ),
+          if (medio)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Center(
+                child: Chip(
+                  avatar: const Icon(Icons.person, size: 16),
+                  label: Text(
+                    _viewModel.currentUserName ?? 'Mi Cuenta',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () => _viewModel.signOut(),
+          ),
+          SizedBox(width: amplio ? 20 : 8),
+        ],
+      ],
     );
   }
 
