@@ -447,7 +447,7 @@ void main() {
 
     test('datos incompletos se rechazan', () async {
       await expectLater(
-        modificar(servicio(antes), mesas: const []),
+        modificar(servicio(antes), personas: 0),
         throwsA(isA<ManagementException>().having(
             (e) => e.failure, 'failure', ManagementFailure.datosInvalidos)),
       );

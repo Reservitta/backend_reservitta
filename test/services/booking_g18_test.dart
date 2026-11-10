@@ -217,11 +217,13 @@ void main() {
       expect(doc.data()!['estado'], ReservationModel.estadoCancelada);
     });
 
-    test('exige restaurante, mesas y hora de inicio', () async {
-      await expectLater(
-        repo.createReservationVerified(_reserva(a(14), mesas: const [])),
-        throwsArgumentError,
-      );
+    test('sin mesas (restaurante sin mapa) la reserva se guarda sin mesa', () async {
+      final creada = await repo.createReservationVerified(_reserva(a(14), mesas: const []));
+      expect(creada.mesaIds, isEmpty);
+      expect(await reservasGuardadas(), 1);
+    });
+
+    test('exige restaurante y hora de inicio', () async {
       await expectLater(
         repo.createReservationVerified(
           ReservationModel.create(

@@ -184,6 +184,8 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       _viewModel.goToStep(1);
     }
 
+    _detectarSinMesas();
+
     final now = _viewModel.clockNow;
     _visibleMonth = DateTime(now.year, now.month, 1);
 
@@ -206,6 +208,18 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       _viewModel.dispose();
     }
     super.dispose();
+  }
+
+  /// Si el restaurante no configuró sus mesas la reserva sigue igual, solo que sin
+  /// elegir mesa: el restaurante la asigna al recibirla.
+  Future<void> _detectarSinMesas() async {
+    try {
+      final tiene = await _availabilityService.restauranteTieneMesas(widget.restaurant);
+      if (!mounted) return;
+      _viewModel.definirSinMesas(!tiene);
+    } catch (_) {
+      // Si no se puede saber, se deja el flujo normal.
+    }
   }
 
   /// En pantallas anchas los pasos 1 a 5 son una sola vista.
@@ -1379,6 +1393,9 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   // ---------------------------------------------------------------------------
   Widget _buildStep4MesaSelection() {
     final draft = _viewModel.draft;
+    if (draft.sinMesaAsignada) {
+      return const AvisoSinMesas(key: ValueKey('aviso_sin_mesas'));
+    }
     return TableSelectionStep(
       key: ValueKey(
         'step_mesas_${draft.fecha}_${draft.duracionMin}_${draft.personas}_$_stepReload',

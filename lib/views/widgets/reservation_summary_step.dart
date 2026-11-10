@@ -162,7 +162,9 @@ class ReservationSummaryStep extends StatelessWidget {
   }
 
   Widget _buildTicketWeb() {
-    final mesasTexto = draft.mesasConEspacio.isNotEmpty ? draft.mesasConEspacio : 'Sin mesa';
+    final mesasTexto = draft.mesasConEspacio.isNotEmpty
+        ? draft.mesasConEspacio
+        : (draft.sinMesaAsignada ? 'El restaurante la asignará' : 'Sin mesa');
     final sucursalTexto = draft.branch?.nombre ??
         (draft.restaurant.direccion.isNotEmpty ? draft.restaurant.direccion : 'Sucursal principal');
     final direccion = draft.branch?.direccion ?? '';
@@ -520,7 +522,9 @@ class ReservationSummaryStep extends StatelessWidget {
   // ---------------------------------------------------------------------------
   Widget _buildSummaryCards() {
     final mesasTexto =
-        draft.mesasConEspacio.isNotEmpty ? draft.mesasConEspacio : 'Sin mesa';
+        draft.mesasConEspacio.isNotEmpty
+        ? draft.mesasConEspacio
+        : (draft.sinMesaAsignada ? 'El restaurante la asignará' : 'Sin mesa');
 
     final sucursalTexto = draft.branch?.nombre ??
         (draft.restaurant.direccion.isNotEmpty ? draft.restaurant.direccion : 'Sucursal principal');

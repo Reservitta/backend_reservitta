@@ -49,7 +49,7 @@ class ReservationBookingService {
         message: 'Inicia sesión para confirmar tu reserva.',
       );
     }
-    if (inicio == null || draft.fecha == null || draft.mesaIds.isEmpty) {
+    if (inicio == null || draft.fecha == null || !draft.hasTables) {
       return const BookingFailed(
         message: 'Faltan datos de la reserva: elige fecha, mesa y horario.',
       );

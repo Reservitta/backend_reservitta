@@ -324,7 +324,20 @@ class ReservationDraftViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  bool get canContinueFromTables => _draft.mesaIds.isNotEmpty;
+  bool get canContinueFromTables => _draft.hasTables;
+
+  /// Marca que el restaurante no tiene mesas configuradas: la reserva sigue sin
+  /// elegir mesa y el restaurante la asigna.
+  void definirSinMesas(bool valor) {
+    if (_draft.sinMesaAsignada == valor) return;
+    _draft = _draft.copyWith(
+      sinMesaAsignada: valor,
+      mesaIds: valor ? const [] : null,
+      mesasNombres: valor ? const [] : null,
+      espaciosNombres: valor ? const [] : null,
+    );
+    notifyListeners();
+  }
 
   // ---------------------------------------------------------------------------
   // HU11-RF02: horario elegido (Paso 5)

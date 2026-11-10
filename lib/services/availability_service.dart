@@ -704,6 +704,12 @@ class AvailabilityService {
     );
   }
 
+  /// El restaurante tiene al menos una mesa que se pueda reservar. Si no la tiene, la
+  /// reserva se hace sin mesa y el restaurante la asigna.
+  Future<bool> restauranteTieneMesas(RestaurantModel restaurant) async {
+    return (await _loadMesas(restaurant)).isNotEmpty;
+  }
+
   /// Plano con el estado de cada mesa en una hora concreta ([inicio]): ocupada si
   /// otra reserva se traslapa con [inicio, inicio + duracionMin]. Sin plano
   /// configurado devuelve todas las mesas para mostrarlas en lista.

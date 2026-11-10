@@ -236,7 +236,7 @@ class _FormularioReservaWebState extends State<FormularioReservaWeb> {
 
   bool get _hayFecha => _vm.draft.fecha != null && _vm.canContinueFromDate;
   bool get _hayHorario => _vm.draft.horario != null;
-  bool get _hayMesa => _vm.draft.mesaIds.isNotEmpty;
+  bool get _hayMesa => _vm.draft.hasTables;
 
   int get _etapa {
     if (!_hayFecha) return 0;
@@ -542,6 +542,10 @@ class _FormularioReservaWebState extends State<FormularioReservaWeb> {
       );
     }
 
+    if (_vm.draft.sinMesaAsignada) {
+      return const AvisoSinMesas(key: ValueKey('aviso_sin_mesas'));
+    }
+
     final inicio = _vm.draft.inicio!;
     return TableSelectionStep(
       key: ValueKey(
@@ -560,6 +564,51 @@ class _FormularioReservaWebState extends State<FormularioReservaWeb> {
       },
       onEspaciosChanged: _vm.setSelectedSpaces,
       onChangeStep: (_) {},
+    );
+  }
+}
+
+/// Aviso para restaurantes que no configuraron sus mesas: se puede reservar igual.
+class AvisoSinMesas extends StatelessWidget {
+  const AvisoSinMesas({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: AppColors.marcaSuave.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.divisor),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: AppColors.marca, size: 28),
+          SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Este restaurante no usa mapa de mesas',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.texto,
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Puedes reservar igual: el restaurante recibirá tu reserva con la fecha, el horario y el número de personas, y te asignará la mesa.',
+                  style: TextStyle(fontSize: 14, color: AppColors.textoSuave, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

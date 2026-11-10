@@ -171,10 +171,10 @@ class ReservationManagementService {
   }) async {
     final token = ReservationAccess.normalizar(codigo);
     final ahora = _now();
-    if (mesaIds.isEmpty || duracionMin <= 0 || personas < 1) {
+    if (duracionMin <= 0 || personas < 1) {
       throw const ManagementException(
         ManagementFailure.datosInvalidos,
-        'Elige mesa, horario y número de personas para modificar la reserva.',
+        'Elige horario y número de personas para modificar la reserva.',
       );
     }
 

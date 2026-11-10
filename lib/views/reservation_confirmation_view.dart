@@ -205,7 +205,9 @@ class _ReservationConfirmationViewState
   Widget build(BuildContext context) {
     final mesas = widget.reservation.mesasNombres.isNotEmpty
         ? widget.reservation.mesasNombres.join(' + ')
-        : widget.reservation.mesaIds.join(' + ');
+        : (widget.reservation.mesaIds.isNotEmpty
+            ? widget.reservation.mesaIds.join(' + ')
+            : 'El restaurante te la asignará');
 
     return PopScope(
       canPop: false,

@@ -512,7 +512,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(vm.currentStep, equals(4));
-      expect(find.text('Elige tu mesa'), findsOneWidget);
+      // Este restaurante de prueba no tiene mesas configuradas: se puede reservar sin mesa.
+      expect(find.text('Este restaurante no usa mapa de mesas'), findsOneWidget);
+      expect(vm.draft.sinMesaAsignada, isTrue);
+      expect(vm.canContinueFromTables, isTrue);
       expect(vm.draft.personas, equals(6));
     });
   });

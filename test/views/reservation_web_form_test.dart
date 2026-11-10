@@ -21,11 +21,11 @@ final _mesas = [
   const MesaModel(id: 'M3', nombre: 'M3', capacidad: 6, x: 120, y: 0),
 ];
 
-RestaurantModel _restaurant() => RestaurantModel(
+RestaurantModel _restaurant({bool conMesas = true}) => RestaurantModel(
       id: 'r1',
       nombre: 'Miel Test',
       estado: 'activo',
-      mesas: _mesas,
+      mesas: conMesas ? _mesas : const [],
       horarios: {
         for (final d in [
           'lunes',
@@ -57,20 +57,21 @@ void main() {
   Future<ReservationDraftViewModel> abrir(
     WidgetTester tester, {
     double ancho = 1400,
+    bool conMesas = true,
   }) async {
     tester.view.physicalSize = Size(ancho, 1400);
     tester.view.devicePixelRatio = 1.0;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
 
-    final vm = ReservationDraftViewModel(restaurant: _restaurant(), clock: () => ahora);
+    final vm = ReservationDraftViewModel(restaurant: _restaurant(conMesas: conMesas), clock: () => ahora);
     vm.selectBranch(sucursal);
     vm.goToStep(1);
     final reservas = ReservationService(firestore: db);
     final disponibilidad = AvailabilityService(reservas, now: () => ahora);
     await tester.pumpWidget(MaterialApp(
       home: ReservationFlowView(
-        restaurant: _restaurant(),
+        restaurant: _restaurant(conMesas: conMesas),
         viewModel: vm,
         availabilityService: disponibilidad,
         bookingService: ReservationBookingService(disponibilidad, reservas),
@@ -234,6 +235,48 @@ void main() {
       expect(vm.draft.mesaIds, isEmpty);
       final continuar = tester.widget<FilledButton>(find.byKey(const ValueKey('btn_continuar_web')));
       expect(continuar.onPressed, isNull, reason: 'sin mesa libre no se avanza');
+    });
+  });
+
+  group('Restaurante sin mesas configuradas: se puede reservar igual', () {
+    testWidgets('no pide mesa, avisa y deja continuar al resumen', (tester) async {
+      final vm = await abrir(tester, conMesas: false);
+      vm.selectDate(viernes);
+      await tester.pumpAndSettle();
+      await elegir(tester, 'campo_duracion', '2 horas');
+      await elegir(tester, 'campo_personas', '3 personas');
+
+      // Antes de elegir horario todavía no se avisa nada.
+      expect(find.byKey(const ValueKey('aviso_sin_mesas')), findsNothing);
+      await elegir(tester, 'campo_horario', '14:00');
+
+      expect(vm.draft.sinMesaAsignada, isTrue);
+      expect(find.byKey(const ValueKey('aviso_sin_mesas')), findsOneWidget);
+      expect(find.text('Este restaurante no usa mapa de mesas'), findsOneWidget);
+      expect(find.byType(TableSelectionStep), findsNothing);
+
+      final continuar = tester.widget<FilledButton>(find.byKey(const ValueKey('btn_continuar_web')));
+      expect(continuar.onPressed, isNotNull, reason: 'sin mesas no hay mesa que elegir');
+      expect(vm.draft.isReadyForSummary, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('btn_continuar_web')));
+      await tester.pumpAndSettle();
+      expect(vm.currentStep, 6);
+      expect(find.text('El restaurante la asignará'), findsOneWidget);
+    });
+
+    testWidgets('un restaurante con mesas sigue exigiendo elegir una', (tester) async {
+      final vm = await abrir(tester);
+      await tester.pumpAndSettle();
+      expect(vm.draft.sinMesaAsignada, isFalse);
+      vm.selectDate(viernes);
+      await tester.pumpAndSettle();
+      await elegir(tester, 'campo_duracion', '2 horas');
+      await elegir(tester, 'campo_personas', '3 personas');
+      await elegir(tester, 'campo_horario', '14:00');
+
+      final continuar = tester.widget<FilledButton>(find.byKey(const ValueKey('btn_continuar_web')));
+      expect(continuar.onPressed, isNull);
     });
   });
 
