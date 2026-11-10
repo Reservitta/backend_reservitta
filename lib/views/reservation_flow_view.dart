@@ -931,6 +931,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           ocasionService: widget.ocasionService,
           authService: _authService,
           isAuthenticated: _hasRealSession,
+          textoConfirmar: 'Guardar y volver al resumen',
           onConfirm: (actualizado) async {
             _viewModel.setPreordenItems(actualizado.preordenItems);
             _viewModel.setAlergias(actualizado.alergias, notas: actualizado.notasAlergias);
