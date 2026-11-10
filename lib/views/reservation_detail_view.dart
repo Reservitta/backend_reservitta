@@ -177,7 +177,7 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color ?? Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borde ?? ReservationDetailView.cardBorder),
       ),
       child: child,
@@ -257,7 +257,7 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: estilo.background,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: estilo.border),
                 ),
                 child: Row(
@@ -413,7 +413,7 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: estilo.background,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: estilo.border),
                 ),
                 child: Text('Pedido: ${d.etiquetaEstadoPreorden}',

@@ -64,7 +64,7 @@ class PlatilloMenuCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(
           color: cantidad > 0 ? _primaryTerracotta : _cardBorder,
           width: cantidad > 0 ? 1.5 : 1.0,
@@ -72,7 +72,7 @@ class PlatilloMenuCard extends StatelessWidget {
       ),
       color: Colors.white,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap ?? (cantidad > 0 ? onEditar : onAgregar),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -122,7 +122,7 @@ class PlatilloMenuCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: _primaryTerracotta,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: Colors.white, width: 1.5),
                           boxShadow: [
                             BoxShadow(

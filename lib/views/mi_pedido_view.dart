@@ -166,7 +166,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: MiPedidoView.cardBorder),
                   ),
                   child: const Center(
@@ -215,7 +215,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MiPedidoView.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -316,7 +316,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MiPedidoView.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -481,7 +481,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MiPedidoView.primaryTerracotta.withAlpha(80)),
       ),
       child: Row(
@@ -537,7 +537,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                 style: FilledButton.styleFrom(
                   backgroundColor: MiPedidoView.primaryTerracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: () {
@@ -565,7 +565,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                   foregroundColor: MiPedidoView.primaryTerracotta,
                   side: const BorderSide(color: MiPedidoView.primaryTerracotta),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: () {

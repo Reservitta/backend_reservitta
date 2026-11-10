@@ -433,7 +433,7 @@ class _PlanEditorViewState extends State<PlanEditorView> {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFFFFDF9),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: PlanEditorView.cardBorder),
           ),
           child: Stack(
@@ -735,7 +735,7 @@ class _PanelMesaState extends State<_PanelMesa> {
       margin: const EdgeInsets.fromLTRB(0, 12, 12, 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: PlanEditorView.cardBorder),
       ),
       // Material transparente: los interruptores y chips pintan su efecto sobre él.

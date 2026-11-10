@@ -59,7 +59,7 @@ class PrepareVisitStep extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: _cardBorder),
             ),
             child: Row(
@@ -93,7 +93,7 @@ class PrepareVisitStep extends StatelessWidget {
             elevation: 0,
             color: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               side: const BorderSide(color: _cardBorder),
             ),
             child: Padding(
@@ -143,7 +143,7 @@ class PrepareVisitStep extends StatelessWidget {
                         foregroundColor: _primaryTerracotta,
                         side: const BorderSide(color: _primaryTerracotta, width: 1.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                       onPressed: isProcessing ? null : onSoloReservar,
@@ -171,7 +171,7 @@ class PrepareVisitStep extends StatelessWidget {
             elevation: 0,
             color: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               side: const BorderSide(color: _primaryTerracotta, width: 1.5),
             ),
             child: Padding(
@@ -225,7 +225,7 @@ class PrepareVisitStep extends StatelessWidget {
                       style: FilledButton.styleFrom(
                         backgroundColor: _primaryTerracotta,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                       onPressed: isProcessing ? null : onPersonalizarVisita,

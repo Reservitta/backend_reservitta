@@ -1,3 +1,4 @@
+import 'package:fake_cloud_firestore/fake_cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reservitta/models/branch_model.dart';
@@ -9,6 +10,7 @@ import 'package:reservitta/repositories/reservation_repository.dart';
 import 'package:reservitta/services/availability_service.dart';
 import 'package:reservitta/services/categoria_service.dart';
 import 'package:reservitta/services/platillo_service.dart';
+import 'package:reservitta/services/restaurant_service.dart';
 import 'package:reservitta/viewmodels/reservation_draft_viewmodel.dart';
 import 'package:reservitta/views/reservation_flow_view.dart';
 import 'package:reservitta/views/restaurant_detail_view.dart';
@@ -179,29 +181,41 @@ void main() {
       expect(vm.currentStep, equals(0));
     });
 
-    testWidgets('Widget: En RestaurantDetailView el botón Haz tu Reserva inicia el flujo', (tester) async {
+    testWidgets('Widget: En RestaurantDetailView el botón Haz tu Reserva abre las sucursales y luego inicia el flujo', (tester) async {
+      final db = FakeFirebaseFirestore();
+      await db.collection('restaurants').doc(testRestaurant.id).set({
+        'nombre': testRestaurant.nombre,
+        'sucursalPrincipal': {'nombre': 'Sucursal Centro', 'direccion': 'Calle 1', 'telefono': '1'},
+      });
       await tester.pumpWidget(MaterialApp(
         home: RestaurantDetailView(
           restaurant: testRestaurant,
           categoriaService: _FakeCategoriaService(),
           platilloService: _FakePlatilloService(),
+          restaurantService: RestaurantService(firestore: db),
           bypassAuthForTesting: true,
         ),
       ));
       await tester.pumpAndSettle();
 
-      // Solo un botón de reservar al final de la información del restaurante
+      // Solo un botón de reservar en la tarjeta de reserva
       final botonReservar = find.byKey(const ValueKey('boton_reservar_mesa'));
       expect(botonReservar, findsOneWidget);
       expect(find.text('Haz tu Reserva'), findsOneWidget);
 
-      // Al pulsar 'Haz tu Reserva', navega e inicia ReservationFlowView
+      // Al pulsar 'Haz tu Reserva' se abre la ventana de sucursales
       await tester.ensureVisible(botonReservar);
       await tester.tap(botonReservar);
       await tester.pumpAndSettle();
+      expect(find.text('Elige la sucursal'), findsOneWidget);
+      expect(find.byType(ReservationFlowView), findsNothing);
 
+      // Al continuar con la sucursal, entra al flujo ya en la fecha
+      await tester.tap(find.byKey(const ValueKey('btn_continuar_sucursal')));
+      await tester.pumpAndSettle();
       expect(find.byType(ReservationFlowView), findsOneWidget);
-      expect(find.text('SELECCIONA UNA SUCURSAL'), findsOneWidget);
+      expect(find.text('SELECCIONA UNA SUCURSAL'), findsNothing);
+      expect(find.text('¿Qué día quieres visitarnos?'), findsOneWidget);
     });
   });
 

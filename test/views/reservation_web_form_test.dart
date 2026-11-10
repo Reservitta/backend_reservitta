@@ -280,6 +280,29 @@ void main() {
       expect(find.text('Personaliza tu visita'), findsOneWidget);
     });
 
+    testWidgets('personalizar queda al lado del título y a su altura', (tester) async {
+      await enResumen(tester);
+
+      final titulo = tester.getRect(find.text('Resumen de tu reserva'));
+      final tarjeta = tester.getRect(find.byKey(const ValueKey('tarjeta_personalizar')));
+      expect(tarjeta.left, greaterThan(titulo.right), reason: 'a un lado del título');
+      expect(tarjeta.top, lessThan(titulo.bottom), reason: 'a la misma altura');
+      expect(tarjeta.bottom, greaterThan(titulo.top));
+    });
+
+    testWidgets('el resumen y el formulario ocupan todo el ancho de la pantalla', (tester) async {
+      await enResumen(tester);
+      final ticket = tester.getRect(find.byKey(const ValueKey('summary_card_restaurante')));
+      expect(ticket.width, greaterThan(1200), reason: 'no se encierra en una columna angosta');
+
+      final vm = tester.state<State>(find.byType(ReservationFlowView));
+      expect(vm, isNotNull);
+      tester.view.physicalSize = const Size(1800, 1400);
+      await tester.pumpAndSettle();
+      final ancho = tester.getRect(find.byKey(const ValueKey('summary_card_restaurante'))).width;
+      expect(ancho, greaterThan(1600));
+    });
+
     testWidgets('en pantallas angostas no aparece (usa el paso aparte)', (tester) async {
       await enResumen(tester, ancho: 800);
       expect(find.byKey(const ValueKey('tarjeta_personalizar')), findsNothing);

@@ -209,7 +209,7 @@ class TableManagementView extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(
         color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.divisor),
       ),
       child: InteractiveViewer(
@@ -252,7 +252,7 @@ class TableManagementView extends StatelessWidget {
               elevation: 0,
               color: s.fill,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 side: BorderSide(color: s.border, width: 1.5),
               ),
               child: ListTile(
@@ -314,7 +314,7 @@ class _MesaTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: s.fill,
             shape: redonda ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: redonda ? null : BorderRadius.circular(12),
+            borderRadius: redonda ? null : BorderRadius.circular(6),
             border: Border.all(color: s.border, width: 2),
           ),
           alignment: Alignment.center,
@@ -514,7 +514,7 @@ class _MesaSheetState extends State<_MesaSheet> {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: AppColors.fondo,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: AppColors.divisor),
                 ),
                 child: Column(

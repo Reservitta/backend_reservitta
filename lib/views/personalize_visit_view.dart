@@ -248,7 +248,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: Column(
@@ -511,7 +511,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                         backgroundColor: _primaryTerracotta,
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                       icon: const Icon(Icons.shopping_bag_outlined, size: 18),
@@ -535,7 +535,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: _cardBorder),
                     ),
                     child: TabBar(
@@ -619,7 +619,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _primaryTerracotta.withAlpha(90), width: 1.2),
       ),
       child: Column(
@@ -700,7 +700,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: _lightBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: _cardBorder),
       ),
       child: Row(
@@ -831,7 +831,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
               hintText:
                   'Ej. Uno de los invitados es celíaco estricto; evitar contaminación cruzada con mariscos.',
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
               ),
               filled: true,
               fillColor: Colors.white,
@@ -933,7 +933,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                 style: FilledButton.styleFrom(
                   backgroundColor: _primaryTerracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: (_isProcessing || !(_ocasionVm?.puedeContinuar ?? true))

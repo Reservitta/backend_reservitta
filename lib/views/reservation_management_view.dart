@@ -330,7 +330,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color ?? Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borde ?? ReservationManagementView.cardBorder),
       ),
       child: child,
@@ -361,7 +361,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
             decoration: InputDecoration(
               labelText: 'Código',
               hintText: 'ABCD-EFGH-JKMN-PQRS-TUVW',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             ),
             onSubmitted: (_) => _buscar(),
           ),
@@ -470,7 +470,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: estilo.background,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: estilo.border),
                     ),
                     child: Row(

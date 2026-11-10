@@ -80,7 +80,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
             final esEdicion = expExistente != null;
             return AlertDialog(
               key: ValueKey(esEdicion ? 'dialogo_editar_experiencia' : 'dialogo_nueva_experiencia'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               title: Row(
                 children: [
                   const Icon(Icons.stars_rounded, color: _primaryTerracotta),
@@ -247,7 +247,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
         return Dialog(
           key: ValueKey(esEdicion ? 'dialogo_editar_ocasion' : 'dialogo_crear_ocasion'),
           backgroundColor: _lightBg,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 550, maxHeight: 750),
             child: Padding(

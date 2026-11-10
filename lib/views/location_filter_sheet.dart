@@ -16,7 +16,7 @@ class LocationFilterSheet extends StatefulWidget {
       isScrollControlled: true,
       useSafeArea: true,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (_) => LocationFilterSheet(viewModel: viewModel),
     );
@@ -200,7 +200,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.errorContainer.withAlpha(90),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: theme.colorScheme.error.withAlpha(120),
                     ),
@@ -307,7 +307,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                       : null,
                   filled: true,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     borderSide: BorderSide.none,
                   ),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -322,7 +322,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                   constraints: const BoxConstraints(maxHeight: 180),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(color: theme.colorScheme.outlineVariant),
                   ),
                   child: ListView.separated(
@@ -407,7 +407,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
                   elevation: _temporaryLocation != null ? 3 : 0,
                   shadowColor: theme.colorScheme.primary.withAlpha(120),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                 ),
@@ -487,7 +487,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
       height: 180,
       width: double.infinity,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: theme.colorScheme.primary.withAlpha(120),
           width: 1.5,
@@ -569,7 +569,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.black.withAlpha(180),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -601,7 +601,7 @@ class _LocationFilterSheetState extends State<LocationFilterSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: theme.colorScheme.primary,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
                 boxShadow: [
                   BoxShadow(
                     color: theme.colorScheme.primary.withAlpha(100),

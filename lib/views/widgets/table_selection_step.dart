@@ -196,7 +196,7 @@ class _TableSelectionStepState extends State<TableSelectionStep> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: valida ? terracotta : cardBorder, width: 1.5),
       ),
       child: Column(
@@ -300,7 +300,7 @@ class _InfoBanner extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       decoration: BoxDecoration(
         color: warning ? const Color(0xFFFFF3D6) : AppColors.marcaSuave,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,7 +347,7 @@ class _MessageCard extends StatelessWidget {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.divisor),
       ),
       child: Column(

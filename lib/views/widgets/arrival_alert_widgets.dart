@@ -49,7 +49,7 @@ class ArrivalAlertChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: s.background,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: s.border),
       ),
       child: Row(
@@ -98,15 +98,15 @@ class ArrivalAlertTile extends StatelessWidget {
       label: '${alerta.texto}: $cliente, ${_hora(r.effectiveStart)}, $mesa',
       child: Material(
         color: s.background,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           key: ValueKey('alerta_${r.id}'),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: s.border),
             ),
             child: Row(

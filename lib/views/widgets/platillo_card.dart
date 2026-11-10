@@ -38,7 +38,7 @@ class PlatilloCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: disponible ? _cardBorder : Colors.orange.shade200,
           width: 1.1,
@@ -58,7 +58,7 @@ class PlatilloCard extends StatelessWidget {
           children: [
             // 1. Miniatura de imagen
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               child: Container(
                 width: 76,
                 height: 76,

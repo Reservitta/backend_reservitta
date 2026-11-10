@@ -117,7 +117,7 @@ class TableMapWidget extends StatelessWidget {
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
             color: const Color(0xFFFFFDF9),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(color: AppColors.divisor),
           ),
           child: InteractiveViewer(
@@ -186,7 +186,7 @@ class _TableTile extends StatelessWidget {
           decoration: BoxDecoration(
             color: style.fill,
             shape: redonda ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: redonda ? null : BorderRadius.circular(12),
+            borderRadius: redonda ? null : BorderRadius.circular(6),
             border: Border.all(
               color: style.border,
               width: state == TableVisualState.seleccionada ? 4 : 2,
@@ -256,7 +256,7 @@ class _TableList extends StatelessWidget {
                 elevation: 0,
                 color: style.fill,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   side: BorderSide(
                     color: style.border,
                     width: state == TableVisualState.seleccionada ? 3 : 1.5,

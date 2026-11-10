@@ -49,7 +49,7 @@ class _UpcomingReminderBannerState extends State<UpcomingReminderBanner> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFFF3D6),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: const Color(0xFFE0A100)),
                   ),
                   child: Row(

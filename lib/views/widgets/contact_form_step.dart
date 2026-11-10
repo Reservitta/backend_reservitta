@@ -194,7 +194,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0xFFFBF4ED),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: ContactFormStep.terracotta.withAlpha(80)),
               ),
               child: const Row(
@@ -221,7 +221,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: ContactFormStep.cardBorder),
               boxShadow: [
                 BoxShadow(
@@ -340,12 +340,12 @@ class _ContactFormStepState extends State<ContactFormStep> {
       key: const ValueKey('container_crear_cuenta'),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: ContactFormStep.cardBorder),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: CheckboxListTile(
           key: const ValueKey('checkbox_crear_cuenta'),
           value: isAccountMandatory ? true : widget.draft.crearCuenta,
@@ -383,7 +383,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
       key: const ValueKey('container_password'),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ContactFormStep.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -534,7 +534,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: ContactFormStep.creamBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: ContactFormStep.cardBorder),
       ),
       child: Column(
@@ -611,7 +611,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: ContactFormStep.creamBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: ContactFormStep.cardBorder),
       ),
       child: const Row(
@@ -673,26 +673,26 @@ class _ContactFormStepState extends State<ContactFormStep> {
       fillColor: readOnly ? const Color(0xFFF3EFEA) : ContactFormStep.creamBg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: ContactFormStep.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: ContactFormStep.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(
           color: readOnly ? ContactFormStep.cardBorder : ContactFormStep.terracotta,
           width: readOnly ? 1.0 : 1.5,
         ),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(color: Colors.red.shade400),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(color: Colors.red.shade700, width: 1.5),
       ),
       errorMaxLines: 2,

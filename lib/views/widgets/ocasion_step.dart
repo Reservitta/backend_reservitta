@@ -72,7 +72,7 @@ class OcasionStep extends StatelessWidget {
                 decoration: InputDecoration(
                   labelText: 'Cuéntanos qué celebras',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onChanged: vm.setDetalleOtro,
@@ -90,7 +90,7 @@ class OcasionStep extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF3D6),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Row(
                   children: [
@@ -116,7 +116,7 @@ class OcasionStep extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: _terracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: vm.puedeContinuar ? onContinuar : null,
@@ -161,7 +161,7 @@ class OcasionStep extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       child: Column(
@@ -239,7 +239,7 @@ class OcasionStep extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         children: [
@@ -284,13 +284,13 @@ class _TarjetaOcasion extends StatelessWidget {
       child: InkWell(
         key: ValueKey('card_ocasion_${ocasion.id}'),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 150,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFFF3E8) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: seleccionada ? _terracotta : _cardBorder,
               width: seleccionada ? 2.5 : 1.5,
@@ -357,7 +357,7 @@ class PostreFelicitacionSheet extends StatefulWidget {
       useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (_) => PostreFelicitacionSheet(vm: vm),
     );
@@ -537,7 +537,7 @@ class _PostreFelicitacionSheetState extends State<PostreFelicitacionSheet> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

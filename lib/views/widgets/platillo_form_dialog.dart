@@ -221,7 +221,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
     return Row(
       children: [
         ClipRRect(
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           child: Container(
             width: 110,
             height: 110,
@@ -304,7 +304,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: PlatilloFormDialog._cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: PlatilloFormDialog._cardBorder, width: 1),
             boxShadow: [
               BoxShadow(
@@ -315,7 +315,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             child: Form(
               key: _formKey,
               child: Column(
@@ -331,7 +331,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFDF1EB),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Icon(
                             esEdicion
@@ -458,17 +458,17 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PlatilloFormDialog._cardBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PlatilloFormDialog._cardBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PlatilloFormDialog._primary, width: 1.8),
                         ),
@@ -511,17 +511,17 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                   filled: true,
                                   fillColor: Colors.white,
                                   border: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(6),
                                     borderSide: const BorderSide(
                                         color: PlatilloFormDialog._cardBorder),
                                   ),
                                   enabledBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(6),
                                     borderSide: const BorderSide(
                                         color: PlatilloFormDialog._cardBorder),
                                   ),
                                   focusedBorder: OutlineInputBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(6),
                                     borderSide: const BorderSide(
                                         color: PlatilloFormDialog._primary,
                                         width: 1.8),
@@ -567,21 +567,21 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                               horizontal: 14, vertical: 14),
                                       border: OutlineInputBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12),
+                                            BorderRadius.circular(6),
                                         borderSide: const BorderSide(
                                             color:
                                                 PlatilloFormDialog._cardBorder),
                                       ),
                                       enabledBorder: OutlineInputBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12),
+                                            BorderRadius.circular(6),
                                         borderSide: const BorderSide(
                                             color:
                                                 PlatilloFormDialog._cardBorder),
                                       ),
                                       focusedBorder: OutlineInputBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12),
+                                            BorderRadius.circular(6),
                                         borderSide: const BorderSide(
                                             color: PlatilloFormDialog._primary,
                                             width: 1.8),
@@ -634,17 +634,17 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PlatilloFormDialog._cardBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PlatilloFormDialog._cardBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PlatilloFormDialog._primary, width: 1.8),
                         ),
@@ -660,7 +660,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                         color: _isDisponible
                             ? const Color(0xFFE8F5E9)
                             : const Color(0xFFFFF3E0),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(6),
                         border: Border.all(
                           color: _isDisponible
                               ? Colors.green.shade300
@@ -734,7 +734,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                         color: _permitePersonalizacion
                             ? const Color(0xFFF0F5FA)
                             : const Color(0xFFF9F7F5),
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(8),
                         border: Border.all(
                           color: _permitePersonalizacion
                               ? const Color(0xFFB8D0E8)
@@ -826,17 +826,17 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                                 filled: true,
                                 fillColor: Colors.white,
                                 border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: const BorderSide(
                                       color: Color(0xFFB8D0E8)),
                                 ),
                                 enabledBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: const BorderSide(
                                       color: Color(0xFFB8D0E8)),
                                 ),
                                 focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(12),
+                                  borderRadius: BorderRadius.circular(6),
                                   borderSide: const BorderSide(
                                       color: Color(0xFF1E5288), width: 1.8),
                                 ),
@@ -916,7 +916,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                               side: const BorderSide(
                                   color: PlatilloFormDialog._cardBorder),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 13),
                             ),
@@ -933,7 +933,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                               backgroundColor: PlatilloFormDialog._primary,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 13),
                             ),

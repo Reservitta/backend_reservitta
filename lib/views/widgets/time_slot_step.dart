@@ -174,7 +174,7 @@ class _TimeSlotStepState extends State<TimeSlotStep> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: AppColors.divisor),
       ),
       child: Column(
@@ -233,13 +233,13 @@ class _SlotChip extends StatelessWidget {
       label: 'Horario de $label $sublabel',
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 112,
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: selected ? AppColors.marca : Colors.white,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: selected
                   ? const Color(0xFF7E2F14)

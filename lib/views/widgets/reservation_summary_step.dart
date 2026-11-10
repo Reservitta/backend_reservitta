@@ -102,29 +102,55 @@ class ReservationSummaryStep extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text(
-          'Resumen de tu reserva',
-          style: TextStyle(
-            fontFamily: AppTheme.familiaTitulos,
-            fontWeight: FontWeight.w700,
-            fontVariations: [FontVariation('wght', 700)],
-            fontSize: 30,
-            color: darkText,
-          ),
-        ),
-        const SizedBox(height: 6),
-        const Text(
-          'Revisa que todo esté bien. Puedes cambiar cualquier dato antes de continuar.',
-          style: TextStyle(fontSize: 15, color: mutedText),
+        LayoutBuilder(
+          builder: (context, c) {
+            const titulo = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Resumen de tu reserva',
+                  style: TextStyle(
+                    fontFamily: AppTheme.familiaTitulos,
+                    fontWeight: FontWeight.w700,
+                    fontVariations: [FontVariation('wght', 700)],
+                    fontSize: 30,
+                    color: darkText,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Revisa que todo esté bien. Puedes cambiar cualquier dato antes de continuar.',
+                  style: TextStyle(fontSize: 15, color: mutedText),
+                ),
+              ],
+            );
+            if (destacado != null && c.maxWidth >= 900) {
+              // Personalizar la visita va al lado del título, a su misma altura.
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Expanded(flex: 5, child: titulo),
+                  const SizedBox(width: 28),
+                  Expanded(flex: 6, child: destacado!),
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                titulo,
+                if (destacado != null) ...[
+                  const SizedBox(height: 18),
+                  destacado!,
+                ],
+              ],
+            );
+          },
         ),
         const SizedBox(height: 22),
         if (!isAuthenticated) ...[
           _buildAuthRequiredBanner(context),
           const SizedBox(height: 18),
-        ],
-        if (destacado != null) ...[
-          destacado!,
-          const SizedBox(height: 22),
         ],
         _buildTicketWeb(),
         if (showActionButton && onConfirm != null) ...[
@@ -155,7 +181,7 @@ class ReservationSummaryStep extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 16, 12, 12),
         decoration: BoxDecoration(
           color: AppColors.fondo,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: cardBorder),
         ),
         child: Column(
@@ -286,7 +312,7 @@ class ReservationSummaryStep extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
@@ -297,7 +323,7 @@ class ReservationSummaryStep extends StatelessWidget {
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -393,7 +419,7 @@ class ReservationSummaryStep extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.green.shade200),
               ),
               child: Row(
@@ -441,7 +467,7 @@ class ReservationSummaryStep extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF4E5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFFFCC80)),
       ),
       child: Row(
@@ -502,7 +528,7 @@ class ReservationSummaryStep extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
@@ -702,7 +728,7 @@ class ReservationSummaryStep extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: creamBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: cardBorder),
       ),
       child: Row(
@@ -745,7 +771,7 @@ class ReservationSummaryStep extends StatelessWidget {
               backgroundColor: terracotta,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
             onPressed: isProcessing ? null : onConfirm,

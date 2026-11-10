@@ -119,7 +119,7 @@ class BarraEstadoReserva extends StatelessWidget {
                 children: [
                   InkWell(
                     onTap: completada && onIrAEtapa != null ? () => onIrAEtapa!(i) : null,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
                       width: 28,
                       height: 28,
@@ -452,7 +452,7 @@ class _FormularioReservaWebState extends State<FormularioReservaWeb> {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: AppColors.superficie,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AppColors.divisor),
           ),
           child: LayoutBuilder(
@@ -516,7 +516,7 @@ class _FormularioReservaWebState extends State<FormularioReservaWeb> {
         padding: const EdgeInsets.symmetric(vertical: 56, horizontal: 24),
         decoration: BoxDecoration(
           color: AppColors.marcaSuave.withValues(alpha: 0.5),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(10),
           border: Border.all(color: AppColors.divisor),
         ),
         child: const Column(
@@ -655,13 +655,13 @@ class _CajaCampo extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(6),
       child: Container(
         height: 52,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: AppColors.superficie,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(6),
           border: Border.all(color: lleno ? AppColors.marca : AppColors.borde, width: lleno ? 1.6 : 1),
         ),
         child: Row(
@@ -714,7 +714,7 @@ class _Seleccion<T> extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14),
       decoration: BoxDecoration(
         color: AppColors.superficie,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: lleno ? AppColors.marca : AppColors.borde, width: lleno ? 1.6 : 1),
       ),
       child: Row(
@@ -733,7 +733,7 @@ class _Seleccion<T> extends StatelessWidget {
                 ),
                 items: opciones,
                 onChanged: habilitado ? onChanged : null,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,

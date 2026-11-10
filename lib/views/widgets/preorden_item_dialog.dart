@@ -90,7 +90,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: PreordenItemDialog._cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: PreordenItemDialog._cardBorder),
             boxShadow: [
               BoxShadow(
@@ -136,7 +136,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: PreordenItemDialog._creamLight,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: PreordenItemDialog._cardBorder),
                     ),
                     child: Row(
@@ -301,17 +301,17 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PreordenItemDialog._cardBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PreordenItemDialog._cardBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PreordenItemDialog._primary, width: 1.8),
                         ),
@@ -381,7 +381,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             side: const BorderSide(
                                 color: PreordenItemDialog._cardBorder),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 13),
                           ),
@@ -397,7 +397,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             backgroundColor: PreordenItemDialog._primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 13),
                           ),

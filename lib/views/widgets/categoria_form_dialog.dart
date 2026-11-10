@@ -120,7 +120,7 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: CategoriaFormDialog._cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: CategoriaFormDialog._cardBorder, width: 1),
             boxShadow: [
               BoxShadow(
@@ -131,7 +131,7 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Form(
@@ -147,7 +147,7 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
                             color: const Color(0xFFFDF1EB),
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                           child: Icon(
                             esEdicion
@@ -252,15 +252,15 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
                         filled: true,
                         fillColor: Colors.white,
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(color: CategoriaFormDialog._cardBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(color: CategoriaFormDialog._cardBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(color: CategoriaFormDialog._primary, width: 1.8),
                         ),
                         suffixIcon: _nombreController.text.isNotEmpty
@@ -348,7 +348,7 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
                               foregroundColor: CategoriaFormDialog._textDark,
                               side: const BorderSide(color: CategoriaFormDialog._cardBorder),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 13),
                             ),
@@ -365,7 +365,7 @@ class _CategoriaFormDialogState extends State<CategoriaFormDialog> {
                               backgroundColor: CategoriaFormDialog._primary,
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                               padding: const EdgeInsets.symmetric(vertical: 13),
                             ),

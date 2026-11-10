@@ -283,7 +283,7 @@ class _ReservationConfirmationViewState
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(
                         color: ReservationConfirmationView.cardBorder,
                       ),
@@ -364,7 +364,7 @@ class _ReservationConfirmationViewState
                       style: FilledButton.styleFrom(
                         backgroundColor: ReservationConfirmationView.terracotta,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(8),
                         ),
                       ),
                       onPressed: widget.onDone ??
@@ -400,7 +400,7 @@ class _ReservationConfirmationViewState
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: const Color(0xFFE8F5E9),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFA5D6A7)),
       ),
       child: Column(
@@ -497,7 +497,7 @@ class _ReservationConfirmationViewState
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E0),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFFFB74D)),
       ),
       child: Column(
@@ -575,7 +575,7 @@ class _ReservationConfirmationViewState
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFBF4ED),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: ReservationConfirmationView.terracotta.withAlpha(60),
         ),

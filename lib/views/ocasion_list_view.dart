@@ -190,7 +190,7 @@ class _OcasionListViewState extends State<OcasionListView> {
           builder: (context, setDialogState) {
             return AlertDialog(
               key: const ValueKey('dialogo_editar_experiencia_individual'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               title: const Text('Editar Experiencia', style: TextStyle(fontWeight: FontWeight.bold)),
               content: SingleChildScrollView(
                 child: Column(
@@ -471,7 +471,7 @@ class _OcasionListViewState extends State<OcasionListView> {
       key: ValueKey('card_ocasion_${ocasion.id}'),
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         side: const BorderSide(color: _cardBorder),
       ),
       elevation: 0,
@@ -488,7 +488,7 @@ class _OcasionListViewState extends State<OcasionListView> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: _primaryTerracotta.withAlpha(25),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
                     _obtenerIcono(ocasion.icono),

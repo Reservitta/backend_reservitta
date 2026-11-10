@@ -82,7 +82,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: const [
               BoxShadow(
                 color: Color.fromRGBO(0, 0, 0, 0.08),
@@ -99,7 +99,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(12),
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(32),
               child: ListenableBuilder(
@@ -192,7 +192,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Correo Electrónico',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: _viewModel.fieldErrors['loginEmail'],
           ),
         ),
@@ -203,7 +203,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Contraseña',
             prefixIcon: const Icon(Icons.lock_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: _viewModel.fieldErrors['loginPassword'],
           ),
         ),
@@ -226,7 +226,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         FilledButton(
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
           onPressed: _viewModel.isLoading
               ? null
@@ -315,12 +315,12 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         // Opción 1: Cliente / Comensal
         InkWell(
           onTap: () => _viewModel.setSelectedRole('visitante'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isClient ? theme.colorScheme.primary : Colors.grey.shade200,
                 width: isClient ? 2 : 1,
@@ -378,12 +378,12 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         // Opción 2: Administrador de Restaurante
         InkWell(
           onTap: () => _viewModel.setSelectedRole('admin'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: isAdmin ? theme.colorScheme.primary : Colors.grey.shade200,
                 width: isAdmin ? 2 : 1,
@@ -441,7 +441,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         FilledButton.icon(
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
           icon: const Icon(Icons.arrow_forward, size: 18),
           label: const Text('Siguiente', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -470,7 +470,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Nombre Completo *',
             prefixIcon: const Icon(Icons.person_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['nombre'],
           ),
         ),
@@ -481,7 +481,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Correo Electrónico *',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['correo'],
           ),
         ),
@@ -497,7 +497,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             labelText: 'Teléfono (10 dígitos numéricos) *',
             hintText: '5512345678',
             prefixIcon: const Icon(Icons.phone_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['telefono'],
           ),
         ),
@@ -508,7 +508,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Contraseña (mínimo 8 caracteres) *',
             prefixIcon: const Icon(Icons.lock_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['password'],
           ),
           onChanged: (_) => setState(() {}),
@@ -525,7 +525,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Confirmar Contraseña *',
             prefixIcon: const Icon(Icons.lock_reset_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['confirmPassword'],
           ),
           onChanged: (_) => setState(() {}),
@@ -538,7 +538,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             decoration: InputDecoration(
               labelText: 'Nombre de tu Restaurante (Opcional)',
               prefixIcon: const Icon(Icons.storefront_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
               helperText: 'Completarás los datos y horarios en el siguiente paso',
               errorText: fe['restaurante'],
             ),
@@ -560,7 +560,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         FilledButton(
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
           onPressed: _viewModel.isLoading
               ? null
@@ -604,7 +604,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Correo Electrónico',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
           ),
         ),
         if (_viewModel.resetErrorMessage != null) ...[
@@ -619,7 +619,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         FilledButton(
           style: FilledButton.styleFrom(
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
           onPressed: _viewModel.isResetLoading
               ? null
@@ -695,7 +695,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.fondo,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: AppColors.divisor),
       ),
       child: Column(

@@ -87,7 +87,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: CategoriaDeleteDialog._cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: CategoriaDeleteDialog._cardBorder, width: 1),
             boxShadow: [
               BoxShadow(
@@ -163,7 +163,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: CategoriaDeleteDialog._warningLight,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: CategoriaDeleteDialog._warning.withValues(alpha: 0.35),
                     ),
@@ -217,7 +217,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
                         foregroundColor: CategoriaDeleteDialog._textDark,
                         side: const BorderSide(color: CategoriaDeleteDialog._cardBorder),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
@@ -235,7 +235,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
                         backgroundColor: CategoriaDeleteDialog._error,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),

@@ -55,7 +55,7 @@ class CategoriaCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder, width: 1.1),
         boxShadow: [
           BoxShadow(

@@ -83,11 +83,11 @@ class AppTheme {
     );
 
     final bordeCampo = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(6),
       borderSide: const BorderSide(color: AppColors.borde),
     );
 
-    const formaBoton = StadiumBorder();
+    final formaBoton = RoundedRectangleBorder(borderRadius: BorderRadius.circular(8));
     const tamanoMinimo = Size(AppSpacing.zonaTactil, AppSpacing.zonaTactil);
 
     return ThemeData(
@@ -160,12 +160,12 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         side: const BorderSide(color: AppColors.borde),
-        shape: const StadiumBorder(),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         labelStyle: const TextStyle(color: AppColors.texto),
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColors.superficie,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       bottomSheetTheme: const BottomSheetThemeData(
         backgroundColor: AppColors.superficie,
@@ -175,7 +175,7 @@ class AppTheme {
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.texto,
         contentTextStyle: const TextStyle(color: Colors.white, fontSize: 14),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
       ),
       dividerTheme: const DividerThemeData(color: AppColors.divisor, space: 1),
       focusColor: AppColors.marca.withValues(alpha: 0.16),

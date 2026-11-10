@@ -166,7 +166,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: const Text('¿Eliminar platillo?'),
         content: Text(
           'Estás a punto de eliminar "${platillo.nombre}". Esta acción no se puede deshacer.',
@@ -374,7 +374,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                                 horizontal: 16, vertical: 12),
                                         border: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(6),
                                           borderSide: const BorderSide(
                                             color:
                                                 PlatilloListView._cardBorder,
@@ -382,7 +382,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                         ),
                                         enabledBorder: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(6),
                                           borderSide: const BorderSide(
                                             color:
                                                 PlatilloListView._cardBorder,
@@ -390,7 +390,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                         ),
                                         focusedBorder: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(6),
                                           borderSide: const BorderSide(
                                             color: PlatilloListView._primary,
                                             width: 1.8,

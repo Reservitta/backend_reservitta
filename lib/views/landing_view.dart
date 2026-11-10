@@ -176,7 +176,7 @@ class _LandingViewState extends State<LandingView> {
             height: 40,
             decoration: BoxDecoration(
               color: AppColors.marca,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
             ),
             child: const Icon(
               Icons.restaurant_menu,
@@ -359,7 +359,7 @@ class _LandingViewState extends State<LandingView> {
               // Buscador de texto
               DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(32),
+                  borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.marca.withValues(alpha: 0.14),
@@ -388,15 +388,15 @@ class _LandingViewState extends State<LandingView> {
                     filled: true,
                     fillColor: AppColors.superficie,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(32),
+                      borderRadius: BorderRadius.circular(16),
                       borderSide: const BorderSide(color: AppColors.marca, width: 2),
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
@@ -465,7 +465,7 @@ class _LandingViewState extends State<LandingView> {
           DecoratedBox(
             decoration: BoxDecoration(
               color: AppColors.superficie,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: AppColors.divisor),
               boxShadow: [
                 BoxShadow(
@@ -476,7 +476,7 @@ class _LandingViewState extends State<LandingView> {
               ],
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final ancho = constraints.maxWidth >= 640;
@@ -928,7 +928,7 @@ class _LandingViewState extends State<LandingView> {
             final theme = Theme.of(context);
             return AlertDialog(
               key: const ValueKey('dialogo_selector_cantidad_personas'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               title: Row(
                 children: [
                   Icon(Icons.people_alt_outlined, color: theme.colorScheme.primary),
@@ -951,7 +951,7 @@ class _LandingViewState extends State<LandingView> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest.withAlpha(100),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: theme.colorScheme.outlineVariant),
                     ),
                     child: Row(
@@ -1068,7 +1068,7 @@ class _LandingViewState extends State<LandingView> {
         key: const ValueKey('card_acceso_rapido_mi_pedido'),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppColors.divisor),
           boxShadow: [
             BoxShadow(
@@ -1113,7 +1113,7 @@ class _LandingViewState extends State<LandingView> {
                 backgroundColor: AppColors.marca,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
               icon: const Icon(Icons.receipt_long, size: 18),
@@ -1283,7 +1283,7 @@ class _RestaurantCard extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         side: const BorderSide(color: AppColors.divisor),
       ),
       child: InkWell(
@@ -1310,7 +1310,7 @@ class _RestaurantCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: const Row(
                         mainAxisSize: MainAxisSize.min,
@@ -1339,7 +1339,7 @@ class _RestaurantCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.black.withAlpha(180),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,

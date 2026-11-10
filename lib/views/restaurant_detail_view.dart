@@ -7,10 +7,12 @@ import '../services/auth_service.dart';
 import '../services/categoria_service.dart';
 import '../services/platillo_service.dart';
 import '../services/preorden_cache_service.dart';
+import '../services/restaurant_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
 import 'reservation_flow_view.dart';
 // import 'widgets/preorden_item_dialog.dart';
+import 'widgets/branch_picker_dialog.dart';
 import 'widgets/platillo_menu_card.dart';
 import 'widgets/preorden_resumen_sheet.dart';
 import '../theme/app_theme.dart';
@@ -23,6 +25,7 @@ class RestaurantDetailView extends StatefulWidget {
   final CategoriaService? categoriaService;
   final PlatilloService? platilloService;
   final PreordenCacheService? preordenCacheService;
+  final RestaurantService? restaurantService;
   final bool bypassAuthForTesting;
 
   const RestaurantDetailView({
@@ -32,6 +35,7 @@ class RestaurantDetailView extends StatefulWidget {
     this.categoriaService,
     this.platilloService,
     this.preordenCacheService,
+    this.restaurantService,
     this.bypassAuthForTesting = false,
   });
 
@@ -156,13 +160,23 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
     _iniciarFlujoReserva();
   }
 
-  void _iniciarFlujoReserva() {
+  /// Abre la ventana de sucursales; al continuar entra al flujo de reserva con la
+  /// sucursal elegida.
+  Future<void> _iniciarFlujoReserva() async {
     ScaffoldMessenger.of(context).clearSnackBars();
+    final sucursal = await BranchPickerDialog.show(
+      context,
+      restaurant: widget.restaurant,
+      service: widget.restaurantService ?? RestaurantService(),
+    );
+    if (sucursal == null || !mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => ReservationFlowView(
           restaurant: widget.restaurant,
+          initialBranch: sucursal,
+          restaurantService: widget.restaurantService,
           createReservationOnConfirm: true,
           enableContactStep: true,
           categoriaService: _categoriaService,
@@ -305,7 +319,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
                         color: Colors.white.withValues(alpha: 0.95),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(10),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -438,7 +452,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
       color: AppColors.superficie,
       surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         side: const BorderSide(color: AppColors.divisor),
       ),
       child: Padding(

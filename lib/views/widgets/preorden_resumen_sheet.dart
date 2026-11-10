@@ -49,7 +49,7 @@ class PreordenResumenSheet extends StatelessWidget {
           ),
           decoration: const BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -173,7 +173,7 @@ class PreordenResumenSheet extends StatelessWidget {
                             padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: AppColors.fondo,
-                              borderRadius: BorderRadius.circular(14),
+                              borderRadius: BorderRadius.circular(8),
                               border: Border.all(color: AppColors.divisor),
                             ),
                             child: Column(
@@ -292,7 +292,7 @@ class PreordenResumenSheet extends StatelessWidget {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(6),
                           ),
                         ),
                         onPressed: () => Navigator.pop(context),

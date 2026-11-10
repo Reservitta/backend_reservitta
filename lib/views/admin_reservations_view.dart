@@ -248,7 +248,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                   ),
                   decoration: BoxDecoration(
                     color: AdminReservationsView._creamAccent,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -302,7 +302,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: AdminReservationsView._cardBorder),
               ),
               child: Row(
@@ -482,7 +482,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.red.shade200),
           ),
           child: Column(
@@ -539,7 +539,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 42),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AdminReservationsView._cardBorder),
           ),
           child: Column(
@@ -596,7 +596,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AdminReservationsView._cardBorder),
       ),
       child: Column(
@@ -635,7 +635,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
       decoration: const BoxDecoration(
         color: AdminReservationsView._creamLight,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
       ),
       child: const Row(
         children: [
@@ -833,7 +833,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                   ),
                   decoration: BoxDecoration(
                     color: badgeStyle.background,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: badgeStyle.border),
                   ),
                   child: Row(

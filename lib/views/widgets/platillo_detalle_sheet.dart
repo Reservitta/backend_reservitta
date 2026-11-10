@@ -218,7 +218,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
       ),
       decoration: const BoxDecoration(
         color: PlatilloDetalleSheet._cardBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
@@ -257,7 +257,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
             // 1. Imagen del platillo (HU16-RF04 Criterio 1)
             ClipRRect(
               key: const ValueKey('detalle_platillo_imagen'),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 170,
                 width: double.infinity,
@@ -340,7 +340,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: PlatilloDetalleSheet._creamLight,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: PlatilloDetalleSheet._cardBorder),
                     ),
                     child: Text(
@@ -417,15 +417,15 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                   vertical: 12,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(color: PlatilloDetalleSheet._cardBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(color: PlatilloDetalleSheet._cardBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(
                     color: PlatilloDetalleSheet._primaryTerracotta,
                     width: 1.6,
@@ -454,7 +454,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: PlatilloDetalleSheet._creamLight,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: PlatilloDetalleSheet._cardBorder),
               ),
               child: Row(
@@ -511,7 +511,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFFEF9A9A)),
                 ),
                 child: Row(
@@ -554,7 +554,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                       ? PlatilloDetalleSheet._dangerRed
                       : PlatilloDetalleSheet._primaryTerracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 onPressed: _confirmar,
