@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import '../../models/elemento_plano.dart';
 import '../../models/mesa_model.dart';
 import '../../models/table_layout_validator.dart';
 import '../../theme/app_theme.dart';
@@ -177,6 +178,9 @@ class MesaVisual extends StatelessWidget {
   final bool mostrarSillas;
   final double grosorBorde;
 
+  /// Falso para vistas previas pequeñas (paleta): solo la forma y las sillas.
+  final bool mostrarTexto;
+
   const MesaVisual({
     super.key,
     required this.mesa,
@@ -186,12 +190,16 @@ class MesaVisual extends StatelessWidget {
     this.seleccionada = false,
     this.mostrarSillas = true,
     this.grosorBorde = 1.8,
+    this.mostrarTexto = true,
   });
 
   @override
   Widget build(BuildContext context) {
     final redonda = mesa.forma == MesaModel.formaRedonda;
-    return CustomPaint(
+    final angulo = mesa.rotacion * math.pi / 180;
+
+    // La mesa y sus sillas giran; el texto se queda derecho para que se lea.
+    final cuerpo = CustomPaint(
       painter: mostrarSillas
           ? SillasPainter(
               capacidad: mesa.capacidad,
@@ -217,36 +225,212 @@ class MesaVisual extends StatelessWidget {
             ),
           ],
         ),
-        alignment: Alignment.center,
+      ),
+    );
+
+    final etiqueta = FittedBox(
+      fit: BoxFit.scaleDown,
+      child: Padding(
+        padding: const EdgeInsets.all(6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icono != null) Icon(icono, color: paleta.texto, size: 18),
+            Text(
+              mesa.nombre.isEmpty ? '¿Nombre?' : mesa.nombre,
+              style: TextStyle(
+                fontWeight: FontWeight.w800,
+                fontSize: 15,
+                color: paleta.texto,
+              ),
+            ),
+            Text(
+              detalle ?? '${mesa.capacidad} pers.',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: paleta.texto.withValues(alpha: 0.85),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return Stack(
+      clipBehavior: Clip.none,
+      fit: StackFit.expand,
+      children: [
+        Transform.rotate(angle: angulo, child: cuerpo),
+        if (mostrarTexto) Center(child: etiqueta),
+      ],
+    );
+  }
+}
+
+/// Ubica una mesa en un [Stack]: la caja ocupa el rectángulo de la mesa ya girada (así
+/// se puede tocar y arrastrar por cualquier parte) y la mesa va centrada dentro.
+/// [dx] y [dy] se restan a la posición (para planos que empiezan en la primera mesa).
+class MesaUbicada extends StatelessWidget {
+  final MesaModel mesa;
+  final double dx;
+  final double dy;
+  final Widget child;
+
+  /// Envuelve la mesa ubicada (por ejemplo, con un detector de toques).
+  final Widget Function(BuildContext context, Widget ubicada)? envoltura;
+
+  const MesaUbicada({
+    super.key,
+    required this.mesa,
+    required this.child,
+    this.dx = 0,
+    this.dy = 0,
+    this.envoltura,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final caja = mesa.cajaRotada;
+    final centrada = Center(
+      child: SizedBox(width: mesa.ancho, height: mesa.alto, child: child),
+    );
+    return Positioned(
+      left: caja.left - dx,
+      top: caja.top - dy,
+      width: caja.width,
+      height: caja.height,
+      child: envoltura == null ? centrada : envoltura!(context, centrada),
+    );
+  }
+}
+
+/// Un elemento decorativo del salón (barra, pared, puerta, planta…).
+class ElementoVisual extends StatelessWidget {
+  final ElementoPlano elemento;
+  final bool seleccionado;
+
+  const ElementoVisual({super.key, required this.elemento, this.seleccionado = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final e = elemento;
+    final estilo = ElementoPlano.estilo(e.tipo);
+    final circular = e.esCircular;
+    final delgado = e.tipo == ElementoPlano.pared ||
+        e.tipo == ElementoPlano.ventana ||
+        e.tipo == ElementoPlano.puerta;
+    final esTexto = e.tipo == ElementoPlano.texto;
+    final borde = seleccionado ? AppColors.marca : estilo.borde;
+
+    Widget contenido;
+    if (delgado) {
+      contenido = e.tipo == ElementoPlano.puerta
+          ? CustomPaint(painter: _PuertaPainter(color: estilo.borde, relleno: estilo.relleno))
+          : const SizedBox.expand();
+    } else if (circular) {
+      contenido = Center(child: Icon(estilo.icono, color: estilo.tinta, size: math.min(e.ancho, e.alto) * 0.55));
+    } else {
+      final texto = e.etiqueta.isEmpty ? estilo.nombre : e.etiqueta;
+      contenido = Center(
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: Padding(
             padding: const EdgeInsets.all(6),
-            child: Column(
+            child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (icono != null) Icon(icono, color: paleta.texto, size: 18),
+                if (!esTexto) ...[
+                  Icon(estilo.icono, color: estilo.tinta, size: 18),
+                  const SizedBox(width: 6),
+                ],
                 Text(
-                  mesa.nombre.isEmpty ? '¿Nombre?' : mesa.nombre,
+                  texto,
                   style: TextStyle(
-                    fontWeight: FontWeight.w800,
-                    fontSize: 15,
-                    color: paleta.texto,
-                  ),
-                ),
-                Text(
-                  detalle ?? '${mesa.capacidad} pers.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: paleta.texto.withValues(alpha: 0.85),
+                    fontWeight: esTexto ? FontWeight.w700 : FontWeight.w600,
+                    fontSize: esTexto ? 18 : 14,
+                    color: estilo.tinta,
                   ),
                 ),
               ],
             ),
           ),
         ),
+      );
+    }
+
+    final caja = Container(
+      decoration: BoxDecoration(
+        color: esTexto ? Colors.transparent : estilo.relleno,
+        shape: circular ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: circular ? null : BorderRadius.circular(delgado ? 2 : 6),
+        border: delgado && e.tipo == ElementoPlano.puerta
+            ? null
+            : Border.all(
+                color: esTexto && !seleccionado ? Colors.transparent : borde,
+                width: seleccionado ? 2.4 : 1.4,
+              ),
       ),
+      child: contenido,
+    );
+
+    return Transform.rotate(angle: e.rotacion * math.pi / 180, child: caja);
+  }
+}
+
+class _PuertaPainter extends CustomPainter {
+  final Color color;
+  final Color relleno;
+
+  const _PuertaPainter({required this.color, required this.relleno});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Hoja de la puerta y arco por donde abre.
+    final linea = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2;
+    canvas.drawRect(Offset.zero & size, Paint()..color = relleno);
+    canvas.drawRect(Offset.zero & size, linea);
+    final radio = size.width * 0.5;
+    final arco = Rect.fromCircle(center: Offset(0, size.height), radius: radio);
+    canvas.drawArc(arco, -math.pi / 2, math.pi / 2, false, linea..strokeWidth = 1.2);
+  }
+
+  @override
+  bool shouldRepaint(covariant _PuertaPainter old) => old.color != color || old.relleno != relleno;
+}
+
+/// Ubica un elemento decorativo en un [Stack] (ver [MesaUbicada]).
+class ElementoUbicado extends StatelessWidget {
+  final ElementoPlano elemento;
+  final double dx;
+  final double dy;
+  final Widget child;
+  final Widget Function(BuildContext context, Widget ubicado)? envoltura;
+
+  const ElementoUbicado({
+    super.key,
+    required this.elemento,
+    required this.child,
+    this.dx = 0,
+    this.dy = 0,
+    this.envoltura,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final caja = elemento.cajaRotada;
+    final centrado = Center(
+      child: SizedBox(width: elemento.ancho, height: elemento.alto, child: child),
+    );
+    return Positioned(
+      left: caja.left - dx,
+      top: caja.top - dy,
+      width: caja.width,
+      height: caja.height,
+      child: envoltura == null ? centrado : envoltura!(context, centrado),
     );
   }
 }

@@ -1,5 +1,7 @@
 import '../models/booking_models.dart';
+import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
+import 'table_service.dart';
 import '../models/reservation_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/table_availability_models.dart';
@@ -337,7 +339,7 @@ class AvailabilityService {
     final libres = disponibilidad.mesasLibres;
     final individuales =
         libres
-            .where((m) => m.capacidad >= personas)
+            .where((m) => m.capacidad >= personas && m.admite(personas))
             .map((m) => TableOption(mesa: m, personas: personas))
             .toList()
           ..sort((a, b) {
@@ -442,6 +444,7 @@ class AvailabilityService {
     if (mesas.isEmpty) return const FloorPlanResult.sinPlano();
 
     final zonas = await _loadZonas(restaurant.id);
+    final elementos = await _loadElementos(restaurant.id);
     final disponibilidad = await checkAvailability(
       restaurant: restaurant,
       inicio: inicio,
@@ -456,6 +459,7 @@ class AvailabilityService {
     return FloorPlanResult(
       configurado: true,
       zonas: zonas,
+      elementos: elementos,
       reason: reason,
       mesas: [
         for (final m in mesas)
@@ -624,7 +628,7 @@ class AvailabilityService {
     final libres = mesas.where((m) => hasSlot([m])).toList();
     final individuales =
         libres
-            .where((m) => m.capacidad >= personas)
+            .where((m) => m.capacidad >= personas && m.admite(personas))
             .map((m) => TableOption(mesa: m, personas: personas))
             .toList()
           ..sort((a, b) {
@@ -667,11 +671,13 @@ class AvailabilityService {
     final mesas = configurado ? conPosicion : todas;
 
     final zonas = await _loadZonas(restaurant.id);
+    final elementos = await _loadElementos(restaurant.id);
     final validation = validateDate(restaurant: restaurant, fecha: fecha);
     if (!validation.isValid) {
       return FloorPlanResult(
         configurado: configurado,
         zonas: zonas,
+        elementos: elementos,
         reason: validation.reason,
         mesas: [
           for (final m in mesas)
@@ -684,6 +690,7 @@ class AvailabilityService {
     return FloorPlanResult(
       configurado: configurado,
       zonas: zonas,
+      elementos: elementos,
       mesas: [
         for (final m in mesas)
           PlanoMesa(
@@ -726,6 +733,7 @@ class AvailabilityService {
     final mesas = configurado ? conPosicion : todas;
 
     final zonas = await _loadZonas(restaurant.id);
+    final elementos = await _loadElementos(restaurant.id);
     final disponibilidad = await checkAvailability(
       restaurant: restaurant,
       inicio: inicio,
@@ -738,6 +746,7 @@ class AvailabilityService {
     return FloorPlanResult(
       configurado: configurado,
       zonas: zonas,
+      elementos: elementos,
       reason: reason,
       mesas: [
         for (final m in mesas)
@@ -768,6 +777,16 @@ class AvailabilityService {
       return desdeRepo.isNotEmpty ? desdeRepo : restaurant.mesas;
     } catch (_) {
       return restaurant.mesas;
+    }
+  }
+
+  Future<List<ElementoPlano>> _loadElementos(String restaurantId) async {
+    final repo = _tables;
+    if (repo is! TableService) return const [];
+    try {
+      return await repo.getElementos(restaurantId);
+    } catch (_) {
+      return const [];
     }
   }
 

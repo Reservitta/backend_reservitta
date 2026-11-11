@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
 import '../models/reservation_model.dart';
 import '../models/table_layout_validator.dart';
@@ -9,16 +10,26 @@ import '../models/zona_model.dart';
 class PlanSaveResult {
   /// Mesas guardadas, ya con su id (las nuevas lo reciben al guardarse).
   final List<MesaModel> mesas;
+  final List<ElementoPlano> elementos;
   final int creadas;
   final int actualizadas;
   final int eliminadas;
 
   const PlanSaveResult({
     required this.mesas,
+    this.elementos = const [],
     required this.creadas,
     required this.actualizadas,
     required this.eliminadas,
   });
+}
+
+/// Una entrada del historial de cambios del plano.
+class PlanCambio {
+  final DateTime fecha;
+  final String resumen;
+
+  const PlanCambio({required this.fecha, required this.resumen});
 }
 
 /// Crea y edita los espacios y las mesas del restaurante (HU34-RF01, HU34-RF02).
@@ -39,6 +50,12 @@ class TableLayoutService {
 
   CollectionReference<Map<String, dynamic>> _mesas(String rid) =>
       _db.collection('restaurants').doc(rid).collection('mesas');
+
+  CollectionReference<Map<String, dynamic>> _elementos(String rid) =>
+      _db.collection('restaurants').doc(rid).collection('elementos');
+
+  CollectionReference<Map<String, dynamic>> _historial(String rid) =>
+      _db.collection('restaurants').doc(rid).collection('planHistorial');
 
   // ---------------------------------------------------------------------------
   // Espacios (HU34-RF01)
@@ -61,6 +78,26 @@ class TableLayoutService {
   Future<List<MesaModel>> getMesas(String rid) async {
     final snap = await _mesas(rid).get();
     return snap.docs.map(MesaModel.fromFirestore).toList();
+  }
+
+  Future<List<ElementoPlano>> getElementos(String rid) async {
+    final snap = await _elementos(rid).get();
+    return snap.docs.map(ElementoPlano.fromFirestore).toList();
+  }
+
+  /// Últimos cambios guardados del plano, del más reciente al más antiguo.
+  Future<List<PlanCambio>> getHistorial(String rid, {int limite = 20}) async {
+    final snap = await _historial(rid).get();
+    final lista = <PlanCambio>[
+      for (final d in snap.docs)
+        PlanCambio(
+          fecha: (d.data()['fecha'] is Timestamp)
+              ? (d.data()['fecha'] as Timestamp).toDate()
+              : DateTime.fromMillisecondsSinceEpoch(0),
+          resumen: (d.data()['resumen'] as String?) ?? '',
+        ),
+    ]..sort((a, b) => b.fecha.compareTo(a.fecha));
+    return lista.take(limite).toList();
   }
 
   /// Crea un espacio al final de la lista. Lanza [LayoutException] si el nombre no es válido.
@@ -144,6 +181,9 @@ class TableLayoutService {
   Future<PlanSaveResult> guardarPlano({
     required String restauranteId,
     required List<MesaModel> mesas,
+
+    /// Elementos decorativos del plano. Si es null no se tocan los guardados.
+    List<ElementoPlano>? elementos,
   }) async {
     final zonas = await getZonas(restauranteId);
     final zonaIds = {for (final z in zonas) z.id};
@@ -228,6 +268,37 @@ class TableLayoutService {
       );
     }
 
+    // Elementos decorativos: se validan y se reemplazan completos.
+    final elementosConId = <ElementoPlano>[];
+    final elementosAEliminar = <String>[];
+    final refsElementos = <String, DocumentReference<Map<String, dynamic>>>{};
+    if (elementos != null) {
+      for (final e in elementos) {
+        if (e.id.isEmpty || e.id.startsWith(prefijoTemporal)) {
+          final ref = _elementos(restauranteId).doc();
+          refsElementos[ref.id] = ref;
+          elementosConId.add(e.copyWith(id: ref.id));
+        } else {
+          elementosConId.add(e);
+        }
+      }
+      final erroresElem = <String>[];
+      for (final e in elementosConId) {
+        final err = e.validar(zonaIds: zonaIds);
+        if (err.isNotEmpty) {
+          erroresElem.add('${ElementoPlano.estilo(e.tipo).nombre}: ${err.values.first}');
+        }
+      }
+      if (erroresElem.isNotEmpty) {
+        throw LayoutException(erroresElem.join('\n'));
+      }
+      final actualesElem = await getElementos(restauranteId);
+      final idsNuevos = {for (final e in elementosConId) e.id};
+      for (final e in actualesElem) {
+        if (!idsNuevos.contains(e.id)) elementosAEliminar.add(e.id);
+      }
+    }
+
     final batch = _db.batch();
     var creadas = 0;
     var actualizadas = 0;
@@ -244,10 +315,31 @@ class TableLayoutService {
     for (final m in eliminadas) {
       batch.delete(_mesas(restauranteId).doc(m.id));
     }
+    for (final e in elementosConId) {
+      batch.set(refsElementos[e.id] ?? _elementos(restauranteId).doc(e.id), e.toMap());
+    }
+    for (final id in elementosAEliminar) {
+      batch.delete(_elementos(restauranteId).doc(id));
+    }
+
+    // Historial: una línea con lo que se hizo en este guardado.
+    final partes = <String>[
+      if (creadas > 0) '$creadas ${creadas == 1 ? 'mesa nueva' : 'mesas nuevas'}',
+      if (actualizadas > 0) '$actualizadas ${actualizadas == 1 ? 'mesa actualizada' : 'mesas actualizadas'}',
+      if (eliminadas.isNotEmpty) '${eliminadas.length} ${eliminadas.length == 1 ? 'mesa eliminada' : 'mesas eliminadas'}',
+      if (elementos != null) '${elementosConId.length} ${elementosConId.length == 1 ? 'elemento' : 'elementos'} de decoración',
+    ];
+    batch.set(_historial(restauranteId).doc(), {
+      'fecha': Timestamp.fromDate(_now()),
+      'resumen': partes.isEmpty ? 'Plano guardado' : partes.join(', '),
+      'mesas': normalizadas.length,
+      'elementos': elementosConId.length,
+    });
     await batch.commit();
 
     return PlanSaveResult(
       mesas: normalizadas,
+      elementos: elementosConId,
       creadas: creadas,
       actualizadas: actualizadas,
       eliminadas: eliminadas.length,

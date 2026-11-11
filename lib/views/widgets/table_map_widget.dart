@@ -94,18 +94,26 @@ class TableMapWidget extends StatelessWidget {
     }
 
     final mesas = viewModel.mesasVisibles.map((p) => p.mesa).toList();
-    // El plano empieza en la mesa más a la izquierda y arriba (sin hueco hasta el origen).
+    final elementos = viewModel.elementosVisibles;
+    // El plano empieza en la pieza más a la izquierda y arriba (sin hueco hasta el origen).
     var minX = double.infinity;
     var minY = double.infinity;
     var maxX = 0.0;
     var maxY = 0.0;
-    for (final m in mesas) {
-      minX = math.min(minX, m.x ?? 0);
-      minY = math.min(minY, m.y ?? 0);
-      maxX = math.max(maxX, (m.x ?? 0) + m.ancho);
-      maxY = math.max(maxY, (m.y ?? 0) + m.alto);
+    void abarcar(Rect r) {
+      minX = math.min(minX, r.left);
+      minY = math.min(minY, r.top);
+      maxX = math.max(maxX, r.right);
+      maxY = math.max(maxY, r.bottom);
     }
-    if (mesas.isEmpty) {
+
+    for (final m in mesas) {
+      abarcar(m.cajaRotada);
+    }
+    for (final e in elementos) {
+      abarcar(e.cajaRotada);
+    }
+    if (mesas.isEmpty && elementos.isEmpty) {
       minX = 0;
       minY = 0;
     }
@@ -129,17 +137,25 @@ class TableMapWidget extends StatelessWidget {
                 height: height,
                 child: Stack(
                   children: [
+                    for (final e in elementos)
+                      ElementoUbicado(
+                        elemento: e,
+                        dx: minX - _padding,
+                        dy: minY - _padding,
+                        child: ElementoVisual(elemento: e),
+                      ),
                     for (final m in mesas)
-                      Positioned(
-                        left: (m.x ?? 0) - minX + _padding,
-                        top: (m.y ?? 0) - minY + _padding,
-                        width: m.ancho,
-                        height: m.alto,
-                        child: _TableTile(
+                      MesaUbicada(
+                        mesa: m,
+                        dx: minX - _padding,
+                        dy: minY - _padding,
+                        envoltura: (context, ubicada) => _TableTile(
                           mesa: m,
                           state: viewModel.stateOf(m),
                           onTap: () => onTapMesa(m),
+                          hijo: ubicada,
                         ),
+                        child: _TableTile.vista(m, viewModel.stateOf(m)),
                       ),
                   ],
                 ),
@@ -162,11 +178,26 @@ class _TableTile extends StatelessWidget {
   final TableVisualState state;
   final VoidCallback onTap;
 
+  /// La mesa ya ubicada en el plano (ver [MesaUbicada]).
+  final Widget hijo;
+
   const _TableTile({
     required this.mesa,
     required this.state,
     required this.onTap,
+    required this.hijo,
   });
+
+  /// Dibujo de la mesa según su estado.
+  static Widget vista(MesaModel mesa, TableVisualState state) {
+    final style = TableStateStyle.of(state);
+    return MesaVisual(
+      mesa: mesa,
+      paleta: TableStateStyle.paletaDe(state),
+      icono: style.icon,
+      seleccionada: state == TableVisualState.seleccionada,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,13 +209,9 @@ class _TableTile extends StatelessWidget {
           '${mesa.nombre}, capacidad ${mesa.capacidad} personas, ${style.label}',
       child: GestureDetector(
         key: ValueKey('table_tile_${mesa.id}'),
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: MesaVisual(
-          mesa: mesa,
-          paleta: TableStateStyle.paletaDe(state),
-          icono: style.icon,
-          seleccionada: state == TableVisualState.seleccionada,
-        ),
+        child: hijo,
       ),
     );
   }

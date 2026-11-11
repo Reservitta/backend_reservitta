@@ -4,6 +4,7 @@ import '../models/mesa_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/zona_model.dart';
 import '../services/availability_service.dart';
+import '../models/elemento_plano.dart';
 
 /// Estado visual de una mesa en el mapa (HU10-RF02).
 enum TableVisualState {
@@ -161,6 +162,19 @@ class TableSelectionViewModel extends ChangeNotifier {
   String? get zonaActivaId => hayVariosEspacios ? _zonaActivaId : null;
 
   /// Mesas del plano que se muestran: las del espacio elegido (o todas si no hay varios).
+  /// Elementos decorativos del espacio que se está viendo.
+  List<ElementoPlano> get elementosVisibles {
+    final id = zonaActivaId;
+    if (id == null) return _plan.elementos;
+    return [
+      for (final e in _plan.elementos)
+        if (id == sinEspacioId
+            ? !_plan.zonas.any((z) => z.id == e.zonaId)
+            : e.zonaId == id)
+          e,
+    ];
+  }
+
   List<PlanoMesa> get mesasVisibles {
     final id = zonaActivaId;
     if (id == null) return _plan.mesas;

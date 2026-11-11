@@ -1,7 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
+import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
 import '../models/table_layout_validator.dart';
 import '../models/zona_model.dart';
@@ -9,6 +11,8 @@ import '../services/table_layout_service.dart';
 import '../viewmodels/plan_editor_viewmodel.dart';
 import '../theme/app_theme.dart';
 import 'widgets/mesa_visual.dart';
+import 'widgets/plan_paleta.dart';
+import 'widgets/plan_paneles.dart';
 
 export 'widgets/mesa_visual.dart' show SillasPainter;
 
@@ -57,6 +61,7 @@ class _PlanEditorViewState extends State<PlanEditorView> {
 
   @override
   void dispose() {
+    _foco.dispose();
     _zoom.dispose();
     if (widget.viewModel == null) _vm.dispose();
     super.dispose();
@@ -169,6 +174,101 @@ class _PlanEditorViewState extends State<PlanEditorView> {
     if (ok == true) _vm.eliminarMesa(mesa.id);
   }
 
+  Future<void> _verHistorial() async {
+    final cambios = await _vm.historial();
+    if (!mounted) return;
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('dialogo_historial'),
+        title: const Text('Historial de cambios'),
+        content: SizedBox(
+          width: 420,
+          child: cambios.isEmpty
+              ? const Text(
+                  'Todavía no hay cambios guardados.',
+                  key: ValueKey('historial_vacio'),
+                )
+              : ListView(
+                  shrinkWrap: true,
+                  children: [
+                    for (final c in cambios)
+                      ListTile(
+                        dense: true,
+                        contentPadding: EdgeInsets.zero,
+                        leading: const Icon(Icons.history, size: 20),
+                        title: Text(c.resumen),
+                        subtitle: Text(_fechaCorta(c.fecha)),
+                      ),
+                  ],
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static String _fechaCorta(DateTime f) {
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return '${dos(f.day)}/${dos(f.month)}/${f.year} ${dos(f.hour)}:${dos(f.minute)}';
+  }
+
+  Future<void> _eliminarSeleccion(int cantidad) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('dialogo_eliminar_seleccion'),
+        title: Text('¿Eliminar $cantidad ${cantidad == 1 ? 'pieza' : 'piezas'}?'),
+        content: const Text(
+          'Se quitarán del plano cuando guardes los cambios. Puedes deshacerlo con Ctrl + Z.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const ValueKey('btn_confirmar_eliminar_seleccion'),
+            style: FilledButton.styleFrom(backgroundColor: PlanEditorView.errorRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) _vm.eliminarSeleccion();
+  }
+
+  Future<void> _eliminarElemento(ElementoPlano e) async {
+    final nombre = ElementoPlano.estilo(e.tipo).nombre;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('dialogo_eliminar_elemento'),
+        title: Text('¿Eliminar $nombre?'),
+        content: const Text('Se quitará del plano cuando guardes los cambios.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            key: const ValueKey('btn_confirmar_eliminar_elemento'),
+            style: FilledButton.styleFrom(backgroundColor: PlanEditorView.errorRed),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) _vm.eliminarElemento(e.id);
+  }
+
   void _avisar(String mensaje) {
     ScaffoldMessenger.of(context)
       ..clearSnackBars()
@@ -207,6 +307,22 @@ class _PlanEditorViewState extends State<PlanEditorView> {
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
               actions: [
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: Center(
+                    child: _EstadoGuardado(
+                      guardando: _vm.guardando,
+                      conCambios: _vm.hayCambios,
+                      compacto: MediaQuery.sizeOf(context).width < 760,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('btn_historial'),
+                  tooltip: 'Historial de cambios',
+                  onPressed: _verHistorial,
+                  icon: const Icon(Icons.history),
+                ),
                 TextButton(
                   key: const ValueKey('btn_descartar_plano'),
                   onPressed: _vm.hayCambios && !_vm.guardando
@@ -256,40 +372,69 @@ class _PlanEditorViewState extends State<PlanEditorView> {
     }
     return LayoutBuilder(
       builder: (context, c) {
-        final ancho = c.maxWidth >= 860;
+        final ancha = c.maxWidth >= 1000;
+        final conPanelLateral = c.maxWidth >= 860;
         final lienzo = _lienzo();
-        final panel = _vm.seleccionada == null
-            ? null
-            : _PanelMesa(vm: _vm, onEliminar: _eliminarMesa);
+        final panel = _panelLateral();
         return Column(
           children: [
             _barraEspacios(),
-            _barraHerramientas(),
+            if (!ancha) PaletaPlano(vm: _vm, horizontal: true),
             if (_vm.error != null) _bannerError(),
             Expanded(
-              child: ancho
+              child: ancha
                   ? Row(
                       children: [
-                        Expanded(child: lienzo),
-                        if (panel != null) SizedBox(width: 320, child: panel),
+                        SizedBox(width: 304, child: PaletaPlano(vm: _vm)),
+                        Expanded(child: _zonaLienzo(lienzo)),
+                        if (panel != null) SizedBox(width: 330, child: panel),
                       ],
                     )
-                  : Column(
-                      children: [
-                        Expanded(child: lienzo),
-                        if (panel != null)
-                          ConstrainedBox(
-                            constraints: BoxConstraints(
-                              maxHeight: c.maxHeight * 0.5,
-                            ),
-                            child: panel,
-                          ),
-                      ],
-                    ),
+                  : conPanelLateral
+                      ? Row(
+                          children: [
+                            Expanded(child: _zonaLienzo(lienzo)),
+                            if (panel != null) SizedBox(width: 320, child: panel),
+                          ],
+                        )
+                      : Column(
+                          children: [
+                            Expanded(child: _zonaLienzo(lienzo)),
+                            if (panel != null)
+                              ConstrainedBox(
+                                constraints: BoxConstraints(maxHeight: c.maxHeight * 0.5),
+                                child: panel,
+                              ),
+                          ],
+                        ),
             ),
           ],
         );
       },
+    );
+  }
+
+  /// Panel de propiedades según lo que está seleccionado.
+  Widget? _panelLateral() {
+    if (_vm.modoMultiple) {
+      return PanelSeleccionPlano(vm: _vm, onEliminar: _eliminarSeleccion);
+    }
+    if (_vm.elementoSeleccionado != null) {
+      return PanelElementoPlano(vm: _vm, onEliminar: _eliminarElemento);
+    }
+    if (_vm.seleccionada != null) {
+      return _PanelMesa(vm: _vm, onEliminar: _eliminarMesa);
+    }
+    return null;
+  }
+
+  /// Barra de herramientas del lienzo y el lienzo mismo.
+  Widget _zonaLienzo(Widget lienzo) {
+    return Column(
+      children: [
+        _barraLienzo(),
+        Expanded(child: lienzo),
+      ],
     );
   }
 
@@ -386,104 +531,190 @@ class _PlanEditorViewState extends State<PlanEditorView> {
     return _vm.mesas.where((m) => m.zonaId == zonaId).length;
   }
 
-  Widget _barraHerramientas() {
-    Widget boton(String forma, String texto, IconData icono) =>
-        OutlinedButton.icon(
-          key: ValueKey('btn_agregar_mesa_$forma'),
-          onPressed: () => _vm.agregarMesa(forma: forma),
-          icon: Icon(icono, size: 18),
-          label: Text(texto),
+  void _zoomPor(double factor) {
+    final actual = _zoom.value.entry(0, 0);
+    final nuevo = (actual * factor).clamp(0.3, 2.5).toDouble();
+    final f = nuevo / actual;
+    final m = _zoom.value.clone();
+    m.scaleByDouble(f, f, 1, 1);
+    _zoom.value = m;
+  }
+
+  void _ajustarZoom() {
+    final ancho = _anchoVisible;
+    final escala = math.min(1.0, ancho / PlanEditorViewModel.anchoLienzo);
+    _zoom.value = Matrix4.diagonal3Values(escala, escala, 1);
+  }
+
+  double _anchoVisible = PlanEditorViewModel.anchoLienzo;
+
+  Widget _barraLienzo() {
+    final hay = _vm.idsSeleccionados.isNotEmpty;
+    Widget accion(String llave, String tip, IconData icono, VoidCallback? onTap, {bool activo = false}) =>
+        IconButton(
+          key: ValueKey(llave),
+          tooltip: tip,
+          visualDensity: VisualDensity.compact,
+          style: activo
+              ? IconButton.styleFrom(
+                  backgroundColor: AppColors.marcaSuave,
+                  foregroundColor: PlanEditorView.terracotta,
+                )
+              : null,
+          onPressed: onTap,
+          icon: Icon(icono, size: 22),
         );
+    const separador = SizedBox(height: 24, child: VerticalDivider(width: 14));
+
     return Container(
+      key: const ValueKey('barra_lienzo'),
       color: Colors.white,
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 10),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 6,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: [
-          const Text(
-            'Agregar mesa:',
-            style: TextStyle(
-              fontWeight: FontWeight.w600,
-              color: PlanEditorView.darkText,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            accion('btn_deshacer', 'Deshacer (Ctrl + Z)', Icons.undo, _vm.puedeDeshacer ? _vm.deshacer : null),
+            accion('btn_rehacer', 'Rehacer (Ctrl + Y)', Icons.redo, _vm.puedeRehacer ? _vm.rehacer : null),
+            separador,
+            accion('btn_zoom_menos', 'Alejar', Icons.zoom_out, () => _zoomPor(0.8)),
+            accion('btn_zoom_mas', 'Acercar', Icons.zoom_in, () => _zoomPor(1.25)),
+            accion('btn_zoom_ajustar', 'Ajustar a la pantalla', Icons.fit_screen_outlined, _ajustarZoom),
+            separador,
+            accion('btn_girar_izq', 'Girar 90° a la izquierda', Icons.rotate_90_degrees_ccw,
+                hay ? () => _vm.girarSeleccion(-90) : null),
+            accion('btn_girar_der', 'Girar 90° a la derecha', Icons.rotate_90_degrees_cw,
+                hay ? () => _vm.girarSeleccion(90) : null),
+            accion('btn_duplicar_barra', 'Duplicar (Ctrl + D)', Icons.copy_outlined,
+                hay ? _vm.duplicarSeleccion : null),
+            accion('btn_eliminar_barra', 'Eliminar (Supr)', Icons.delete_outline,
+                hay ? () => _eliminarSeleccion(_vm.cantidadSeleccionada) : null),
+            separador,
+            accion('btn_modo_multiple', 'Seleccionar varias piezas', Icons.select_all, _vm.alternarModoMultiple,
+                activo: _vm.modoMultiple),
+            const SizedBox(width: 8),
+            Text(
+              _vm.modoMultiple
+                  ? 'Toca varias piezas para juntarlas'
+                  : 'Arrastra para mover · Supr borra · Ctrl + Z deshace',
+              key: const ValueKey('texto_ayuda_lienzo'),
+              style: const TextStyle(fontSize: 12, color: PlanEditorView.mutedText),
             ),
-          ),
-          boton(MesaModel.formaCuadrada, 'Cuadrada', Icons.crop_square),
-          boton(MesaModel.formaRedonda, 'Redonda', Icons.circle_outlined),
-          boton(MesaModel.formaRectangular, 'Rectangular', Icons.crop_16_9),
-        ],
+          ],
+        ),
       ),
     );
   }
 
+  final FocusNode _foco = FocusNode(debugLabel: 'plano');
+
+  Map<ShortcutActivator, VoidCallback> get _atajos {
+    return {
+      const SingleActivator(LogicalKeyboardKey.keyZ, control: true): _vm.deshacer,
+      const SingleActivator(LogicalKeyboardKey.keyZ, meta: true): _vm.deshacer,
+      const SingleActivator(LogicalKeyboardKey.keyY, control: true): _vm.rehacer,
+      const SingleActivator(LogicalKeyboardKey.keyZ, control: true, shift: true): _vm.rehacer,
+      const SingleActivator(LogicalKeyboardKey.keyZ, meta: true, shift: true): _vm.rehacer,
+      const SingleActivator(LogicalKeyboardKey.keyD, control: true): _vm.duplicarSeleccion,
+      const SingleActivator(LogicalKeyboardKey.keyA, control: true): _vm.seleccionarTodo,
+      const SingleActivator(LogicalKeyboardKey.delete): _vm.eliminarSeleccion,
+      const SingleActivator(LogicalKeyboardKey.backspace): _vm.eliminarSeleccion,
+      const SingleActivator(LogicalKeyboardKey.escape): _vm.limpiarSeleccion,
+      const SingleActivator(LogicalKeyboardKey.arrowLeft): () => _vm.empujarSeleccion(-10, 0),
+      const SingleActivator(LogicalKeyboardKey.arrowRight): () => _vm.empujarSeleccion(10, 0),
+      const SingleActivator(LogicalKeyboardKey.arrowUp): () => _vm.empujarSeleccion(0, -10),
+      const SingleActivator(LogicalKeyboardKey.arrowDown): () => _vm.empujarSeleccion(0, 10),
+      const SingleActivator(LogicalKeyboardKey.arrowLeft, shift: true): () => _vm.empujarSeleccion(-50, 0),
+      const SingleActivator(LogicalKeyboardKey.arrowRight, shift: true): () => _vm.empujarSeleccion(50, 0),
+      const SingleActivator(LogicalKeyboardKey.arrowUp, shift: true): () => _vm.empujarSeleccion(0, -50),
+      const SingleActivator(LogicalKeyboardKey.arrowDown, shift: true): () => _vm.empujarSeleccion(0, 50),
+    };
+  }
+
   Widget _lienzo() {
     final mesas = _vm.mesasVisibles;
+    final elementos = _vm.elementosVisibles;
     return LayoutBuilder(
       builder: (context, c) {
+        if (c.maxWidth.isFinite && c.maxWidth > 0) _anchoVisible = c.maxWidth - 24;
         if (!_zoomInicial && c.maxWidth.isFinite && c.maxWidth > 0) {
           _zoomInicial = true;
           final escala = math.min(
             1.0,
-            c.maxWidth / PlanEditorViewModel.anchoLienzo,
+            (c.maxWidth - 24) / PlanEditorViewModel.anchoLienzo,
           );
           _zoom.value = Matrix4.diagonal3Values(escala, escala, 1);
         }
-        return Container(
-          key: const ValueKey('plano_lienzo'),
-          margin: const EdgeInsets.all(12),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF6F1E9),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: PlanEditorView.cardBorder),
-          ),
-          child: Stack(
-            children: [
-              InteractiveViewer(
-                transformationController: _zoom,
-                constrained: false,
-                minScale: 0.3,
-                maxScale: 2.5,
-                boundaryMargin: const EdgeInsets.all(200),
-                child: SizedBox(
-                  width: PlanEditorViewModel.anchoLienzo,
-                  height: PlanEditorViewModel.altoLienzo,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Positioned.fill(
-                        child: GestureDetector(
-                          key: const ValueKey('plano_fondo'),
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () => _vm.seleccionar(null),
-                          child: CustomPaint(painter: _CuadriculaPainter()),
-                        ),
-                      ),
-                      for (final m in mesas) _MesaTile(vm: _vm, mesa: m),
-                    ],
-                  ),
-                ),
+        return CallbackShortcuts(
+          bindings: _atajos,
+          child: Focus(
+            focusNode: _foco,
+            child: Container(
+              key: const ValueKey('plano_lienzo'),
+              margin: const EdgeInsets.all(12),
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF6F1E9),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: PlanEditorView.cardBorder),
               ),
-              if (mesas.isEmpty)
-                const Center(
-                  child: IgnorePointer(
-                    child: Padding(
-                      padding: EdgeInsets.all(24),
-                      child: Text(
-                        'Aún no hay mesas en este espacio.\nUsa "Agregar mesa" para empezar.',
-                        key: ValueKey('plano_vacio'),
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: PlanEditorView.mutedText,
-                          fontSize: 15,
-                        ),
+              child: Stack(
+                children: [
+                  InteractiveViewer(
+                    transformationController: _zoom,
+                    constrained: false,
+                    minScale: 0.3,
+                    maxScale: 2.5,
+                    boundaryMargin: const EdgeInsets.all(200),
+                    child: SizedBox(
+                      width: PlanEditorViewModel.anchoLienzo,
+                      height: PlanEditorViewModel.altoLienzo,
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Positioned.fill(
+                            child: GestureDetector(
+                              key: const ValueKey('plano_fondo'),
+                              behavior: HitTestBehavior.opaque,
+                              onTap: () {
+                                _foco.requestFocus();
+                                if (_vm.modoMultiple) {
+                                  _vm.limpiarSeleccion();
+                                } else {
+                                  _vm.seleccionar(null);
+                                  _vm.seleccionarElemento(null);
+                                }
+                              },
+                              child: CustomPaint(painter: _CuadriculaPainter()),
+                            ),
+                          ),
+                          for (final e in elementos) _ElementoTile(vm: _vm, elemento: e, foco: _foco),
+                          for (final m in mesas) _MesaTile(vm: _vm, mesa: m, foco: _foco),
+                        ],
                       ),
                     ),
                   ),
-                ),
-            ],
+                  if (mesas.isEmpty && elementos.isEmpty)
+                    const Center(
+                      child: IgnorePointer(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text(
+                            'Aún no hay mesas en este espacio.\nElige una en la paleta para empezar.',
+                            key: ValueKey('plano_vacio'),
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: PlanEditorView.mutedText,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         );
       },
@@ -527,12 +758,13 @@ class _CuadriculaPainter extends CustomPainter {
 class _MesaTile extends StatelessWidget {
   final PlanEditorViewModel vm;
   final MesaModel mesa;
+  final FocusNode foco;
 
-  const _MesaTile({required this.vm, required this.mesa});
+  const _MesaTile({required this.vm, required this.mesa, required this.foco});
 
   @override
   Widget build(BuildContext context) {
-    final seleccionada = vm.seleccionadaId == mesa.id;
+    final seleccionada = vm.estaSeleccionada(mesa.id);
     final conError = vm.erroresDe(mesa.id).isNotEmpty;
     final paleta = conError
         ? MesaPaleta.editorConError
@@ -540,29 +772,122 @@ class _MesaTile extends StatelessWidget {
             ? MesaPaleta.editorSeleccionada
             : MesaPaleta.editor;
 
-    return Positioned(
-      left: mesa.x ?? 0,
-      top: mesa.y ?? 0,
-      width: mesa.ancho,
-      height: mesa.alto,
-      child: Semantics(
+    return MesaUbicada(
+      mesa: mesa,
+      envoltura: (context, ubicada) => Semantics(
         button: true,
         label: '${mesa.nombre}, ${mesa.capacidad} sillas',
         child: GestureDetector(
           key: ValueKey('mesa_${mesa.id}'),
           behavior: HitTestBehavior.opaque,
-          onTap: () => vm.seleccionar(mesa.id),
-          onPanStart: (_) => vm.seleccionar(mesa.id),
+          onTap: () {
+            foco.requestFocus();
+            vm.seleccionar(mesa.id);
+          },
+          onPanStart: (_) {
+            foco.requestFocus();
+            if (!(vm.modoMultiple && vm.estaSeleccionada(mesa.id))) vm.seleccionar(mesa.id);
+          },
           onPanUpdate: (d) => vm.arrastrarMesa(mesa.id, d.delta.dx, d.delta.dy),
           onPanEnd: (_) => vm.soltarMesa(mesa.id),
-          child: MesaVisual(
-            mesa: mesa,
-            paleta: paleta,
-            seleccionada: seleccionada || conError,
-            detalle: '${mesa.capacidad} ${mesa.capacidad == 1 ? 'silla' : 'sillas'}',
-          ),
+          child: ubicada,
         ),
       ),
+      child: MesaVisual(
+        mesa: mesa,
+        paleta: paleta,
+        seleccionada: seleccionada || conError,
+        detalle: '${mesa.capacidad} ${mesa.capacidad == 1 ? 'silla' : 'sillas'}',
+      ),
+    );
+  }
+}
+
+/// Elemento decorativo en el lienzo (barra, pared, planta…): se mueve igual que una mesa.
+class _ElementoTile extends StatelessWidget {
+  final PlanEditorViewModel vm;
+  final ElementoPlano elemento;
+  final FocusNode foco;
+
+  const _ElementoTile({required this.vm, required this.elemento, required this.foco});
+
+  @override
+  Widget build(BuildContext context) {
+    final seleccionado = vm.estaSeleccionada(elemento.id);
+    final nombre = ElementoPlano.estilo(elemento.tipo).nombre;
+    return ElementoUbicado(
+      elemento: elemento,
+      envoltura: (context, ubicado) => Semantics(
+        button: true,
+        label: elemento.etiqueta.isEmpty ? nombre : '$nombre ${elemento.etiqueta}',
+        child: GestureDetector(
+          key: ValueKey('elemento_${elemento.id}'),
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            foco.requestFocus();
+            vm.seleccionarElemento(elemento.id);
+          },
+          onPanStart: (_) {
+            foco.requestFocus();
+            if (!(vm.modoMultiple && vm.estaSeleccionada(elemento.id))) vm.seleccionarElemento(elemento.id);
+          },
+          onPanUpdate: (d) => vm.arrastrarElemento(elemento.id, d.delta.dx, d.delta.dy),
+          onPanEnd: (_) => vm.soltarElemento(elemento.id),
+          child: ubicado,
+        ),
+      ),
+      child: ElementoVisual(elemento: elemento, seleccionado: seleccionado),
+    );
+  }
+}
+
+/// Indica si hay cambios sin guardar, se está guardando o todo está al día.
+class _EstadoGuardado extends StatelessWidget {
+  final bool guardando;
+  final bool conCambios;
+
+  /// En pantallas angostas solo se ve el ícono (el texto queda como ayuda).
+  final bool compacto;
+
+  const _EstadoGuardado({
+    required this.guardando,
+    required this.conCambios,
+    this.compacto = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final String texto;
+    final IconData icono;
+    final Color color;
+    if (guardando) {
+      texto = 'Guardando…';
+      icono = Icons.cloud_upload_outlined;
+      color = PlanEditorView.mutedText;
+    } else if (conCambios) {
+      texto = 'Cambios sin guardar';
+      icono = Icons.edit_note;
+      color = AppColors.acento;
+    } else {
+      texto = 'Todo guardado';
+      icono = Icons.cloud_done_outlined;
+      color = AppColors.exito;
+    }
+    if (compacto) {
+      return Tooltip(
+        key: const ValueKey('estado_guardado'),
+        message: texto,
+        child: Icon(icono, size: 20, color: color),
+      );
+    }
+    return Row(
+      key: const ValueKey('estado_guardado'),
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icono, size: 18, color: color),
+        const SizedBox(width: 4),
+        Text(texto, style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: color)),
+      ],
     );
   }
 }
@@ -660,6 +985,32 @@ class _PanelMesaState extends State<_PanelMesa> {
                   ),
                 ],
               ),
+              const SizedBox(height: 4),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('btn_duplicar_mesa'),
+                      onPressed: () => vm.duplicarMesa(mesa.id),
+                      icon: const Icon(Icons.copy_outlined, size: 18),
+                      label: const Text('Duplicar'),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      key: const ValueKey('btn_eliminar_mesa'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: PlanEditorView.errorRed,
+                      ),
+                      onPressed: () => widget.onEliminar(mesa),
+                      icon: const Icon(Icons.delete_outline, size: 18),
+                      label: const Text('Eliminar'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
               TextField(
                 key: const ValueKey('campo_mesa_nombre'),
                 controller: _nombre,
@@ -770,6 +1121,7 @@ class _PanelMesaState extends State<_PanelMesa> {
                   onChanged: (v) => vm.cambiarTamano(mesa.id, alto: v),
                 ),
               ],
+              ControlesAvanzadosMesa(vm: vm, mesa: mesa, errores: errores),
               if (vm.zonas.isNotEmpty) ...[
                 const SizedBox(height: 6),
                 DropdownButtonFormField<String>(
@@ -831,31 +1183,6 @@ class _PanelMesaState extends State<_PanelMesa> {
                             ),
                         ],
                       ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      key: const ValueKey('btn_duplicar_mesa'),
-                      onPressed: () => vm.duplicarMesa(mesa.id),
-                      icon: const Icon(Icons.copy_outlined, size: 18),
-                      label: const Text('Duplicar'),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      key: const ValueKey('btn_eliminar_mesa'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: PlanEditorView.errorRed,
-                      ),
-                      onPressed: () => widget.onEliminar(mesa),
-                      icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('Eliminar'),
-                    ),
-                  ),
-                ],
-              ),
             ],
           ),
         ),

@@ -1,5 +1,6 @@
 import 'mesa_model.dart';
 import 'zona_model.dart';
+import 'elemento_plano.dart';
 
 /// Estado de una mesa en el intervalo consultado (HU08-RF03, HU10-RF01).
 /// [noDisponible] se usa cuando la fecha u horario completo no se puede reservar.
@@ -130,6 +131,9 @@ class FloorPlanResult {
   final List<PlanoMesa> mesas;
   final List<ZonaModel> zonas;
 
+  /// Elementos decorativos del salón (barra, paredes, puertas, plantas…).
+  final List<ElementoPlano> elementos;
+
   /// Motivo si la fecha u horario no son reservables; las mesas salen [MesaEstado.noDisponible].
   final AvailabilityFailure? reason;
 
@@ -137,6 +141,7 @@ class FloorPlanResult {
     required this.configurado,
     this.mesas = const [],
     this.zonas = const [],
+    this.elementos = const [],
     this.reason,
   });
 
@@ -144,6 +149,7 @@ class FloorPlanResult {
     : configurado = false,
       mesas = const [],
       zonas = const [],
+      elementos = const [],
       reason = null;
 
   /// Mesas de una zona; null agrupa las que no tienen zona.
