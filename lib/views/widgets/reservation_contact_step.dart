@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/reservation_draft_model.dart';
 import '../../services/contact_validation_service.dart';
 import '../../viewmodels/reservation_contact_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso / Modal para captura y validación temporal de datos de contacto (HU13-RF03)
 ///
@@ -13,11 +14,11 @@ class ReservationContactStep extends StatefulWidget {
   final VoidCallback? onBack;
   final ContactValidationService? validationService;
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color creamBg = Color(0xFFFAF6F0);
+  static const Color terracotta = AppColors.marca;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color creamBg = AppColors.fondo;
 
   const ReservationContactStep({
     super.key,
@@ -100,7 +101,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: ReservationContactStep.terracotta.withAlpha(20),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
               ),
               child: const Row(
                 mainAxisSize: MainAxisSize.min,
@@ -144,7 +145,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.red.shade200),
       ),
       child: Row(
@@ -168,7 +169,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ReservationContactStep.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -264,6 +265,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
               obscureText: _obscurePassword,
               errorText: _viewModel.errorPassword,
               suffixIcon: IconButton(
+        tooltip: 'Mostrar u ocultar contraseña',
                 icon: Icon(
                   _obscurePassword ? Icons.visibility_off : Icons.visibility,
                   size: 20,
@@ -326,15 +328,15 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
             fillColor: Colors.grey.shade50,
             contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               borderSide: const BorderSide(color: ReservationContactStep.terracotta, width: 1.5),
             ),
           ),
@@ -351,7 +353,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
             key: const ValueKey('btn_contacto_volver'),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               side: BorderSide(color: Colors.grey.shade400),
             ),
             onPressed: _viewModel.isLoading ? null : widget.onBack,
@@ -365,7 +367,7 @@ class _ReservationContactStepState extends State<ReservationContactStep> {
             style: FilledButton.styleFrom(
               backgroundColor: ReservationContactStep.terracotta,
               padding: const EdgeInsets.symmetric(vertical: 14),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             onPressed: _viewModel.isLoading ? null : _handleConfirm,
             child: _viewModel.isLoading

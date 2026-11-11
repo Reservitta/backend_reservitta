@@ -23,6 +23,9 @@ import '../services/ocasion_service.dart';
 import 'widgets/reservation_summary_step.dart';
 import 'widgets/table_selection_step.dart';
 import 'widgets/time_slot_step.dart';
+import '../theme/app_theme.dart';
+import '../utils/opening_status.dart';
+import 'widgets/reservation_web_form.dart';
 
 /// Flujo interactivo de reserva (HU07-RF01, HU07-RF02, HU08-RF01, HU09-RF01, HU13, HU14).
 /// Implementa los pasos: Sucursal, Fecha, Duración, Personas, Mesa, Horario,
@@ -79,6 +82,10 @@ class ReservationFlowView extends StatefulWidget {
   final OcasionService? ocasionService;
   final bool enablePrepareVisitStep;
 
+  /// Sucursal ya elegida (en la ventana de sucursales del detalle). Con ella el
+  /// flujo empieza directamente en la fecha.
+  final BranchModel? initialBranch;
+
   const ReservationFlowView({
     super.key,
     required this.restaurant,
@@ -100,6 +107,7 @@ class ReservationFlowView extends StatefulWidget {
     this.platilloService,
     this.ocasionService,
     this.enablePrepareVisitStep = true,
+    this.initialBranch,
   });
 
   @override
@@ -144,16 +152,19 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   /// Cambia cuando la selección se invalida para recargar los pasos de mesa y horario.
   int _stepReload = 0;
 
+  /// Etapa (0 a 4) que reporta el formulario web de una sola pantalla.
+  int _etapaWeb = 0;
+
   // Mes visible en el selector de calendario
   late DateTime _visibleMonth;
 
   // Paleta de colores institucional
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color creamAccent = Color(0xFFF3ECE1);
+  static const Color terracotta = AppColors.marca;
+  static const Color creamBg = AppColors.fondo;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color creamAccent = AppColors.marcaSuave;
 
   @override
   void initState() {
@@ -166,6 +177,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           restaurantService: widget.restaurantService ?? RestaurantService(),
           tableRepository: TableService(),
         );
+
+    final inicial = widget.initialBranch;
+    if (inicial != null && !_isExternalViewModel) {
+      _viewModel.selectBranch(inicial);
+      _viewModel.goToStep(1);
+    }
+
+    _detectarSinMesas();
 
     final now = _viewModel.clockNow;
     _visibleMonth = DateTime(now.year, now.month, 1);
@@ -191,8 +210,32 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     super.dispose();
   }
 
+  /// Si el restaurante no configuró sus mesas la reserva sigue igual, solo que sin
+  /// elegir mesa: el restaurante la asigna al recibirla.
+  Future<void> _detectarSinMesas() async {
+    try {
+      final tiene = await _availabilityService.restauranteTieneMesas(widget.restaurant);
+      if (!mounted) return;
+      _viewModel.definirSinMesas(!tiene);
+    } catch (_) {
+      // Si no se puede saber, se deja el flujo normal.
+    }
+  }
+
+  /// En pantallas anchas los pasos 1 a 5 son una sola vista.
+  bool get _esPantallaUnica =>
+      MediaQuery.sizeOf(context).width >= anchoPantallaUnica;
+
   void _handleBack() {
-    if (_viewModel.currentStep > 0) {
+    final paso = _viewModel.currentStep;
+    final primeraPantalla = _esPantallaUnica ? paso >= 1 && paso <= 5 : paso == 1;
+    if (widget.initialBranch != null && primeraPantalla) {
+      // La sucursal ya se eligió en la ventana anterior: volver sale del flujo.
+      _viewModel.discardDraft();
+      Navigator.of(context).pop();
+    } else if (_esPantallaUnica && _viewModel.currentStep >= 1 && _viewModel.currentStep <= 5) {
+      _viewModel.goToStep(0);
+    } else if (_viewModel.currentStep > 0) {
       // Retrocede en el flujo conservando los datos ya elegidos (HU07-RF01)
       _viewModel.previousStep();
     } else {
@@ -238,7 +281,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(14)),
         ),
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         child: Column(
@@ -264,7 +307,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     color: Colors.green.shade50,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.check, color: Color(0xFF2E7D32), size: 28),
+                  child: const Icon(Icons.check, color: AppColors.exito, size: 28),
                 ),
                 const SizedBox(width: 14),
                 const Expanded(
@@ -293,7 +336,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: creamBg,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: cardBorder),
               ),
               child: Column(
@@ -379,7 +422,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     style: OutlinedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     onPressed: () => Navigator.of(ctx).pop(),
@@ -394,7 +437,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                       backgroundColor: terracotta,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     onPressed: () {
@@ -450,13 +493,23 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         animation: _viewModel,
         builder: (context, _) {
           final step = _viewModel.currentStep;
+          final pantallaUnica = _esPantallaUnica && step >= 1;
+
+          if (pantallaUnica) {
+            return Scaffold(
+              backgroundColor: creamBg,
+              body: SafeArea(child: _buildPantallaUnica(step)),
+            );
+          }
 
           return Scaffold(
             backgroundColor: creamBg,
             body: SafeArea(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 520),
+                  constraints: BoxConstraints(
+                    maxWidth: MediaQuery.sizeOf(context).width >= anchoPantallaUnica ? 1400 : 680,
+                  ),
                   child: Column(
                     children: [
                       // Encabezado
@@ -487,6 +540,71 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   // ---------------------------------------------------------------------------
+  // PANTALLA ÚNICA (WEB): fecha, duración, personas, horario y mesa en una vista
+  // ---------------------------------------------------------------------------
+  Widget _buildPantallaUnica(int step) {
+    final enFormulario = step <= 5;
+    final etapa = enFormulario ? _etapaWeb : (step == 6 ? 5 : 6);
+
+    // Datos de contacto y preparar visita son formularios de campos: se centran
+    // con un ancho cómodo; el resto usa todo el ancho de la pantalla.
+    final anchoContenido = (step == 7 || step == 8) ? 900.0 : double.infinity;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+            children: [
+              EncabezadoReservaWeb(
+                etapaActual: etapa,
+                onVolver: _handleBack,
+                onCancelar: _confirmCancelFlow,
+                onIrAEtapa: enFormulario
+                    ? null
+                    : (i) => _viewModel.goToStep(i <= 4 ? 1 : 6),
+              ),
+              Expanded(
+                child: SingleChildScrollView(
+                  child: enFormulario
+                      ? FormularioReservaWeb(
+                          viewModel: _viewModel,
+                          restaurant: widget.restaurant,
+                          availability: _availabilityService,
+                          recarga: _stepReload,
+                          procesando: _isProcessing,
+                          onEtapaCambia: (e) {
+                            if (e != _etapaWeb && mounted) {
+                              setState(() => _etapaWeb = e);
+                            }
+                          },
+                          onContinuar: () {
+                            _viewModel.goToStep(5);
+                            _revalidateThenAdvance();
+                          },
+                        )
+                      : Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(maxWidth: anchoContenido),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 20),
+                              child: _buildCurrentStepContent(step),
+                            ),
+                          ),
+                        ),
+                ),
+              ),
+              if (!enFormulario)
+                Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: anchoContenido),
+                    child: _buildBottomActionBar(step),
+                  ),
+                ),
+            ],
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // ENCABEZADOS Y STEPPER BAR
   // ---------------------------------------------------------------------------
   Widget _buildStep0Header() {
@@ -497,7 +615,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           InkWell(
             key: const ValueKey('btn_back_step0'),
             onTap: _handleBack,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(12),
             child: Container(
               padding: const EdgeInsets.all(8),
               decoration: const BoxDecoration(
@@ -507,17 +625,20 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               child: const Icon(Icons.arrow_back, color: darkText, size: 22),
             ),
           ),
-          const SizedBox(width: 16),
-          const Text(
-            'Haz tu reserva',
-            style: TextStyle(
-              fontSize: 24,
-              fontFamily: 'serif',
-              fontWeight: FontWeight.bold,
-              color: darkText,
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Haz tu reserva',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 26,
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
             ),
           ),
-          const Spacer(),
           IconButton(
             tooltip: 'Cancelar reserva',
             icon: const Icon(Icons.close, color: mutedText),
@@ -549,7 +670,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               InkWell(
                 key: const ValueKey('btn_stepper_back'),
                 onTap: _handleBack,
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(12),
                 child: Container(
                   padding: const EdgeInsets.all(8),
                   decoration: const BoxDecoration(
@@ -595,7 +716,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                                       : Text(
                                           '$stepNumber',
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.bold,
                                             color: isActive
                                                 ? Colors.white
@@ -618,14 +739,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                           ),
                           const SizedBox(height: 4),
                           SizedBox(
-                            width: 32,
+                            width: double.infinity,
                             child: FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.center,
                               child: Text(
                                 steps[idx],
                                 style: TextStyle(
-                                  fontSize: 10,
+                                  fontSize: 12,
                                   fontWeight: (isActive || isCompleted)
                                       ? FontWeight.bold
                                       : FontWeight.normal,
@@ -678,8 +799,158 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   }
 
   Widget _buildStep6ResumenSelection() {
+    final web = _esPantallaUnica && widget.enablePrepareVisitStep;
+    return _buildResumenBase(
+      vistaWeb: web,
+      destacado: web ? _buildTarjetaPersonalizar() : null,
+    );
+  }
+
+  /// Opción de personalizar la visita, destacada arriba del resumen (pre-orden,
+  /// alergias, ocasión especial). Es opcional: sin personalizar se reserva igual.
+  Widget _buildTarjetaPersonalizar() {
+    final draft = _viewModel.draft;
+    final personalizada = draft.tienePersonalizacion;
+
+    final detalles = <String>[
+      if (draft.preordenItems.isNotEmpty)
+        '${draft.preordenItems.length} ${draft.preordenItems.length == 1 ? 'platillo pre-ordenado' : 'platillos pre-ordenados'}',
+      if (draft.alergias.isNotEmpty || draft.notasAlergias.trim().isNotEmpty) 'Alergias indicadas',
+      if (draft.ocasionEspecial != null) 'Ocasión especial',
+    ];
+
+    return Container(
+      key: const ValueKey('tarjeta_personalizar'),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: AppColors.marcaSuave,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.marca, width: 1.4),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: const BoxDecoration(
+              color: AppColors.marca,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              personalizada ? Icons.check_rounded : Icons.auto_awesome,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 10,
+                  children: [
+                    Text(
+                      personalizada ? 'Tu visita está personalizada' : 'Personaliza tu visita',
+                      style: const TextStyle(
+                        fontFamily: AppTheme.familiaTitulos,
+                        fontWeight: FontWeight.w700,
+                        fontVariations: [FontVariation('wght', 700)],
+                        fontSize: 19,
+                        color: darkText,
+                      ),
+                    ),
+                    if (!personalizada)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: AppColors.marca.withValues(alpha: 0.35)),
+                        ),
+                        child: const Text(
+                          'Opcional',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.marca,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  personalizada
+                      ? detalles.join(' · ')
+                      : 'Pre-ordena platillos, avisa de alergias o celebra una ocasión especial.',
+                  style: const TextStyle(fontSize: 14, height: 1.35, color: mutedText),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (personalizada)
+                TextButton(
+                  key: const ValueKey('btn_quitar_personalizacion'),
+                  onPressed: _viewModel.clearPersonalizacion,
+                  child: const Text('Quitar'),
+                ),
+              FilledButton.icon(
+                key: const ValueKey('btn_personalizar_resumen'),
+                style: FilledButton.styleFrom(
+                  minimumSize: const Size(0, 46),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                ),
+                onPressed: _personalizarDesdeResumen,
+                icon: Icon(personalizada ? Icons.edit_outlined : Icons.tune, size: 18),
+                label: Text(
+                  personalizada ? 'Editar' : 'Personalizar mi visita',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Abre la pantalla de personalizar y, al confirmar, vuelve al resumen
+  /// (no crea la reserva todavía).
+  Future<void> _personalizarDesdeResumen() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => PersonalizeVisitView(
+          restaurant: widget.restaurant,
+          draft: _viewModel.draft,
+          categoriaService: widget.categoriaService,
+          platilloService: widget.platilloService,
+          ocasionService: widget.ocasionService,
+          authService: _authService,
+          isAuthenticated: _hasRealSession,
+          textoConfirmar: 'Guardar y volver al resumen',
+          onConfirm: (actualizado) async {
+            _viewModel.setPreordenItems(actualizado.preordenItems);
+            _viewModel.setAlergias(actualizado.alergias, notas: actualizado.notasAlergias);
+            _viewModel.setOcasionEspecial(actualizado.ocasionEspecial, actualizado.experiencias);
+            Navigator.of(context).pop();
+          },
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResumenBase({bool vistaWeb = false, Widget? destacado}) {
     final draft = _viewModel.draft;
     return ReservationSummaryStep(
+      vistaWeb: vistaWeb,
+      destacado: destacado,
       key: ValueKey(
         'step_resumen_${draft.fecha}_${draft.duracionMin}_${draft.personas}_${draft.mesaIds.join(',')}_${draft.horario?.hour}_${draft.horario?.minute}',
       ),
@@ -840,7 +1111,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           return;
         }
       }
-      if (widget.enablePrepareVisitStep) {
+      if (widget.enablePrepareVisitStep && !_esPantallaUnica) {
         _viewModel.goToStep(8);
       } else {
         await _bookReservation();
@@ -1126,6 +1397,9 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
   // ---------------------------------------------------------------------------
   Widget _buildStep4MesaSelection() {
     final draft = _viewModel.draft;
+    if (draft.sinMesaAsignada) {
+      return const AvisoSinMesas(key: ValueKey('aviso_sin_mesas'));
+    }
     return TableSelectionStep(
       key: ValueKey(
         'step_mesas_${draft.fecha}_${draft.duracionMin}_${draft.personas}_$_stepReload',
@@ -1172,7 +1446,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           height: 140,
           width: double.infinity,
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             color: const Color(0xFF332219),
             image: widget.restaurant.imagenPrincipalUrl.isNotEmpty
                 ? DecorationImage(
@@ -1191,7 +1465,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             'Elige cuándo quieres visitarnos y nosotros nos encargamos del resto.',
             style: TextStyle(
               fontSize: 18,
-              fontFamily: 'serif',
+              fontFamily: AppTheme.familiaTitulos,
               fontWeight: FontWeight.bold,
               color: Colors.white,
               height: 1.3,
@@ -1204,13 +1478,16 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: const [
-            Text(
-              'SELECCIONA UNA SUCURSAL',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: Color(0xFF8C6E53),
+            Flexible(
+              child: Text(
+                'SELECCIONA UNA SUCURSAL',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  color: Color(0xFF8C6E53),
+                ),
               ),
             ),
             Text(
@@ -1233,35 +1510,75 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               child: CircularProgressIndicator(color: terracotta),
             ),
           )
+        else if (_viewModel.sinSucursales)
+          _buildSinSucursales()
         else
           ..._viewModel.branches.map((b) => _buildBranchCard(b)),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 12),
 
-        // 3 Tarjetas informativas del flujo
-        _buildInfoCard(
-          icon: Icons.calendar_month_outlined,
-          iconColor: Colors.blue.shade400,
-          title: 'Selecciona fecha y duración',
-          subtitle: 'Elige el día y cuánto tiempo planeas quedarte.',
-        ),
-        const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.chair_outlined,
-          iconColor: terracotta,
-          title: 'Elige tu mesa',
-          subtitle: 'Visualiza el restaurante y selecciona la mesa ideal para tu grupo.',
-        ),
-        const SizedBox(height: 12),
-        _buildInfoCard(
-          icon: Icons.check_box_outlined,
-          iconColor: const Color(0xFF2E7D32),
-          title: 'Confirmación inmediata',
-          subtitle: 'Recibirás la confirmación por correo en segundos.',
-        ),
+        // Lo que sigue, en una sola línea (sin tarjetas que confundan)
+        if (!_viewModel.sinSucursales && !_viewModel.isLoadingBranches)
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.info_outline, size: 18, color: mutedText),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Después elegirás la fecha, la duración, las personas y tu mesa.',
+                  style: TextStyle(fontSize: 13, color: mutedText, height: 1.35),
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
+
+  /// El restaurante no tiene sucursales registradas (o no se pudieron consultar).
+  Widget _buildSinSucursales() {
+    final fallo = _viewModel.sucursalesNoCargaron;
+    return Container(
+      key: const ValueKey('sin_sucursales'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: cardBorder),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.storefront_outlined, size: 36, color: mutedText),
+          const SizedBox(height: 10),
+          Text(
+            fallo
+                ? 'No pudimos cargar las sucursales'
+                : 'Este restaurante aún no tiene sucursales disponibles',
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: darkText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            fallo
+                ? 'Revisa tu conexión e inténtalo de nuevo en unos minutos.'
+                : 'Por ahora no se puede reservar aquí. Prueba con otro restaurante.',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 13, color: mutedText),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Estado de apertura de hoy según los horarios reales del restaurante.
+  EstadoApertura? _estadoAperturaHoy() =>
+      EstadoApertura.hoy(widget.restaurant, _viewModel.clockNow);
 
   Widget _buildBranchCard(BranchModel branch) {
     final isSelected = _viewModel.draft.branch?.id == branch.id;
@@ -1274,12 +1591,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       child: InkWell(
         key: ValueKey('branch_card_${branch.id}'),
         onTap: () => _viewModel.selectBranch(branch),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: isSelected ? darkText : cardBorder,
               width: isSelected ? 2.0 : 1.2,
@@ -1341,22 +1658,23 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               ),
               const SizedBox(width: 8),
 
-              // Tag Abierto / Cerrado
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F5E9),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Abierto',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF2E7D32),
+              // Estado de apertura según los horarios reales
+              if (_estadoAperturaHoy() case final estado?)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: estado.fondo,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    estado.texto,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: estado.color,
+                    ),
                   ),
                 ),
-              ),
 
               if (isSelected) ...[
                 const SizedBox(width: 8),
@@ -1376,49 +1694,6 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     );
   }
 
-  Widget _buildInfoCard({
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: cardBorder),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: darkText,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  subtitle,
-                  style: const TextStyle(fontSize: 12, color: mutedText),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ---------------------------------------------------------------------------
   // PASO 1: SELECTOR DE FECHA (HU07-RF02)
   // ---------------------------------------------------------------------------
@@ -1431,7 +1706,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           '¿Qué día quieres visitarnos?',
           style: TextStyle(
             fontSize: 22,
-            fontFamily: 'serif',
+            fontFamily: AppTheme.familiaTitulos,
             fontWeight: FontWeight.bold,
             color: darkText,
           ),
@@ -1465,10 +1740,10 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
             decoration: BoxDecoration(
               color: const Color(0xFFFDF7F2),
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: _viewModel.isDateSelectable(_viewModel.draft.fecha!)
-                    ? const Color(0xFFE89375)
+                    ? AppColors.marca
                     : Colors.red.shade300,
                 width: 1.5,
               ),
@@ -1506,7 +1781,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     child: Text(
                       'Cerrado',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: Colors.red.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1523,7 +1798,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     child: Text(
                       'Abierto',
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: 12,
                         color: Colors.green.shade700,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1557,7 +1832,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
@@ -1574,6 +1849,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
+                tooltip: 'Anterior',
                 key: const ValueKey('btn_mes_anterior'),
                 icon: const Icon(Icons.chevron_left, color: terracotta),
                 onPressed: () {
@@ -1586,16 +1862,21 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   });
                 },
               ),
-              Text(
-                '$mesNombre $year',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: 'serif',
-                  fontWeight: FontWeight.bold,
-                  color: darkText,
+              Flexible(
+                child: Text(
+                  '$mesNombre $year',
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontFamily: AppTheme.familiaTitulos,
+                    fontWeight: FontWeight.bold,
+                    color: darkText,
+                  ),
                 ),
               ),
               IconButton(
+                tooltip: 'Siguiente',
                 key: const ValueKey('btn_mes_siguiente'),
                 icon: const Icon(Icons.chevron_right, color: terracotta),
                 onPressed: () {
@@ -1680,7 +1961,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                           );
                         }
                       },
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
                 child: Container(
                   decoration: BoxDecoration(
                     color: isSelected
@@ -1776,14 +2057,14 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   );
                 }
               },
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 decoration: BoxDecoration(
                   color: isSelected
                       ? terracotta
                       : creamAccent,
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected ? darkText : cardBorder,
                     width: isSelected ? 2 : 1,
@@ -1805,7 +2086,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                       Text(
                         '• Cerrado',
                         style: TextStyle(
-                          fontSize: 10,
+                          fontSize: 12,
                           fontWeight: FontWeight.bold,
                           color: isSelected ? Colors.white70 : Colors.red.shade400,
                         ),
@@ -1862,7 +2143,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           '¿Cuánto tiempo planeas quedarte?',
           style: TextStyle(
             fontSize: 22,
-            fontFamily: 'serif',
+            fontFamily: AppTheme.familiaTitulos,
             fontWeight: FontWeight.bold,
             color: darkText,
           ),
@@ -1874,7 +2155,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: creamAccent,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: const Text(
             'La duración nos ayuda a calcular la disponibilidad de las mesas. No tiene ningún costo adicional.',
@@ -1899,12 +2180,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             child: InkWell(
               key: ValueKey('duracion_opcion_$minutos'),
               onTap: () => _viewModel.selectDuration(minutos),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isSelected ? terracotta : cardBorder,
                     width: isSelected ? 2 : 1,
@@ -1921,12 +2202,15 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   children: [
                     const Icon(Icons.timer_outlined, color: darkText, size: 22),
                     const SizedBox(width: 14),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
+                    Flexible(
+                      child: Text(
+                        label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
+                        ),
                       ),
                     ),
                     if (isSugerida) ...[
@@ -1940,7 +2224,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                         child: const Text(
                           'Sugerido',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: terracotta,
                           ),
@@ -1993,7 +2277,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           '¿Para cuántas personas?',
           style: TextStyle(
             fontSize: 22,
-            fontFamily: 'serif',
+            fontFamily: AppTheme.familiaTitulos,
             fontWeight: FontWeight.bold,
             color: darkText,
           ),
@@ -2005,7 +2289,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: cardBorder),
             boxShadow: [
               BoxShadow(
@@ -2024,7 +2308,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 onTap: personas > minPeople
                     ? () => _viewModel.decrementPartySize()
                     : null,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
                   width: 52,
                   height: 52,
@@ -2050,7 +2334,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                     key: const ValueKey('texto_contador_personas'),
                     style: const TextStyle(
                       fontSize: 54,
-                      fontFamily: 'serif',
+                      fontFamily: AppTheme.familiaTitulos,
                       fontWeight: FontWeight.bold,
                       color: darkText,
                       height: 1.0,
@@ -2074,7 +2358,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 onTap: personas < maxPeople
                     ? () => _viewModel.incrementPartySize()
                     : null,
-                borderRadius: BorderRadius.circular(30),
+                borderRadius: BorderRadius.circular(14),
                 child: Container(
                   width: 52,
                   height: 52,
@@ -2132,12 +2416,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
     return InkWell(
       key: ValueKey('rango_sugerido_${minR}_$maxR'),
       onTap: () => _viewModel.setPartySize(targetVal),
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
         decoration: BoxDecoration(
           color: isSelected ? Colors.white : creamAccent.withAlpha(140),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? terracotta : Colors.transparent,
             width: isSelected ? 2 : 1,
@@ -2194,15 +2478,17 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE89375)),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.marca),
                 ),
                 alignment: Alignment.center,
-                child: const Text(
-                  'Selecciona una sucursal para continuar',
+                child: Text(
+                  _viewModel.sinSucursales
+                      ? 'No hay sucursales disponibles para reservar'
+                      : 'Selecciona una sucursal para continuar',
                   style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFFB34A26),
+                    color: AppColors.marca,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -2215,10 +2501,10 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               child: FilledButton(
                 key: const ValueKey('btn_comenzar_reserva'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: canAdvance ? terracotta : const Color(0xFFE6DACB),
-                  foregroundColor: canAdvance ? Colors.white : const Color(0xFF8A7B6D),
+                  backgroundColor: canAdvance ? terracotta : AppColors.divisor,
+                  foregroundColor: canAdvance ? Colors.white : AppColors.textoSuave,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   elevation: canAdvance ? 2 : 0,
                 ),
@@ -2249,12 +2535,12 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
       style: FilledButton.styleFrom(
         backgroundColor: (canAdvance && !_isProcessing)
             ? terracotta
-            : const Color(0xFFE6DACB),
+            : AppColors.divisor,
         foregroundColor: (canAdvance && !_isProcessing)
             ? Colors.white
-            : const Color(0xFF8A7B6D),
+            : AppColors.textoSuave,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
         ),
         elevation: (canAdvance && !_isProcessing) ? 2 : 0,
       ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/reservation_draft_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso 6: Pantalla de resumen de la reserva (HU12-RF01 y HU11-RF03).
 ///
@@ -36,12 +37,18 @@ class ReservationSummaryStep extends StatelessWidget {
   /// Si es true, renderiza un botón de acción inferior autónomo (útil para pruebas unitarias).
   final bool showActionButton;
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color creamAccent = Color(0xFFF3ECE1);
+  /// Versión web: tarjeta con los datos destacados en lugar de una lista.
+  final bool vistaWeb;
+
+  /// Contenido destacado que va arriba del resumen (p. ej. personalizar la visita).
+  final Widget? destacado;
+
+  static const Color terracotta = AppColors.marca;
+  static const Color creamBg = AppColors.fondo;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color creamAccent = AppColors.marcaSuave;
 
   const ReservationSummaryStep({
     super.key,
@@ -53,10 +60,13 @@ class ReservationSummaryStep extends StatelessWidget {
     this.onRequireAuth,
     this.confirmButtonText,
     this.showActionButton = false,
+    this.vistaWeb = false,
+    this.destacado,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (vistaWeb) return _buildWeb(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -86,6 +96,319 @@ class ReservationSummaryStep extends StatelessWidget {
   }
 
   // ---------------------------------------------------------------------------
+  // VISTA WEB: resumen en tarjeta con datos destacados
+  // ---------------------------------------------------------------------------
+  Widget _buildWeb(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        LayoutBuilder(
+          builder: (context, c) {
+            const titulo = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Resumen de tu reserva',
+                  style: TextStyle(
+                    fontFamily: AppTheme.familiaTitulos,
+                    fontWeight: FontWeight.w700,
+                    fontVariations: [FontVariation('wght', 700)],
+                    fontSize: 30,
+                    color: darkText,
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  'Revisa que todo esté bien. Puedes cambiar cualquier dato antes de continuar.',
+                  style: TextStyle(fontSize: 15, color: mutedText),
+                ),
+              ],
+            );
+            if (destacado != null && c.maxWidth >= 900) {
+              // Personalizar la visita va al lado del título, a su misma altura.
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Expanded(flex: 5, child: titulo),
+                  const SizedBox(width: 28),
+                  Expanded(flex: 6, child: destacado!),
+                ],
+              );
+            }
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                titulo,
+                if (destacado != null) ...[
+                  const SizedBox(height: 18),
+                  destacado!,
+                ],
+              ],
+            );
+          },
+        ),
+        const SizedBox(height: 22),
+        if (!isAuthenticated) ...[
+          _buildAuthRequiredBanner(context),
+          const SizedBox(height: 18),
+        ],
+        _buildTicketWeb(),
+        if (showActionButton && onConfirm != null) ...[
+          const SizedBox(height: 24),
+          _buildStandaloneActionButton(),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTicketWeb() {
+    final mesasTexto = draft.mesasConEspacio.isNotEmpty
+        ? draft.mesasConEspacio
+        : (draft.sinMesaAsignada ? 'El restaurante la asignará' : 'Sin mesa');
+    final sucursalTexto = draft.branch?.nombre ??
+        (draft.restaurant.direccion.isNotEmpty ? draft.restaurant.direccion : 'Sucursal principal');
+    final direccion = draft.branch?.direccion ?? '';
+
+    Widget tile({
+      required Key cardKey,
+      required Key buttonKey,
+      required IconData icon,
+      required String label,
+      required String value,
+      required VoidCallback onEdit,
+      String? detalle,
+    }) {
+      return Container(
+        key: cardKey,
+        padding: const EdgeInsets.fromLTRB(18, 16, 12, 12),
+        decoration: BoxDecoration(
+          color: AppColors.fondo,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: cardBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Container(
+                  width: 34,
+                  height: 34,
+                  decoration: const BoxDecoration(
+                    color: AppColors.marcaSuave,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(icon, size: 18, color: terracotta),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    label,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: mutedText,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              value,
+              style: const TextStyle(
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                fontSize: 22,
+                height: 1.15,
+                color: darkText,
+              ),
+            ),
+            if (detalle != null && detalle.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(detalle, style: const TextStyle(fontSize: 13, color: mutedText)),
+            ],
+            const SizedBox(height: 6),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                key: buttonKey,
+                style: TextButton.styleFrom(
+                  foregroundColor: terracotta,
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                ),
+                onPressed: onEdit,
+                icon: const Icon(Icons.edit_outlined, size: 16),
+                label: const Text(
+                  'Modificar',
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final tiles = <Widget>[
+      tile(
+        cardKey: const ValueKey('summary_card_fecha'),
+        buttonKey: const ValueKey('btn_modificar_fecha'),
+        icon: Icons.calendar_today_outlined,
+        label: 'Fecha de visita',
+        value: draft.formattedDate.isNotEmpty ? draft.formattedDate : 'Sin fecha',
+        onEdit: () => onEditStep(1),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_horario'),
+        buttonKey: const ValueKey('btn_modificar_horario'),
+        icon: Icons.schedule,
+        label: 'Horario',
+        value: draft.formattedTimeRange.isNotEmpty ? draft.formattedTimeRange : 'Sin horario',
+        onEdit: () => onEditStep(5),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_duracion'),
+        buttonKey: const ValueKey('btn_modificar_duracion'),
+        icon: Icons.timer_outlined,
+        label: 'Duración',
+        value: draft.formattedDuration,
+        onEdit: () => onEditStep(2),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_personas'),
+        buttonKey: const ValueKey('btn_modificar_personas'),
+        icon: Icons.groups_outlined,
+        label: 'Personas',
+        value: draft.personas == 1 ? '1 persona' : '${draft.personas} personas',
+        onEdit: () => onEditStep(3),
+      ),
+      tile(
+        cardKey: const ValueKey('summary_card_mesas'),
+        buttonKey: const ValueKey('btn_modificar_mesas'),
+        icon: Icons.table_restaurant_outlined,
+        label: draft.mesaIds.length > 1 ? 'Mesas' : 'Mesa',
+        value: mesasTexto,
+        onEdit: () => onEditStep(4),
+      ),
+      if (draft.contactoNombre.isNotEmpty ||
+          draft.contactoCorreo.isNotEmpty ||
+          draft.contactoTelefono.isNotEmpty)
+        tile(
+          cardKey: const ValueKey('summary_card_contacto_nombre'),
+          buttonKey: const ValueKey('btn_modificar_contacto_nombre'),
+          icon: Icons.person_outline,
+          label: 'Contacto',
+          value: draft.contactoNombre.isNotEmpty ? draft.contactoNombre : draft.contactoCorreo,
+          detalle: [
+            if (draft.contactoNombre.isNotEmpty && draft.contactoCorreo.isNotEmpty) draft.contactoCorreo,
+            if (draft.contactoTelefono.isNotEmpty) draft.contactoTelefono,
+          ].join(' · '),
+          onEdit: () => onEditStep(7),
+        ),
+    ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: cardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.marca.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Cabecera tipo boleto: restaurante y sucursal
+            Container(
+              key: const ValueKey('summary_card_restaurante'),
+              padding: const EdgeInsets.fromLTRB(24, 22, 16, 20),
+              color: AppColors.marcaSuave,
+              child: Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    alignment: Alignment.center,
+                    decoration: const BoxDecoration(
+                      color: AppColors.marca,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.restaurant_menu, color: Colors.white),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          draft.restaurant.nombre,
+                          style: const TextStyle(
+                            fontFamily: AppTheme.familiaTitulos,
+                            fontWeight: FontWeight.w700,
+                            fontVariations: [FontVariation('wght', 700)],
+                            fontSize: 26,
+                            color: darkText,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          direccion.isNotEmpty ? '$sucursalTexto · $direccion' : sucursalTexto,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontSize: 14, color: mutedText),
+                        ),
+                      ],
+                    ),
+                  ),
+                  TextButton(
+                    key: const ValueKey('btn_modificar_sucursal'),
+                    style: TextButton.styleFrom(foregroundColor: terracotta),
+                    onPressed: () => onEditStep(0),
+                    child: const Text(
+                      'Cambiar sucursal',
+                      style: TextStyle(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: LayoutBuilder(
+                builder: (context, c) {
+                  final columnas = (c.maxWidth >= 1100 && tiles.length == 5)
+                      ? 5
+                      : (c.maxWidth >= 760 ? 3 : (c.maxWidth >= 460 ? 2 : 1));
+                  const hueco = 14.0;
+                  final ancho = (c.maxWidth - hueco * (columnas - 1)) / columnas;
+                  return Wrap(
+                    spacing: hueco,
+                    runSpacing: hueco,
+                    children: [
+                      for (final t in tiles) SizedBox(width: ancho, child: t),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
   // ENCABEZADO
   // ---------------------------------------------------------------------------
   Widget _buildHeader() {
@@ -98,20 +421,20 @@ class ReservationSummaryStep extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
                 color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: Colors.green.shade200),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: const [
-                  Icon(Icons.check_circle_outline, color: Color(0xFF2E7D32), size: 16),
+                  Icon(Icons.check_circle_outline, color: AppColors.exito, size: 16),
                   SizedBox(width: 6),
                   Text(
                     '¡Borrador guardado!',
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF2E7D32),
+                      color: AppColors.exito,
                     ),
                   ),
                 ],
@@ -146,7 +469,7 @@ class ReservationSummaryStep extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF4E5),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: const Color(0xFFFFCC80)),
       ),
       child: Row(
@@ -199,7 +522,9 @@ class ReservationSummaryStep extends StatelessWidget {
   // ---------------------------------------------------------------------------
   Widget _buildSummaryCards() {
     final mesasTexto =
-        draft.mesasConEspacio.isNotEmpty ? draft.mesasConEspacio : 'Sin mesa';
+        draft.mesasConEspacio.isNotEmpty
+        ? draft.mesasConEspacio
+        : (draft.sinMesaAsignada ? 'El restaurante la asignará' : 'Sin mesa');
 
     final sucursalTexto = draft.branch?.nombre ??
         (draft.restaurant.direccion.isNotEmpty ? draft.restaurant.direccion : 'Sucursal principal');
@@ -207,7 +532,7 @@ class ReservationSummaryStep extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: cardBorder),
         boxShadow: [
           BoxShadow(
@@ -381,7 +706,7 @@ class ReservationSummaryStep extends StatelessWidget {
             key: buttonKey,
             style: OutlinedButton.styleFrom(
               foregroundColor: terracotta,
-              side: const BorderSide(color: Color(0xFFE89375)),
+              side: const BorderSide(color: AppColors.marca),
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               visualDensity: VisualDensity.compact,
               shape: RoundedRectangleBorder(
@@ -407,7 +732,7 @@ class ReservationSummaryStep extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: creamBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: cardBorder),
       ),
       child: Row(
@@ -450,7 +775,7 @@ class ReservationSummaryStep extends StatelessWidget {
               backgroundColor: terracotta,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
               ),
             ),
             onPressed: isProcessing ? null : onConfirm,

@@ -14,6 +14,7 @@ import '../services/table_service.dart';
 import '../viewmodels/reservation_draft_viewmodel.dart';
 import 'reservation_flow_view.dart';
 import 'widgets/reservation_state_control.dart';
+import '../theme/app_theme.dart';
 
 /// Gestión de una reserva con su enlace o código, sin iniciar sesión (HU20-RF03).
 ///
@@ -42,11 +43,11 @@ class ReservationManagementView extends StatefulWidget {
     this.now,
   });
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
+  static const Color terracotta = AppColors.marca;
+  static const Color creamBg = AppColors.fondo;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
 
   @override
   State<ReservationManagementView> createState() => _ReservationManagementViewState();
@@ -302,6 +303,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
         foregroundColor: ReservationManagementView.darkText,
         elevation: 0,
         leading: IconButton(
+        tooltip: 'Volver',
           key: const ValueKey('btn_salir_gestion'),
           icon: const Icon(Icons.arrow_back),
           onPressed: _salir,
@@ -328,7 +330,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color ?? Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borde ?? ReservationManagementView.cardBorder),
       ),
       child: child,
@@ -359,7 +361,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
             decoration: InputDecoration(
               labelText: 'Código',
               hintText: 'ABCD-EFGH-JKMN-PQRS-TUVW',
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             ),
             onSubmitted: (_) => _buscar(),
           ),
@@ -441,7 +443,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
             borde: const Color(0xFFA5D6A7),
             child: Row(
               children: [
-                const Icon(Icons.check_circle, color: Color(0xFF2E7D32)),
+                const Icon(Icons.check_circle, color: AppColors.exito),
                 const SizedBox(width: 10),
                 Expanded(child: Text(_aviso!, style: const TextStyle(fontWeight: FontWeight.w600))),
               ],
@@ -468,7 +470,7 @@ class _ReservationManagementViewState extends State<ReservationManagementView> {
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     decoration: BoxDecoration(
                       color: estilo.background,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: estilo.border),
                     ),
                     child: Row(

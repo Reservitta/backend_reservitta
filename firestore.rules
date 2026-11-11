@@ -112,6 +112,18 @@ service cloud.firestore {
         allow create, update, delete: if isReservittaAdmin();
       }
 
+      // Elementos decorativos del plano (barra, paredes, puertas…): los ve cualquiera.
+      match /elementos/{elementoId} {
+        allow read: if true;
+        allow create, update, delete: if isReservittaAdmin();
+      }
+
+      // Historial de cambios del plano: solo lo ve y lo escribe el administrador.
+      match /planHistorial/{cambioId} {
+        allow read, create: if isReservittaAdmin();
+        allow update, delete: if false;
+      }
+
       // HU11-RF04: la reserva transaccional lee y actualiza la ocupación de cada
       // mesa por día para evitar reservas dobles. Requiere un perfil de Reservitta.
       match /ocupacionMesas/{ocupacionId} {

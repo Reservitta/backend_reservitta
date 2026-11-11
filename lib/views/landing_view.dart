@@ -13,6 +13,7 @@ import 'mi_pedido_view.dart';
 import 'reservation_management_view.dart';
 import 'restaurant_detail_view.dart';
 import 'widgets/upcoming_reminder_banner.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla Principal Pública de Reservitta (HU01-RF03, HU02-RF03)
 /// Permite navegación libre del catálogo, filtros de ubicación por radio (HU02),
@@ -70,165 +71,61 @@ class _LandingViewState extends State<LandingView> {
       listenable: _viewModel,
       builder: (context, _) {
         return Scaffold(
-          appBar: AppBar(
-            elevation: 1,
-            titleSpacing: 12,
-            title: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.restaurant_menu, color: theme.colorScheme.primary, size: 20),
-                const SizedBox(width: 5),
-                const Text(
-                  'Reservitta',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
-                ),
-              ],
-            ),
-            actions: [
-              // Con o sin sesión se puede gestionar una reserva con su código.
-              IconButton(
-                key: const ValueKey('boton_header_gestionar_reserva'),
-                tooltip: 'Gestionar mi reserva',
-                visualDensity: VisualDensity.compact,
-                icon: const Icon(Icons.event_note_outlined, size: 20),
-                onPressed: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) => const ReservationManagementView(),
-                    ),
-                  );
-                },
-              ),
-              if (!_viewModel.isUserAuthenticated) ...[
-                TextButton(
-                  key: const ValueKey('boton_header_registrarse'),
-                  style: TextButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    visualDensity: VisualDensity.compact,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                  onPressed: () {
-                    AuthModalDialog.show(
-                      context,
-                      initialMode: AuthMode.registerRoleSelection,
-                    );
-                  },
-                  child: const Text(
-                    'Crear Cuenta',
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(left: 4, right: 10),
-                  child: FilledButton(
-                    key: const ValueKey('boton_header_iniciar_sesion'),
-                    style: FilledButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      visualDensity: VisualDensity.compact,
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    onPressed: () {
-                      AuthModalDialog.show(
-                        context,
-                        initialMode: AuthMode.login,
-                      );
-                    },
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.login, size: 15),
-                        SizedBox(width: 4),
-                        Text(
-                          'Iniciar Sesión',
-                          style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ] else ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: Center(
-                    child: ActionChip(
-                      key: const ValueKey('btn_header_mi_pedido'),
-                      avatar: const Icon(Icons.receipt_long, size: 16, color: Colors.white),
-                      label: const Text(
-                        'Mi pedido',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      backgroundColor: const Color(0xFFB34A26),
-                      onPressed: () => _abrirMiPedidoRapido(context),
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Center(
-                    child: Chip(
-                      avatar: const Icon(Icons.person, size: 16),
-                      label: Text(
-                        _viewModel.currentUserName ?? 'Mi Cuenta',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                    ),
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.logout),
-                  tooltip: 'Cerrar sesión',
-                  onPressed: () => _viewModel.signOut(),
-                ),
-                const SizedBox(width: 8),
-              ],
-            ],
-          ),
+          appBar: _buildEncabezado(context, theme),
           body: RefreshIndicator(
             onRefresh: _viewModel.refresh,
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1080),
-                child: CustomScrollView(
+            // Ocupa todo el ancho: el fondo del encabezado llega a los bordes y
+            // el contenido se limita a un ancho cómodo de lectura y se centra.
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final lateral = ((constraints.maxWidth - 1240) / 2).clamp(0.0, 10000.0);
+                Widget centrado(Widget sliver) => SliverPadding(
+                      padding: EdgeInsets.symmetric(horizontal: lateral),
+                      sliver: sliver,
+                    );
+                return CustomScrollView(
                   controller: _scrollController,
                   slivers: [
-                    // 1. Hero Banner y Buscador
+                    // 1. Hero Banner y Buscador (a todo el ancho)
                     SliverToBoxAdapter(
                       child: _buildHeroSection(theme),
                     ),
 
                     // 1.5. Menú especial de acceso rápido a "Mi pedido" (solo con sesión iniciada)
                     if (_viewModel.isUserAuthenticated)
-                      SliverToBoxAdapter(
-                        child: _buildAccesoRapidoMiPedido(theme),
+                      centrado(
+                        SliverToBoxAdapter(
+                          child: _buildAccesoRapidoMiPedido(theme),
+                        ),
                       ),
 
                     // 1.6. Recordatorio de reservas próximas (HU21-RF02)
                     if (_viewModel.isUserAuthenticated)
-                      SliverToBoxAdapter(
-                        child: UpcomingReminderBanner(
-                          cargar: widget.cargarRecordatorios,
+                      centrado(
+                        SliverToBoxAdapter(
+                          child: UpcomingReminderBanner(
+                            cargar: widget.cargarRecordatorios,
+                          ),
                         ),
                       ),
 
                     // 2. Filtros de Ubicación y Servicios
-                    SliverToBoxAdapter(
-                      child: _buildFiltersBar(theme),
+                    centrado(
+                      SliverToBoxAdapter(
+                        child: _buildFiltersBar(theme),
+                      ),
                     ),
 
                     // 3. Barra de Filtros Activos
                     if (_viewModel.hasActiveFilters)
-                      SliverToBoxAdapter(
-                        child: _buildActiveFiltersBar(theme),
+                      centrado(
+                        SliverToBoxAdapter(
+                          child: _buildActiveFiltersBar(theme),
+                        ),
                       ),
 
                     // 4. Lista o Grid de Restaurantes
-                    _buildRestaurantsContent(theme),
+                    centrado(_buildRestaurantsContent(theme)),
 
                     // 5. Indicador de carga de más elementos al final
                     if (_viewModel.isLoadingMore)
@@ -241,8 +138,8 @@ class _LandingViewState extends State<LandingView> {
 
                     const SliverToBoxAdapter(child: SizedBox(height: 32)),
                   ],
-                ),
-              ),
+                );
+              },
             ),
           ),
         );
@@ -250,61 +147,267 @@ class _LandingViewState extends State<LandingView> {
     );
   }
 
+  /// Encabezado: logo con su sello a la izquierda y los accesos a la derecha.
+  /// En pantallas angostas los botones se reducen a íconos para que todo quepa.
+  PreferredSizeWidget _buildEncabezado(BuildContext context, ThemeData theme) {
+    final ancho = MediaQuery.sizeOf(context).width;
+    final amplio = ancho >= 920;
+    final medio = ancho >= 520;
+    final celular = ancho < 480;
+
+    void gestionarReserva() {
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ReservationManagementView()),
+      );
+    }
+
+    return AppBar(
+      toolbarHeight: 72,
+      backgroundColor: AppColors.superficie,
+      surfaceTintColor: Colors.transparent,
+      elevation: 0,
+      scrolledUnderElevation: 0,
+      shape: const Border(bottom: BorderSide(color: AppColors.divisor)),
+      titleSpacing: amplio ? 28 : 12,
+      title: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: celular ? 34 : 40,
+            height: celular ? 34 : 40,
+            decoration: BoxDecoration(
+              color: AppColors.marca,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Icon(
+              Icons.restaurant_menu,
+              color: AppColors.sobreMarca,
+              size: 22,
+            ),
+          ),
+          SizedBox(width: celular ? 8 : 12),
+          Flexible(
+            child: Text(
+            'Reservitta',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: const [FontVariation('wght', 700)],
+              fontSize: celular ? 21 : 26,
+              letterSpacing: -0.4,
+              color: AppColors.texto,
+            ),
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        // Con o sin sesión se puede gestionar una reserva con su código.
+        if (amplio)
+          TextButton.icon(
+            key: const ValueKey('boton_header_gestionar_reserva'),
+            icon: const Icon(Icons.event_note_outlined, size: 20),
+            label: const Text(
+              'Gestionar mi reserva',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: TextButton.styleFrom(foregroundColor: AppColors.texto),
+            onPressed: gestionarReserva,
+          )
+        else
+          IconButton(
+            key: const ValueKey('boton_header_gestionar_reserva'),
+            tooltip: 'Gestionar mi reserva',
+            icon: const Icon(Icons.event_note_outlined),
+            onPressed: gestionarReserva,
+          ),
+        if (!_viewModel.isUserAuthenticated) ...[
+          if (celular)
+            const SizedBox.shrink()
+          else if (medio)
+            Padding(
+              padding: const EdgeInsets.only(left: 8),
+              child: OutlinedButton(
+                key: const ValueKey('boton_header_registrarse'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.marca,
+                  side: const BorderSide(color: AppColors.marca, width: 1.4),
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                ),
+                onPressed: () => AuthModalDialog.show(
+                  context,
+                  initialMode: AuthMode.registerRoleSelection,
+                ),
+                child: const Text(
+                  'Crear Cuenta',
+                  style: TextStyle(fontWeight: FontWeight.w700),
+                ),
+              ),
+            )
+          else
+            TextButton(
+              key: const ValueKey('boton_header_registrarse'),
+              onPressed: () => AuthModalDialog.show(
+                context,
+                initialMode: AuthMode.registerRoleSelection,
+              ),
+              child: const Text(
+                'Crear Cuenta',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          Padding(
+            padding: EdgeInsets.only(left: 4, right: amplio ? 28 : 10),
+            child: FilledButton.icon(
+              key: const ValueKey('boton_header_iniciar_sesion'),
+              style: FilledButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: medio ? 22 : 12),
+              ),
+              onPressed: () =>
+                  AuthModalDialog.show(context, initialMode: AuthMode.login),
+              icon: const Icon(Icons.login, size: 18),
+              label: const Text(
+                'Iniciar Sesión',
+                style: TextStyle(fontWeight: FontWeight.w700),
+              ),
+            ),
+          ),
+        ] else ...[
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Center(
+              child: ActionChip(
+                key: const ValueKey('btn_header_mi_pedido'),
+                avatar: const Icon(
+                  Icons.receipt_long,
+                  size: 16,
+                  color: Colors.white,
+                ),
+                label: const Text(
+                  'Mi pedido',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                backgroundColor: AppColors.marca,
+                side: BorderSide.none,
+                onPressed: () => _abrirMiPedidoRapido(context),
+              ),
+            ),
+          ),
+          if (medio)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Center(
+                child: Chip(
+                  avatar: const Icon(Icons.person, size: 16),
+                  label: Text(
+                    _viewModel.currentUserName ?? 'Mi Cuenta',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ),
+            ),
+          IconButton(
+            icon: const Icon(Icons.logout),
+            tooltip: 'Cerrar sesión',
+            onPressed: () => _viewModel.signOut(),
+          ),
+          SizedBox(width: amplio ? 20 : 8),
+        ],
+      ],
+    );
+  }
+
   Widget _buildHeroSection(ThemeData theme) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-      color: theme.colorScheme.primaryContainer.withAlpha(40),
+      padding: const EdgeInsets.fromLTRB(20, 36, 20, 28),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFFF1E6DA), AppColors.fondo],
+        ),
+      ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 760),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
                 'Bienvenido a Reservitta',
-                style: theme.textTheme.headlineMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: -0.5,
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.8,
+                  color: AppColors.texto,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 10),
               Text(
                 'Explora y descubre restaurantes asociados, consulta sus menús y reserva tu mesa.',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: AppColors.textoSuave,
+                  height: 1.4,
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 22),
 
               // Buscador de texto
-              TextField(
-                key: const ValueKey('campo_buscar_restaurantes'),
-                controller: _searchController,
-                decoration: InputDecoration(
-                  hintText: 'Buscar restaurantes por nombre o dirección...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear),
-                          onPressed: () {
-                            _searchController.clear();
-                            _viewModel.setSearchQuery('');
-                          },
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: theme.colorScheme.surface,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.marca.withValues(alpha: 0.14),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                onChanged: (val) {
-                  _viewModel.setSearchQuery(val);
-                },
+                child: TextField(
+                  key: const ValueKey('campo_buscar_restaurantes'),
+                  controller: _searchController,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: 'Buscar restaurantes por nombre o dirección...',
+                    prefixIcon: const Icon(Icons.search, color: AppColors.marca),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            tooltip: 'Borrar búsqueda',
+                            icon: const Icon(Icons.clear),
+                            onPressed: () {
+                              _searchController.clear();
+                              _viewModel.setSearchQuery('');
+                            },
+                          )
+                        : null,
+                    filled: true,
+                    fillColor: AppColors.superficie,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(color: AppColors.marca, width: 2),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                  ),
+                  onChanged: (val) {
+                    _viewModel.setSearchQuery(val);
+                  },
+                ),
               ),
             ],
           ),
@@ -313,220 +416,150 @@ class _LandingViewState extends State<LandingView> {
     );
   }
 
-  /// Barra horizontal que combina el control de Ubicación (HU02-RF03 Criterio 1)
-  /// y los filtros por servicios de restaurantes
+  /// Barra de búsqueda con tres campos (ubicación, fecha y hora, personas) y los
+  /// filtros por servicios debajo. HU02-RF03, HU03-RF02 y HU04-RF02.
   Widget _buildFiltersBar(ThemeData theme) {
-    final isLocationActive = _viewModel.isLocationFilterActive;
+    final segmentos = [
+      _SegmentoFiltro(
+        key: const ValueKey('boton_filtro_ubicacion'),
+        icono: _viewModel.isLocationFilterActive
+            ? Icons.my_location
+            : Icons.location_on_outlined,
+        titulo: 'Dónde',
+        valor: _viewModel.isLocationFilterActive
+            ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
+            : 'Cerca de mí / Ubicación',
+        activo: _viewModel.isLocationFilterActive,
+        onTap: () => LocationFilterSheet.show(context, _viewModel),
+      ),
+      _SegmentoFiltro(
+        key: const ValueKey('boton_filtro_fecha_hora'),
+        icono: _viewModel.isDateTimeFilterActive
+            ? Icons.event_available
+            : Icons.calendar_today_outlined,
+        titulo: 'Cuándo',
+        valor: _viewModel.isDateTimeFilterActive
+            ? _viewModel.selectedDateTimeFormatted!
+            : 'Fecha y hora',
+        activo: _viewModel.isDateTimeFilterActive,
+        onTap: _openNativeDateTimePicker,
+      ),
+      _SegmentoFiltro(
+        key: const ValueKey('boton_filtro_cantidad_personas'),
+        icono: _viewModel.isGuestCountFilterActive
+            ? Icons.group
+            : Icons.group_outlined,
+        titulo: 'Cuántos',
+        valor: _viewModel.isGuestCountFilterActive
+            ? _viewModel.selectedGuestCountFormatted!
+            : 'Personas',
+        activo: _viewModel.isGuestCountFilterActive,
+        onTap: _openGuestCountPicker,
+      ),
+    ];
 
-    return Container(
-      height: 52,
-      margin: const EdgeInsets.only(top: 12),
-      child: ListView(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        scrollDirection: Axis.horizontal,
+    final servicios = _viewModel.availableServices;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Botón directo para limpiar todos los filtros con un solo toque
-          if (_viewModel.hasActiveFilters)
-            Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: ActionChip(
-                key: const ValueKey('boton_limpiar_filtros_barra'),
-                avatar: const Icon(
-                  Icons.filter_alt_off,
-                  size: 16,
-                  color: Color(0xFFB34A26),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              color: AppColors.superficie,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.divisor),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.marca.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 6),
                 ),
-                label: const Text(
-                  'Limpiar filtros',
-                  style: TextStyle(
-                    color: Color(0xFFB34A26),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                backgroundColor: const Color(0xFFFBF8F4),
-                side: const BorderSide(color: Color(0xFFB34A26), width: 1.2),
-                onPressed: () {
-                  _searchController.clear();
-                  _viewModel.clearFilters();
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final ancho = constraints.maxWidth >= 640;
+                  if (ancho) {
+                    return IntrinsicHeight(
+                      child: Row(
+                        children: [
+                          for (var i = 0; i < segmentos.length; i++) ...[
+                            if (i > 0)
+                              const VerticalDivider(width: 1, color: AppColors.divisor),
+                            Expanded(child: segmentos[i]),
+                          ],
+                        ],
+                      ),
+                    );
+                  }
+                  return Column(
+                    children: [
+                      for (var i = 0; i < segmentos.length; i++) ...[
+                        if (i > 0) const Divider(height: 1, color: AppColors.divisor),
+                        segmentos[i],
+                      ],
+                    ],
+                  );
                 },
               ),
             ),
-
-          // Control principal de filtro de ubicación (HU02-RF03 Criterio 1)
-          ActionChip(
-            key: const ValueKey('boton_filtro_ubicacion'),
-            elevation: isLocationActive ? 2 : 0,
-            shadowColor: theme.colorScheme.primary.withAlpha(90),
-            avatar: Icon(
-              isLocationActive ? Icons.my_location : Icons.location_on,
-              size: 18,
-              color: isLocationActive
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
-            ),
-            side: BorderSide(
-              color: isLocationActive
-                  ? Colors.transparent
-                  : theme.colorScheme.primary.withAlpha(120),
-              width: 1.2,
-            ),
-            backgroundColor: isLocationActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primaryContainer.withAlpha(70),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
+          ),
+          if (_viewModel.hasActiveFilters || servicios.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                Text(
-                  isLocationActive
-                      ? '${_viewModel.selectedLocation!.label} (${_viewModel.selectedRadiusKm!.toInt()} km)'
-                      : 'Cerca de mí / Ubicación',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: isLocationActive
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                if (isLocationActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
+                // Botón directo para limpiar todos los filtros con un solo toque
+                if (_viewModel.hasActiveFilters)
+                  ActionChip(
+                    key: const ValueKey('boton_limpiar_filtros_barra'),
+                    avatar: const Icon(
+                      Icons.filter_alt_off,
+                      size: 16,
+                      color: AppColors.marca,
                     ),
+                    label: const Text(
+                      'Limpiar filtros',
+                      style: TextStyle(
+                        color: AppColors.marca,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    backgroundColor: AppColors.marcaSuave,
+                    side: BorderSide.none,
+                    onPressed: () {
+                      _searchController.clear();
+                      _viewModel.clearFilters();
+                    },
                   ),
-                ],
+
+                // Chips de servicios disponibles
+                for (final s in servicios)
+                  FilterChip(
+                    key: ValueKey('filtro_servicio_${s.id}'),
+                    selected: _viewModel.selectedServiceId == s.id,
+                    label: Text(s.nombre),
+                    showCheckmark: true,
+                    checkmarkColor: AppColors.sobreMarca,
+                    selectedColor: AppColors.marca,
+                    backgroundColor: AppColors.superficie,
+                    labelStyle: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: _viewModel.selectedServiceId == s.id
+                          ? AppColors.sobreMarca
+                          : AppColors.texto,
+                    ),
+                    onSelected: (_) => _viewModel.toggleServiceFilter(s.id),
+                  ),
               ],
             ),
-            onPressed: () {
-              LocationFilterSheet.show(context, _viewModel);
-            },
-          ),
-          const SizedBox(width: 8),
-
-          // Control de filtro de fecha y hora (HU03-RF02 Criterios 1, 2, 3)
-          ActionChip(
-            key: const ValueKey('boton_filtro_fecha_hora'),
-            elevation: _viewModel.isDateTimeFilterActive ? 2 : 0,
-            shadowColor: theme.colorScheme.primary.withAlpha(90),
-            avatar: Icon(
-              _viewModel.isDateTimeFilterActive
-                  ? Icons.event_available
-                  : Icons.calendar_today_outlined,
-              size: 18,
-              color: _viewModel.isDateTimeFilterActive
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
-            ),
-            side: BorderSide(
-              color: _viewModel.isDateTimeFilterActive
-                  ? Colors.transparent
-                  : theme.colorScheme.primary.withAlpha(120),
-              width: 1.2,
-            ),
-            backgroundColor: _viewModel.isDateTimeFilterActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primaryContainer.withAlpha(70),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _viewModel.isDateTimeFilterActive
-                      ? _viewModel.selectedDateTimeFormatted!
-                      : 'Fecha y hora',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _viewModel.isDateTimeFilterActive
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                if (_viewModel.isDateTimeFilterActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            onPressed: _openNativeDateTimePicker,
-          ),
-          const SizedBox(width: 8),
-
-          // Control de filtro de cantidad de personas (HU04-RF02 Criterios 1, 2, 3)
-          ActionChip(
-            key: const ValueKey('boton_filtro_cantidad_personas'),
-            elevation: _viewModel.isGuestCountFilterActive ? 2 : 0,
-            shadowColor: theme.colorScheme.primary.withAlpha(90),
-            avatar: Icon(
-              _viewModel.isGuestCountFilterActive
-                  ? Icons.group
-                  : Icons.group_outlined,
-              size: 18,
-              color: _viewModel.isGuestCountFilterActive
-                  ? theme.colorScheme.onPrimary
-                  : theme.colorScheme.primary,
-            ),
-            side: BorderSide(
-              color: _viewModel.isGuestCountFilterActive
-                  ? Colors.transparent
-                  : theme.colorScheme.primary.withAlpha(120),
-              width: 1.2,
-            ),
-            backgroundColor: _viewModel.isGuestCountFilterActive
-                ? theme.colorScheme.primary
-                : theme.colorScheme.primaryContainer.withAlpha(70),
-            label: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _viewModel.isGuestCountFilterActive
-                      ? _viewModel.selectedGuestCountFormatted!
-                      : 'Personas',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: _viewModel.isGuestCountFilterActive
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.primary,
-                  ),
-                ),
-                if (_viewModel.isGuestCountFilterActive) ...[
-                  const SizedBox(width: 6),
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: const BoxDecoration(
-                      color: Colors.greenAccent,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-            onPressed: _openGuestCountPicker,
-          ),
-          const SizedBox(width: 8),
-
-          // Chips de servicios disponibles
-          ..._viewModel.availableServices.map((s) {
-            final isSelected = _viewModel.selectedServiceId == s.id;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                key: ValueKey('filtro_servicio_${s.id}'),
-                selected: isSelected,
-                label: Text(s.nombre),
-                onSelected: (_) => _viewModel.toggleServiceFilter(s.id),
-              ),
-            );
-          }),
+          ],
         ],
       ),
     );
@@ -758,7 +791,9 @@ class _LandingViewState extends State<LandingView> {
         builder: (context, constraints) {
           final width = constraints.crossAxisExtent;
           final int crossAxisCount;
-          if (width > 800) {
+          if (width > 1100) {
+            crossAxisCount = 4;
+          } else if (width > 800) {
             crossAxisCount = 3;
           } else if (width > 500) {
             crossAxisCount = 2;
@@ -769,7 +804,9 @@ class _LandingViewState extends State<LandingView> {
           return SliverGrid(
             gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: crossAxisCount,
-              mainAxisExtent: 270,
+              // Crece con el tamaño de letra del sistema para que el texto no se corte.
+              mainAxisExtent: 312 +
+                  (MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0) - 1) * 110,
               mainAxisSpacing: 16,
               crossAxisSpacing: 16,
             ),
@@ -894,7 +931,7 @@ class _LandingViewState extends State<LandingView> {
             final theme = Theme.of(context);
             return AlertDialog(
               key: const ValueKey('dialogo_selector_cantidad_personas'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               title: Row(
                 children: [
                   Icon(Icons.people_alt_outlined, color: theme.colorScheme.primary),
@@ -917,7 +954,7 @@ class _LandingViewState extends State<LandingView> {
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(
                       color: theme.colorScheme.surfaceContainerHighest.withAlpha(100),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: theme.colorScheme.outlineVariant),
                     ),
                     child: Row(
@@ -1034,8 +1071,8 @@ class _LandingViewState extends State<LandingView> {
         key: const ValueKey('card_acceso_rapido_mi_pedido'),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFEDE4D8)),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.divisor),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withAlpha(8),
@@ -1053,14 +1090,16 @@ class _LandingViewState extends State<LandingView> {
               children: [
                 const Row(
                   children: [
-                    Icon(Icons.restaurant, size: 18, color: Color(0xFFB34A26)),
+                    Icon(Icons.restaurant, size: 18, color: AppColors.marca),
                     SizedBox(width: 8),
-                    Text(
-                      'Acceso Rápido: Mi Pedido',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2E241E),
+                    Expanded(
+                      child: Text(
+                        'Acceso Rápido: Mi Pedido',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.texto,
+                        ),
                       ),
                     ),
                   ],
@@ -1076,15 +1115,15 @@ class _LandingViewState extends State<LandingView> {
             final button = FilledButton.icon(
               key: const ValueKey('btn_acceso_rapido_mi_pedido'),
               style: FilledButton.styleFrom(
-                backgroundColor: const Color(0xFFB34A26),
+                backgroundColor: AppColors.marca,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
               ),
               icon: const Icon(Icons.receipt_long, size: 18),
               label: const Text(
-                'Ver mi pedido (3 platillos)',
+                'Ver mi pedido',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
               onPressed: () => _abrirMiPedidoRapido(context),
@@ -1212,7 +1251,7 @@ class _LandingViewState extends State<LandingView> {
                 actions: [
                   FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFB34A26),
+                      backgroundColor: AppColors.marca,
                     ),
                     onPressed: () => Navigator.of(ctx).pop(),
                     child: const Text('Aceptar'),
@@ -1244,9 +1283,14 @@ class _RestaurantCard extends StatelessWidget {
     final theme = Theme.of(context);
 
     return Card(
-      elevation: 2,
+      elevation: 0,
+      color: AppColors.superficie,
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(10),
+        side: const BorderSide(color: AppColors.divisor),
+      ),
       child: InkWell(
         onTap: onTap,
         child: Column(
@@ -1254,31 +1298,39 @@ class _RestaurantCard extends StatelessWidget {
           children: [
             // Imagen o Portada
             SizedBox(
-              height: 135,
+              height: 150,
               width: double.infinity,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Container(
-                    color: theme.colorScheme.primaryContainer.withAlpha(80),
-                    child: _buildRestaurantCoverImage(restaurant.imagenPrincipalUrl, theme),
+                  _buildRestaurantCoverImage(
+                    restaurant.imagenPrincipalUrl,
+                    theme,
+                    nombre: restaurant.nombre,
                   ),
                   Positioned(
                     top: 10,
                     right: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                       decoration: BoxDecoration(
-                        color: Colors.green.shade700,
-                        borderRadius: BorderRadius.circular(12),
+                        color: Colors.white.withValues(alpha: 0.95),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      child: const Text(
-                        'DISPONIBLE',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 10,
-                        ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.circle, size: 8, color: AppColors.exito),
+                          SizedBox(width: 6),
+                          Text(
+                            'Disponible',
+                            style: TextStyle(
+                              color: AppColors.exito,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),
@@ -1292,7 +1344,7 @@ class _RestaurantCard extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: Colors.black.withAlpha(180),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1304,7 +1356,7 @@ class _RestaurantCard extends StatelessWidget {
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
-                                fontSize: 11,
+                                fontSize: 12,
                               ),
                             ),
                           ],
@@ -1317,17 +1369,23 @@ class _RestaurantCard extends StatelessWidget {
 
             // Contenido
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 10, 14, 10),
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     restaurant.nombre,
-                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 17),
+                    style: const TextStyle(
+                      fontFamily: AppTheme.familiaTitulos,
+                      fontWeight: FontWeight.w700,
+                      fontVariations: [FontVariation('wght', 700)],
+                      fontSize: 19,
+                      color: AppColors.texto,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
 
                   // Dirección y distancia
                   Row(
@@ -1361,23 +1419,23 @@ class _RestaurantCard extends StatelessWidget {
                       ],
                     ],
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
 
                   // Botón de acción: sólo Ver Detalle
                   SizedBox(
                     width: double.infinity,
-                    child: OutlinedButton(
+                    child: FilledButton.tonalIcon(
                       key: ValueKey('boton_ver_detalle_${restaurant.id}'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.marcaSuave,
+                        foregroundColor: AppColors.marca,
                       ),
                       onPressed: onTap,
-                      child: const Text(
+                      iconAlignment: IconAlignment.end,
+                      icon: const Icon(Icons.arrow_forward, size: 18),
+                      label: const Text(
                         'Ver Detalle',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(fontWeight: FontWeight.w700),
                       ),
                     ),
                   ),
@@ -1391,10 +1449,14 @@ class _RestaurantCard extends StatelessWidget {
   }
 
 
-  Widget _buildRestaurantCoverImage(String rawUrl, ThemeData theme) {
+  Widget _buildRestaurantCoverImage(
+    String rawUrl,
+    ThemeData theme, {
+    String nombre = '',
+  }) {
     final trimmedUrl = rawUrl.trim();
     if (trimmedUrl.isEmpty) {
-      return _buildFallbackCover(theme);
+      return _buildFallbackCover(theme, nombre);
     }
 
     String finalUrl = trimmedUrl;
@@ -1428,30 +1490,114 @@ class _RestaurantCard extends StatelessWidget {
       },
       errorBuilder: (context, error, stackTrace) {
         debugPrint('[Reservitta Image Error] $error - URL: $finalUrl');
-        return _buildFallbackCover(theme);
+        return _buildFallbackCover(theme, nombre);
       },
     );
   }
 
-  Widget _buildFallbackCover(ThemeData theme) {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.restaurant,
-            size: 40,
-            color: theme.colorScheme.primary.withAlpha(160),
+  /// Portada sin foto: degradado cálido con la inicial del restaurante.
+  Widget _buildFallbackCover(ThemeData theme, [String nombre = '']) {
+    final limpio = nombre.trim();
+    final inicial = limpio.isEmpty ? null : limpio.characters.first.toUpperCase();
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.marcaSuave, AppColors.marcaMedia],
+        ),
+      ),
+      child: Center(
+        child: Container(
+          width: 64,
+          height: 64,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.85),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(height: 4),
-          Text(
-            'Sin imagen disponible',
-            style: TextStyle(
-              fontSize: 11,
-              color: theme.colorScheme.onSurfaceVariant.withAlpha(140),
-            ),
+          child: inicial == null
+              ? const Icon(Icons.restaurant, size: 30, color: AppColors.marca)
+              : Text(
+                  inicial,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.marca,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Un campo de la barra de búsqueda: título pequeño arriba y el valor abajo.
+class _SegmentoFiltro extends StatelessWidget {
+  final IconData icono;
+  final String titulo;
+  final String valor;
+  final bool activo;
+  final VoidCallback onTap;
+
+  const _SegmentoFiltro({
+    super.key,
+    required this.icono,
+    required this.titulo,
+    required this.valor,
+    required this.activo,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      selected: activo,
+      label: '$titulo: $valor',
+      excludeSemantics: true,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          constraints: const BoxConstraints(minHeight: 64),
+          color: activo ? AppColors.marcaSuave : null,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Icon(icono, size: 22, color: AppColors.marca),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      titulo,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textoSuave,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      valor,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: activo ? FontWeight.w700 : FontWeight.w500,
+                        color: activo ? AppColors.marca : AppColors.texto,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.expand_more, size: 20, color: AppColors.textoSuave),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -5,6 +5,7 @@ import '../models/reservation_model.dart';
 import '../repositories/reservation_repository.dart';
 import 'widgets/order_state_control.dart';
 import 'widgets/reservation_state_control.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de detalle de una reservación para el administrador (HU28-RF02).
 ///
@@ -34,11 +35,11 @@ class ReservationDetailView extends StatefulWidget {
     this.onChangeOrderState,
   });
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color creamBg = Color(0xFFFBF8F4);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
+  static const Color terracotta = AppColors.marca;
+  static const Color creamBg = AppColors.fondo;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
   static const Color alertRed = Color(0xFFC62828);
 
   @override
@@ -176,7 +177,7 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: color ?? Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: borde ?? ReservationDetailView.cardBorder),
       ),
       child: child,
@@ -256,7 +257,7 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
                   color: estilo.background,
-                  borderRadius: BorderRadius.circular(20),
+                  borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: estilo.border),
                 ),
                 child: Row(
@@ -412,7 +413,7 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
                   color: estilo.background,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: estilo.border),
                 ),
                 child: Text('Pedido: ${d.etiquetaEstadoPreorden}',

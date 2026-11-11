@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
 import '../models/zona_model.dart';
 import '../repositories/table_repository.dart';
@@ -28,5 +29,11 @@ class TableService implements TableRepository {
     final zonas = snap.docs.map(ZonaModel.fromFirestore).toList();
     zonas.sort((a, b) => a.orden.compareTo(b.orden));
     return zonas;
+  }
+
+  /// Elementos decorativos del salón (barra, paredes, puertas…).
+  Future<List<ElementoPlano>> getElementos(String restaurantId) async {
+    final snap = await _restaurantRef(restaurantId).collection('elementos').get();
+    return snap.docs.map(ElementoPlano.fromFirestore).toList();
   }
 }

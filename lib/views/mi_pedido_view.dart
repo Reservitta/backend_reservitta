@@ -5,6 +5,7 @@ import '../models/reservation_draft_model.dart';
 import '../models/restaurant_model.dart';
 import '../viewmodels/pedido_viewmodel.dart';
 import 'widgets/platillo_detalle_sheet.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla "Mi pedido" (HU16-RF06)
 ///
@@ -34,11 +35,11 @@ class MiPedidoView extends StatefulWidget {
     this.onContinuarOcasion,
   });
 
-  static const Color primaryTerracotta = Color(0xFFB34A26);
-  static const Color lightBg = Color(0xFFFBF8F4);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color textDark = Color(0xFF2E241E);
-  static const Color textMuted = Color(0xFF7A6E65);
+  static const Color primaryTerracotta = AppColors.marca;
+  static const Color lightBg = AppColors.fondo;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color textDark = AppColors.texto;
+  static const Color textMuted = AppColors.textoSuave;
 
   @override
   State<MiPedidoView> createState() => _MiPedidoViewState();
@@ -109,6 +110,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
             backgroundColor: MiPedidoView.lightBg,
             elevation: 0,
             leading: IconButton(
+        tooltip: 'Volver',
               icon: const Icon(Icons.arrow_back, color: MiPedidoView.textDark),
               onPressed: () {
                 if (widget.onAgregarMasPlatillos != null) {
@@ -164,7 +166,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: MiPedidoView.cardBorder),
                   ),
                   child: const Center(
@@ -213,7 +215,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MiPedidoView.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -255,7 +257,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                 child: const Text(
                   'Solo lectura',
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: MiPedidoView.textMuted,
                   ),
@@ -314,7 +316,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MiPedidoView.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -479,7 +481,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: MiPedidoView.primaryTerracotta.withAlpha(80)),
       ),
       child: Row(
@@ -535,7 +537,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                 style: FilledButton.styleFrom(
                   backgroundColor: MiPedidoView.primaryTerracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: () {
@@ -563,7 +565,7 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                   foregroundColor: MiPedidoView.primaryTerracotta,
                   side: const BorderSide(color: MiPedidoView.primaryTerracotta),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: () {

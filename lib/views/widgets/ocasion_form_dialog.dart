@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../../models/experiencia_model.dart';
 import '../../models/ocasion_model.dart';
 import '../../viewmodels/ocasion_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Modal para crear o editar una ocasión especial y sus experiencias (HU33-RF01 y HU33-RF02)
 class OcasionFormDialog extends StatefulWidget {
@@ -45,9 +46,9 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
   late final TextEditingController _nombrePersonalizadoCtrl;
   late final TextEditingController _descripcionCtrl;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
 
   @override
   void initState() {
@@ -79,7 +80,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
             final esEdicion = expExistente != null;
             return AlertDialog(
               key: ValueKey(esEdicion ? 'dialogo_editar_experiencia' : 'dialogo_nueva_experiencia'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               title: Row(
                 children: [
                   const Icon(Icons.stars_rounded, color: _primaryTerracotta),
@@ -246,7 +247,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
         return Dialog(
           key: ValueKey(esEdicion ? 'dialogo_editar_ocasion' : 'dialogo_crear_ocasion'),
           backgroundColor: _lightBg,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 550, maxHeight: 750),
             child: Padding(
@@ -287,6 +288,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                           ),
                         ),
                         IconButton(
+        tooltip: 'Cerrar',
                           icon: const Icon(Icons.close),
                           onPressed: () => Navigator.pop(context, false),
                         ),
@@ -474,7 +476,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                                             if (exp.descripcionCorta.isNotEmpty)
                                               Text(
                                                 exp.descripcionCorta,
-                                                style: const TextStyle(fontSize: 11, color: Colors.grey),
+                                                style: const TextStyle(fontSize: 12, color: Colors.grey),
                                               ),
                                           ],
                                         ),
@@ -488,7 +490,7 @@ class _OcasionFormDialogState extends State<OcasionFormDialog> {
                                         child: Text(
                                           exp.precioFormateado,
                                           style: TextStyle(
-                                            fontSize: 11,
+                                            fontSize: 12,
                                             fontWeight: FontWeight.bold,
                                             color: exp.esGratis ? Colors.green.shade900 : Colors.brown.shade900,
                                           ),

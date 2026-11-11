@@ -8,6 +8,7 @@ import '../models/branch_model.dart';
 import '../models/service_catalog_model.dart';
 import '../services/geocoding_service.dart';
 import '../viewmodels/restaurant_profile_viewmodel.dart';
+import '../theme/app_theme.dart';
 
 class RestaurantProfileView extends StatefulWidget {
   final String restaurantId;
@@ -29,13 +30,13 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
   late final RestaurantProfileViewModel _viewModel;
 
   // Paleta de colores cálidos y elegantes
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _creamAccent = AppColors.marcaSuave;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   // Nivel de zoom del mapa (5 – 18)
   int _mapZoom = 15;
@@ -151,12 +152,12 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                 Navigator.of(context).pop();
               }
             },
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             child: Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: _creamAccent,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: const Icon(
                 Icons.arrow_back,
@@ -214,7 +215,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
     return Container(
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       child: Column(
@@ -301,7 +302,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                         child: Text(
                           fe['direccion']!,
                           style: const TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             color: Colors.red,
                             fontWeight: FontWeight.w500,
                           ),
@@ -378,7 +379,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                   child: Text(
                     errorText,
                     style: const TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: Colors.red,
                       fontWeight: FontWeight.w500,
                     ),
@@ -442,12 +443,12 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(8),
       child: Container(
         height: 100,
         decoration: BoxDecoration(
           color: _cardBg,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: _cardBorder,
             width: 1.5,
@@ -522,7 +523,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
     showModalBottomSheet(
       context: context,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
       ),
       builder: (context) {
         return SafeArea(
@@ -593,7 +594,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
     return Container(
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       clipBehavior: Clip.antiAlias,
@@ -714,7 +715,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       Text(
                         'Coordenadas: $latStr, $lngStr (Sincronizadas con tu dirección)',
                         style: const TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           color: _textMuted,
                         ),
                       ),
@@ -812,7 +813,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
               title: Row(
                 children: [
@@ -853,7 +854,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                               prefixIcon: const Icon(Icons.search, size: 20),
                               isDense: true,
                               border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12),
+                                borderRadius: BorderRadius.circular(6),
                               ),
                             ),
                             onSubmitted: (_) => runSearch(),
@@ -864,7 +865,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                           style: FilledButton.styleFrom(
                             backgroundColor: _primaryTerracotta,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             padding: const EdgeInsets.symmetric(
                               horizontal: 16,
@@ -932,7 +933,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                                 children: [
                                   Text(
                                     'Lat: ${item.latitude.toStringAsFixed(5)}, Lng: ${item.longitude.toStringAsFixed(5)}',
-                                    style: const TextStyle(fontSize: 11, color: _textMuted),
+                                    style: const TextStyle(fontSize: 12, color: _textMuted),
                                   ),
                                   const SizedBox(height: 4),
                                   ClipRRect(
@@ -1000,7 +1001,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       style: OutlinedButton.styleFrom(
         foregroundColor: _primaryTerracotta,
         side: const BorderSide(color: _primaryTerracotta),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
       icon: const Icon(Icons.preview_outlined, size: 18),
@@ -1024,7 +1025,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       context: context,
       builder: (context) {
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 400),
             child: Padding(
@@ -1046,7 +1047,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(8),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withAlpha(15),
@@ -1064,13 +1065,13 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                           decoration: BoxDecoration(
                             color: _creamAccent,
                             borderRadius: const BorderRadius.vertical(
-                              top: Radius.circular(16),
+                              top: Radius.circular(8),
                             ),
                           ),
                           child: _viewModel.coverBytes != null
                               ? ClipRRect(
                                   borderRadius: const BorderRadius.vertical(
-                                    top: Radius.circular(16),
+                                    top: Radius.circular(8),
                                   ),
                                   child: Image.memory(
                                     _viewModel.coverBytes!,
@@ -1118,7 +1119,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                                       'Abierto',
                                       style: TextStyle(
                                         color: Colors.green,
-                                        fontSize: 11,
+                                        fontSize: 12,
                                         fontWeight: FontWeight.bold,
                                       ),
                                     ),
@@ -1191,7 +1192,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                                       child: Text(
                                         sName,
                                         style: const TextStyle(
-                                          fontSize: 10,
+                                          fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: _textDark,
                                         ),
@@ -1229,7 +1230,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       child: Column(
@@ -1349,12 +1350,12 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
           onTimeSelected(picked);
         }
       },
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(6),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: _creamAccent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(6),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1395,7 +1396,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
     return Container(
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       child: Column(
@@ -1406,7 +1407,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
               color: _creamAccent.withAlpha(120),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(8)),
               border: const Border(bottom: BorderSide(color: _cardBorder, width: 1)),
             ),
             child: Row(
@@ -1442,7 +1443,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       Text(
                         'Sincronizada',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: Colors.green.shade800,
                         ),
@@ -1477,7 +1478,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
              const Text(
                'Nombre de la sucursal sincronizado',
                style: TextStyle(
-                 fontSize: 11,
+                 fontSize: 12,
                  fontWeight: FontWeight.w600,
                  color: _textMuted,
                ),
@@ -1541,7 +1542,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       const Text(
                         'Dirección física que se guardará',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _textMuted,
                         ),
@@ -1586,7 +1587,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       const Text(
                         'Teléfono de contacto que se guardará',
                         style: TextStyle(
-                          fontSize: 11,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: _textMuted,
                         ),
@@ -1641,7 +1642,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
               color: _creamAccent.withAlpha(70),
-              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(8)),
             ),
             child: Row(
               children: [
@@ -1655,7 +1656,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                   child: Text(
                     'Esta sucursal se guardará automáticamente como tu matriz principal vinculada a estos datos.',
                     style: TextStyle(
-                      fontSize: 11,
+                      fontSize: 12,
                       color: _textMuted,
                     ),
                   ),
@@ -1696,7 +1697,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
                 color: _cardBg,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: _cardBorder),
               ),
               child: Row(
@@ -1754,7 +1755,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                               child: Text(
                                 coordsText,
                                 style: const TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   color: _textMuted,
                                 ),
                               ),
@@ -1785,7 +1786,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
           style: OutlinedButton.styleFrom(
             foregroundColor: _textDark,
             side: const BorderSide(color: _cardBorder),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             padding: const EdgeInsets.symmetric(vertical: 12),
           ),
           icon: const Icon(Icons.add, size: 18),
@@ -1819,7 +1820,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
 
             return AlertDialog(
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(10),
               ),
               title: Text(
                 index == null ? 'Nueva Sucursal' : 'Editar Sucursal',
@@ -1933,7 +1934,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                               child: Text(
                                 coordsLabel,
                                 style: TextStyle(
-                                  fontSize: 11,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: branchCoords != null
                                       ? Colors.green.shade800
@@ -2138,7 +2139,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       child: Column(
@@ -2158,7 +2159,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                     : double.infinity,
                 child: InkWell(
                   onTap: () => _viewModel.toggleService(service.id),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
                     padding: const EdgeInsets.symmetric(
@@ -2169,7 +2170,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
                       color: isChecked
                           ? const Color(0xFFFDF1EB)
                           : _creamAccent.withAlpha(120),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: isChecked ? _primaryTerracotta : Colors.transparent,
                         width: 1.5,
@@ -2274,7 +2275,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           title: const Text('Agregar Servicio Personalizado'),
           content: TextField(
             controller: serviceCtrl,
@@ -2310,7 +2311,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.red.shade200),
       ),
       child: Row(
@@ -2333,7 +2334,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: Colors.green.shade200),
       ),
       child: Row(
@@ -2360,7 +2361,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
           style: FilledButton.styleFrom(
             backgroundColor: _primaryTerracotta,
             padding: const EdgeInsets.symmetric(vertical: 18),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: _viewModel.isSaving
               ? null
@@ -2410,7 +2411,7 @@ class _RestaurantProfileViewState extends State<RestaurantProfileView> {
             backgroundColor: _creamAccent.withAlpha(100),
             side: const BorderSide(color: _cardBorder),
             padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: () {
             if (widget.onCancel != null) {

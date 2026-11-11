@@ -4,6 +4,7 @@ import '../models/reservation_model.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
 import 'widgets/alert_settings_sheet.dart';
 import 'widgets/arrival_alert_widgets.dart';
+import '../theme/app_theme.dart';
 
 /// Dashboard del administrador (HU25-RF02): métricas del día, alertas de llegada y
 /// accesos directos. Se actualiza solo con los cambios de las reservas; el tirón hacia
@@ -26,10 +27,10 @@ class DashboardView extends StatelessWidget {
     this.restauranteNombre = '',
   });
 
-  static const Color _terracotta = Color(0xFFB34A26);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _terracotta = AppColors.marca;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
+  static const Color _cardBorder = AppColors.divisor;
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +115,7 @@ class DashboardView extends StatelessWidget {
               const Text(
                 'Dashboard',
                 style: TextStyle(
-                  fontFamily: 'serif',
+                  fontFamily: AppTheme.familiaTitulos,
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
                   color: _textDark,
@@ -273,7 +274,7 @@ class _MetricCard extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: DashboardView._cardBorder),
         ),
         child: Column(

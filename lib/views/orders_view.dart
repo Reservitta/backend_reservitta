@@ -5,6 +5,7 @@ import '../models/reservation_model.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
 import 'widgets/arrival_alert_widgets.dart';
 import 'widgets/order_state_control.dart';
+import '../theme/app_theme.dart';
 
 /// Vista de cocina y pedidos (HU29-RF02): los pedidos preordenados del día con un
 /// control de un toque para avanzar su estado. Cualquier cambio se refleja en tiempo
@@ -19,10 +20,10 @@ class OrdersView extends StatelessWidget {
     required this.onAbrirReserva,
   });
 
-  static const Color _terracotta = Color(0xFFB34A26);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _terracotta = AppColors.marca;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
+  static const Color _cardBorder = AppColors.divisor;
 
   static String _hora(DateTime d) =>
       '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
@@ -58,7 +59,7 @@ class OrdersView extends StatelessWidget {
                       const Text(
                         'Pedidos',
                         style: TextStyle(
-                          fontFamily: 'serif',
+                          fontFamily: AppTheme.familiaTitulos,
                           fontSize: 30,
                           fontWeight: FontWeight.bold,
                           color: _textDark,
@@ -135,7 +136,7 @@ class _PedidoCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: OrdersView._cardBorder),
       ),
       child: Column(
@@ -202,7 +203,7 @@ class _PedidoCard extends StatelessWidget {
               child: Text(
                 'Listo para servir${r.estadoOperativo == ReservationModel.estadoPendienteLlegada ? ' · esperando al cliente' : ''}',
                 key: ValueKey('pedido_listo_${r.id}'),
-                style: const TextStyle(fontSize: 12.5, color: Color(0xFF2E7D32)),
+                style: const TextStyle(fontSize: 12.5, color: AppColors.exito),
               ),
             ),
           OrderStateControl(

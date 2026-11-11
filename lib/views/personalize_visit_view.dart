@@ -14,6 +14,7 @@ import '../viewmodels/pedido_viewmodel.dart';
 import 'mi_pedido_view.dart';
 import 'widgets/platillo_detalle_sheet.dart';
 import 'widgets/platillo_menu_card.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de Personalización de Visita (HU16, HU15-RF02, HU16-RF02, HU16-RF04, HU16-RF05, HU17-RF01)
 ///
@@ -36,6 +37,9 @@ class PersonalizeVisitView extends StatefulWidget {
   final bool? isAuthenticated;
   final Future<void> Function(ReservationDraftModel updatedDraft)? onConfirm;
 
+  /// Texto del botón principal. Desde el resumen solo guarda y vuelve.
+  final String textoConfirmar;
+
   const PersonalizeVisitView({
     super.key,
     required this.restaurant,
@@ -47,6 +51,7 @@ class PersonalizeVisitView extends StatefulWidget {
     this.authService,
     this.isAuthenticated,
     this.onConfirm,
+    this.textoConfirmar = 'Confirmar reserva con personalización',
   });
 
   @override
@@ -81,11 +86,11 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
 
   bool _isProcessing = false;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   static const List<String> _alergiasComunes = [
     'Gluten',
@@ -247,7 +252,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
               ),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
               ),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
               child: Column(
@@ -266,6 +271,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                         ),
                       ),
                       IconButton(
+        tooltip: 'Cerrar',
                         icon: const Icon(Icons.close),
                         onPressed: () => Navigator.of(ctx).pop(),
                       ),
@@ -343,7 +349,16 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
         return Scaffold(
           backgroundColor: _lightBg,
           appBar: AppBar(
-            title: const Text('Personalizar mi visita'),
+            title: const Text(
+              'Personalizar mi visita',
+              style: TextStyle(
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                fontSize: 24,
+              ),
+            ),
+            toolbarHeight: 68,
             backgroundColor: _lightBg,
             elevation: 0,
             actions: [
@@ -375,7 +390,10 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
               controller: _tabController,
               labelColor: _primaryTerracotta,
               indicatorColor: _primaryTerracotta,
+              indicatorWeight: 3,
               unselectedLabelColor: _textMuted,
+              labelStyle: const TextStyle(fontWeight: FontWeight.w700),
+              dividerColor: _cardBorder,
               tabs: [
                 Tab(
                   icon: const Icon(Icons.restaurant_menu),
@@ -509,7 +527,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                         backgroundColor: _primaryTerracotta,
                         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                       icon: const Icon(Icons.shopping_bag_outlined, size: 18),
@@ -533,7 +551,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(6),
                       border: Border.all(color: _cardBorder),
                     ),
                     child: TabBar(
@@ -617,7 +635,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _primaryTerracotta.withAlpha(90), width: 1.2),
       ),
       child: Column(
@@ -698,7 +716,7 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: _lightBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: _cardBorder),
       ),
       child: Row(
@@ -763,79 +781,88 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   // TAB 2: ALERGIAS ALIMENTARIAS
   // ---------------------------------------------------------------------------
   Widget _buildAlergiasTab() {
+    final ancho = MediaQuery.sizeOf(context).width;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Alergias e intolerancias alimentarias',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: _textDark,
-            ),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            'Selecciona si alguien en tu mesa presenta alguna de estas alergias. La cocina tomará las precauciones de preparación correspondientes.',
-            style: TextStyle(fontSize: 13, color: _textMuted),
-          ),
-          const SizedBox(height: 16),
-
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _alergiasComunes.map((alergia) {
-              final seleccionada = _alergiasSeleccionadas.contains(alergia);
-              return FilterChip(
-                key: ValueKey('chip_alergia_$alergia'),
-                label: Text(alergia),
-                selected: seleccionada,
-                selectedColor: _primaryTerracotta.withAlpha(40),
-                checkmarkColor: _primaryTerracotta,
-                labelStyle: TextStyle(
-                  color: seleccionada ? _primaryTerracotta : _textDark,
-                  fontWeight: seleccionada ? FontWeight.bold : FontWeight.normal,
-                ),
-                onSelected: (val) {
-                  setState(() {
-                    if (val) {
-                      _alergiasSeleccionadas.add(alergia);
-                    } else {
-                      _alergiasSeleccionadas.remove(alergia);
-                    }
-                  });
-                },
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 24),
-
-          const Text(
-            'Notas o especificaciones para cocina (Opcional)',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: _textDark,
-            ),
-          ),
-          const SizedBox(height: 6),
-          TextFormField(
-            key: const ValueKey('input_notas_alergias'),
-            controller: _notasAlergiasCtrl,
-            maxLines: 3,
-            decoration: InputDecoration(
-              hintText:
-                  'Ej. Uno de los invitados es celíaco estricto; evitar contaminación cruzada con mariscos.',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+      padding: EdgeInsets.symmetric(horizontal: ancho >= 900 ? 32 : 20, vertical: 24),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: _cardBorder),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Alergias e intolerancias alimentarias',
+              style: TextStyle(
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.w700,
+                fontVariations: [FontVariation('wght', 700)],
+                fontSize: 24,
+                color: _textDark,
               ),
-              filled: true,
-              fillColor: Colors.white,
             ),
-          ),
-        ],
+            const SizedBox(height: 6),
+            const Text(
+              'Selecciona si alguien en tu mesa presenta alguna de estas alergias. La cocina tomará las precauciones de preparación correspondientes.',
+              style: TextStyle(fontSize: 14, height: 1.4, color: _textMuted),
+            ),
+            const SizedBox(height: 18),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: _alergiasComunes.map((alergia) {
+                final seleccionada = _alergiasSeleccionadas.contains(alergia);
+                return FilterChip(
+                  key: ValueKey('chip_alergia_$alergia'),
+                  label: Text(alergia),
+                  selected: seleccionada,
+                  backgroundColor: Colors.white,
+                  selectedColor: AppColors.marcaSuave,
+                  checkmarkColor: _primaryTerracotta,
+                  side: BorderSide(
+                    color: seleccionada ? _primaryTerracotta : AppColors.borde,
+                    width: seleccionada ? 1.6 : 1,
+                  ),
+                  labelStyle: TextStyle(
+                    color: seleccionada ? _primaryTerracotta : _textDark,
+                    fontWeight: seleccionada ? FontWeight.w700 : FontWeight.w500,
+                  ),
+                  onSelected: (val) {
+                    setState(() {
+                      if (val) {
+                        _alergiasSeleccionadas.add(alergia);
+                      } else {
+                        _alergiasSeleccionadas.remove(alergia);
+                      }
+                    });
+                  },
+                );
+              }).toList(),
+            ),
+            const SizedBox(height: 28),
+            const Text(
+              'Notas o especificaciones para cocina (Opcional)',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: _textDark,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextFormField(
+              key: const ValueKey('input_notas_alergias'),
+              controller: _notasAlergiasCtrl,
+              maxLines: 4,
+              decoration: const InputDecoration(
+                hintText:
+                    'Ej. Uno de los invitados es celíaco estricto; evitar contaminación cruzada con mariscos.',
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -881,8 +908,51 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
   }
 
   Widget _buildBottomBar() {
+    final ancho = MediaQuery.sizeOf(context).width;
+    final ancha = ancho >= 1000;
+
+    final total = _totalPersonalizacion > 0
+        ? Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'Total de personalización:',
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                '\$${_totalPersonalizacion.toStringAsFixed(2)} MXN',
+                key: const ValueKey('texto_total_personalizacion'),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: _primaryTerracotta,
+                ),
+              ),
+            ],
+          )
+        : null;
+
+    final boton = FilledButton(
+      key: const ValueKey('btn_confirmar_reserva_personalizada'),
+      style: FilledButton.styleFrom(minimumSize: const Size(0, 52)),
+      onPressed: (_isProcessing || !(_ocasionVm?.puedeContinuar ?? true))
+          ? null
+          : _confirmarPersonalizacion,
+      child: _isProcessing
+          ? const SizedBox(
+              width: 22,
+              height: 22,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            )
+          : Text(
+              widget.textoConfirmar,
+              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+            ),
+    );
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.symmetric(horizontal: ancha ? 32 : 16, vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         border: const Border(top: BorderSide(color: _cardBorder)),
@@ -895,68 +965,54 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
         ],
       ),
       child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (_totalPersonalizacion > 0)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const Text(
-                      'Total de personalización:',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+        child: ancha
+            ? Row(
+                children: [
+                  ?total,
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        Flexible(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 380),
+                            child: boton,
+                          ),
+                        ),
+                      ],
                     ),
-                    Text(
-                      '\$${_totalPersonalizacion.toStringAsFixed(2)} MXN',
-                      key: const ValueKey('texto_total_personalizacion'),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: _primaryTerracotta,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            SizedBox(
-              width: double.infinity,
-              height: 48,
-              child: FilledButton(
-                key: const ValueKey('btn_confirmar_reserva_personalizada'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: _primaryTerracotta,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                onPressed: (_isProcessing || !(_ocasionVm?.puedeContinuar ?? true))
-                    ? null
-                    : _confirmarPersonalizacion,
-                child: _isProcessing
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Text(
-                        'Confirmar reserva con personalización',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (total != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total de personalización:',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                          ),
+                          Text(
+                            '\$${_totalPersonalizacion.toStringAsFixed(2)} MXN',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                              color: _primaryTerracotta,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                  boton,
+                ],
               ),
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -223,13 +223,16 @@ void main() {
       await tester.tap(k('btn_agregar_mesa_cuadrada'));
       await tester.tap(k('btn_agregar_mesa_cuadrada'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(k('switch_combinable'));
       await tester.tap(k('switch_combinable'));
       await tester.pumpAndSettle();
       expect(k('texto_sin_candidatas'), findsOneWidget);
       await tester.tap(k('mesa_tmp_1'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(k('switch_combinable'));
       await tester.tap(k('switch_combinable'));
       await tester.pumpAndSettle();
+      await tester.ensureVisible(k('chip_combinar_tmp_2'));
       expect(k('chip_combinar_tmp_2'), findsOneWidget);
       await tester.tap(k('chip_combinar_tmp_2'));
       await tester.pumpAndSettle();

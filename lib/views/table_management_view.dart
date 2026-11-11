@@ -2,11 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../models/mesa_model.dart';
 import '../models/reservation_model.dart';
 import '../models/table_live_status.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
 import 'plan_editor_view.dart';
+import '../theme/app_theme.dart';
+import 'widgets/mesa_visual.dart';
 
 /// Color, ícono y etiqueta de cada estado de mesa en la vista de gestión (HU31-RF02).
 class TableLiveStyle {
@@ -22,36 +23,37 @@ class TableLiveStyle {
     required this.icon,
   });
 
+  static TableLiveStyle _desde(MesaPaleta p, IconData icono) => TableLiveStyle(
+        fill: p.superficie,
+        border: p.borde,
+        foreground: p.texto,
+        icon: icono,
+      );
+
+  /// Paleta de la mesa para el plano.
+  static MesaPaleta paletaDe(EstadoMesaVivo estado) {
+    switch (estado) {
+      case EstadoMesaVivo.disponible:
+        return MesaPaleta.libre;
+      case EstadoMesaVivo.ocupada:
+        return MesaPaleta.ocupada;
+      case EstadoMesaVivo.combinada:
+        return MesaPaleta.combinada;
+      case EstadoMesaVivo.fueraDeServicio:
+        return MesaPaleta.fueraDeServicio;
+    }
+  }
+
   static TableLiveStyle of(EstadoMesaVivo estado) {
     switch (estado) {
       case EstadoMesaVivo.disponible:
-        return const TableLiveStyle(
-          fill: Color(0xFFE6F2E6),
-          border: Color(0xFF2E7D32),
-          foreground: Color(0xFF1B5E20),
-          icon: Icons.check_circle_outline,
-        );
+        return _desde(MesaPaleta.libre, Icons.check_circle_outline);
       case EstadoMesaVivo.ocupada:
-        return const TableLiveStyle(
-          fill: Color(0xFFFFE3D6),
-          border: Color(0xFFB34A26),
-          foreground: Color(0xFF7E2F14),
-          icon: Icons.restaurant,
-        );
+        return _desde(MesaPaleta.ocupada, Icons.restaurant);
       case EstadoMesaVivo.combinada:
-        return const TableLiveStyle(
-          fill: Color(0xFFE3F2FD),
-          border: Color(0xFF1565C0),
-          foreground: Color(0xFF0D47A1),
-          icon: Icons.link,
-        );
+        return _desde(MesaPaleta.combinada, Icons.link);
       case EstadoMesaVivo.fueraDeServicio:
-        return const TableLiveStyle(
-          fill: Color(0xFFECEFF1),
-          border: Color(0xFF78909C),
-          foreground: Color(0xFF455A64),
-          icon: Icons.build_circle_outlined,
-        );
+        return _desde(MesaPaleta.fueraDeServicio, Icons.build_circle_outlined);
     }
   }
 }
@@ -69,10 +71,10 @@ class TableManagementView extends StatelessWidget {
     required this.onAbrirReserva,
   });
 
-  static const Color _terracotta = Color(0xFFB34A26);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
-  static const double _padding = 24;
+  static const Color _terracotta = AppColors.marca;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
+  static const double _padding = 36;
 
   @override
   Widget build(BuildContext context) {
@@ -112,7 +114,7 @@ class TableManagementView extends StatelessWidget {
                             child: Text(
                               'Mesas',
                               style: TextStyle(
-                                fontFamily: 'serif',
+                                fontFamily: AppTheme.familiaTitulos,
                                 fontSize: 30,
                                 fontWeight: FontWeight.bold,
                                 color: _textDark,
@@ -189,28 +191,34 @@ class TableManagementView extends StatelessWidget {
   Widget _plano(BuildContext context, List<TableLiveStatus> estados) {
     // El plano empieza en la mesa más a la izquierda y arriba: así no queda un hueco
     // entre el borde y las mesas cuando el espacio tiene pocas o están lejos del origen.
+    final elementos = operaciones.elementosVisibles;
     var minX = double.infinity;
     var minY = double.infinity;
     var maxX = 0.0;
     var maxY = 0.0;
+    void abarcar(Rect r) {
+      minX = math.min(minX, r.left);
+      minY = math.min(minY, r.top);
+      maxX = math.max(maxX, r.right);
+      maxY = math.max(maxY, r.bottom);
+    }
+
     for (final e in estados) {
-      minX = math.min(minX, e.mesa.x ?? 0);
-      minY = math.min(minY, e.mesa.y ?? 0);
-      maxX = math.max(maxX, (e.mesa.x ?? 0) + e.mesa.ancho);
-      maxY = math.max(maxY, (e.mesa.y ?? 0) + e.mesa.alto);
+      abarcar(e.mesa.cajaRotada);
+    }
+    for (final e in elementos) {
+      abarcar(e.cajaRotada);
+    }
+    if (estados.isEmpty && elementos.isEmpty) {
+      minX = 0;
+      minY = 0;
     }
     final width = maxX - minX + _padding * 2;
     final height = maxY - minY + _padding * 2;
 
-    return Container(
+    return PisoDelSalon(
       key: const ValueKey('mesas_plano'),
-      height: math.min(460, math.max(240, height)),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEDE4D8)),
-      ),
+      alto: math.min(560, math.max(280, height)),
       child: InteractiveViewer(
         minScale: 0.8,
         maxScale: 4,
@@ -222,13 +230,24 @@ class TableManagementView extends StatelessWidget {
             height: height,
             child: Stack(
               children: [
+                for (final e in elementos)
+                  ElementoUbicado(
+                    elemento: e,
+                    dx: minX - _padding,
+                    dy: minY - _padding,
+                    child: ElementoVisual(elemento: e),
+                  ),
                 for (final e in estados)
-                  Positioned(
-                    left: (e.mesa.x ?? 0) - minX + _padding,
-                    top: (e.mesa.y ?? 0) - minY + _padding,
-                    width: e.mesa.ancho,
-                    height: e.mesa.alto,
-                    child: _MesaTile(estado: e, onTap: () => _abrirMesa(context, e)),
+                  MesaUbicada(
+                    mesa: e.mesa,
+                    dx: minX - _padding,
+                    dy: minY - _padding,
+                    envoltura: (context, ubicada) => _MesaTile(
+                      estado: e,
+                      onTap: () => _abrirMesa(context, e),
+                      hijo: ubicada,
+                    ),
+                    child: _MesaTile.vista(e),
                   ),
               ],
             ),
@@ -251,7 +270,7 @@ class TableManagementView extends StatelessWidget {
               elevation: 0,
               color: s.fill,
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 side: BorderSide(color: s.border, width: 1.5),
               ),
               child: ListTile(
@@ -296,52 +315,32 @@ class _MesaTile extends StatelessWidget {
   final TableLiveStatus estado;
   final VoidCallback onTap;
 
-  const _MesaTile({required this.estado, required this.onTap});
+  /// La mesa ya ubicada en el plano (ver [MesaUbicada]).
+  final Widget hijo;
+
+  const _MesaTile({required this.estado, required this.onTap, required this.hijo});
+
+  /// Dibujo de la mesa según su estado.
+  static Widget vista(TableLiveStatus estado) {
+    final s = TableLiveStyle.of(estado.estado);
+    return MesaVisual(
+      mesa: estado.mesa,
+      paleta: TableLiveStyle.paletaDe(estado.estado),
+      icono: s.icon,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    final s = TableLiveStyle.of(estado.estado);
     final m = estado.mesa;
-    final redonda = m.forma == MesaModel.formaRedonda;
     return Semantics(
       button: true,
       label: '${m.nombre}, capacidad ${m.capacidad} personas, ${estado.etiqueta}',
       child: GestureDetector(
         key: ValueKey('mesa_${m.id}'),
+        behavior: HitTestBehavior.opaque,
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: s.fill,
-            shape: redonda ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: redonda ? null : BorderRadius.circular(12),
-            border: Border.all(color: s.border, width: 2),
-          ),
-          alignment: Alignment.center,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(s.icon, color: s.foreground, size: 22),
-                  Text(
-                    m.nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: s.foreground,
-                    ),
-                  ),
-                  Text(
-                    '${m.capacidad} pers.',
-                    style: TextStyle(fontSize: 12, color: s.foreground),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+        child: hijo,
       ),
     );
   }
@@ -364,7 +363,7 @@ class _SelectorEspacio extends StatelessWidget {
           ChoiceChip(
             key: ValueKey('chip_espacio_admin_${z.id}'),
             selected: operaciones.zonaMesasId == z.id,
-            selectedColor: const Color(0xFFFFE3D6),
+            selectedColor: AppColors.marcaSuave,
             label: Text(
               '${z.nombre} (${operaciones.estadosMesas.where((e) => e.mesa.zonaId == z.id).length})',
             ),
@@ -375,7 +374,7 @@ class _SelectorEspacio extends StatelessWidget {
           ChoiceChip(
             key: const ValueKey('chip_espacio_admin_sin_espacio'),
             selected: operaciones.zonaMesasId == AdminOperationsViewModel.sinEspacioId,
-            selectedColor: const Color(0xFFFFE3D6),
+            selectedColor: AppColors.marcaSuave,
             label: Text('Sin espacio (${operaciones.mesasSinEspacio})'),
             onSelected: (_) =>
                 operaciones.seleccionarZonaMesas(AdminOperationsViewModel.sinEspacioId),
@@ -420,7 +419,7 @@ class _Leyenda extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(texto, style: const TextStyle(fontSize: 12, color: Color(0xFF2E241E))),
+              Text(texto, style: const TextStyle(fontSize: 12, color: AppColors.texto)),
             ],
           ),
       ],
@@ -512,9 +511,9 @@ class _MesaSheetState extends State<_MesaSheet> {
                 key: const ValueKey('mesa_reserva'),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFBF8F4),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFEDE4D8)),
+                  color: AppColors.fondo,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.divisor),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -542,7 +541,7 @@ class _MesaSheetState extends State<_MesaSheet> {
               const Text(
                 'No hay una reserva en curso en esta mesa.',
                 key: ValueKey('mesa_sin_reserva'),
-                style: TextStyle(color: Color(0xFF7A6E65)),
+                style: TextStyle(color: AppColors.textoSuave),
               ),
               const SizedBox(height: 10),
             ],
@@ -550,7 +549,7 @@ class _MesaSheetState extends State<_MesaSheet> {
               FilledButton.icon(
                 key: const ValueKey('btn_mesa_reactivar'),
                 style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xFF2E7D32),
+                  backgroundColor: AppColors.exito,
                   minimumSize: const Size.fromHeight(48),
                 ),
                 onPressed: _procesando ? null : () => _cambiar(false),
@@ -574,7 +573,7 @@ class _MesaSheetState extends State<_MesaSheet> {
                 child: Text(
                   'Tiene una reserva en curso: al marcarla fuera de servicio dejará de ofrecerse para nuevas reservas.',
                   key: ValueKey('mesa_aviso_fuera_servicio'),
-                  style: TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
+                  style: TextStyle(fontSize: 12, color: AppColors.textoSuave),
                 ),
               ),
             if (_error != null)

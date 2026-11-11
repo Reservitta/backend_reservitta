@@ -6,6 +6,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'firebase_options.dart';
 import 'models/reservation_access.dart';
 import 'services/auth_service.dart';
+import 'theme/app_theme.dart';
 import 'views/authenticated_user_gate.dart';
 import 'views/landing_view.dart';
 import 'views/reservation_management_view.dart';
@@ -32,10 +33,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Reservitta',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFFE4572E)),
-        useMaterial3: true,
-      ),
+      theme: AppTheme.claro,
       home: codigoEnlace != null
           ? Builder(
               builder: (context) => ReservationManagementView(

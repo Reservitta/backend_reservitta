@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/order_status_flow.dart';
 import '../../models/reservation_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Color, ícono y etiqueta de cada estado del pedido (HU29-RF02). El ícono y el texto
 /// acompañan al color para que el estado no dependa solo de él.
@@ -35,7 +36,7 @@ class OrderStateStyle {
         return const OrderStateStyle(
           background: Color(0xFFE8F5E9),
           border: Color(0xFFA5D6A7),
-          foreground: Color(0xFF2E7D32),
+          foreground: AppColors.exito,
           icon: Icons.check_circle_outline,
           label: 'Listo',
         );
@@ -80,7 +81,7 @@ class OrderStateBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: s.background,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: s.border),
       ),
       child: Row(

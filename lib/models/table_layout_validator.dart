@@ -88,6 +88,22 @@ class TableLayoutValidator {
       errores['forma'] = 'Elige redonda, cuadrada o rectangular.';
     }
 
+    if (!MesaModel.tiposValidos.contains(mesa.tipo)) {
+      errores['tipo'] = 'Elige un tipo de mesa válido.';
+    }
+
+    if (mesa.minPersonas < 1 || mesa.minPersonas > mesa.capacidad) {
+      errores['minPersonas'] = 'El mínimo debe estar entre 1 y ${mesa.capacidad}.';
+    } else if (mesa.maxPersonas != null &&
+        (mesa.maxPersonas! < mesa.minPersonas || mesa.maxPersonas! > mesa.capacidad)) {
+      errores['maxPersonas'] =
+          'El máximo debe estar entre ${mesa.minPersonas} y ${mesa.capacidad}.';
+    }
+
+    if (mesa.rotacion < 0 || mesa.rotacion >= 360) {
+      errores['rotacion'] = 'El giro debe estar entre 0 y 359 grados.';
+    }
+
     if (mesa.ancho < tamanoMinimo || mesa.ancho > tamanoMaximo) {
       errores['ancho'] =
           'El ancho debe estar entre ${tamanoMinimo.round()} y ${tamanoMaximo.round()}.';
