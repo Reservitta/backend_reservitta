@@ -351,6 +351,32 @@ void main() {
       expect(r.height, closeTo(200, 0.5));
     });
 
+    testWidgets('girar no cambia el ancho y el alto reales de la mesa ni del elemento', (tester) async {
+      for (final grados in [0.0, 45.0, 90.0, 180.0, 270.0]) {
+        final mesa = MesaModel(
+          id: 'a', nombre: 'A', capacidad: 6, forma: 'rectangular',
+          ancho: 200, alto: 100, x: 100, y: 100, rotacion: grados,
+        );
+        final elem = ElementoPlano(
+          id: 'e', tipo: 'escenario', x: 400, y: 100, ancho: 220, alto: 100, rotacion: grados,
+        );
+        await tester.pumpWidget(MaterialApp(
+          home: Scaffold(
+            body: Stack(
+              children: [
+                MesaUbicada(mesa: mesa, child: Container(key: const ValueKey('cuerpo_mesa'))),
+                ElementoUbicado(elemento: elem, child: Container(key: const ValueKey('cuerpo_elem'))),
+              ],
+            ),
+          ),
+        ));
+        final m = tester.getSize(find.byKey(const ValueKey('cuerpo_mesa')));
+        final e = tester.getSize(find.byKey(const ValueKey('cuerpo_elem')));
+        expect([m.width, m.height], [200, 100], reason: 'mesa a $grados°');
+        expect([e.width, e.height], [220, 100], reason: 'elemento a $grados°');
+      }
+    });
+
     testWidgets('el texto de la mesa se queda derecho aunque la mesa gire', (tester) async {
       const mesa = MesaModel(id: 'a', nombre: 'M7', capacidad: 4, ancho: 100, alto: 100, x: 0, y: 0, rotacion: 90);
       await tester.pumpWidget(MaterialApp(

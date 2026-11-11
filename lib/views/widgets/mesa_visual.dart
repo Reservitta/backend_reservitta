@@ -292,8 +292,16 @@ class MesaUbicada extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final caja = mesa.cajaRotada;
+    // OverflowBox: la caja girada puede ser más angosta que la mesa; la mesa conserva
+    // sus medidas reales y se dibuja centrada.
     final centrada = Center(
-      child: SizedBox(width: mesa.ancho, height: mesa.alto, child: child),
+      child: OverflowBox(
+        minWidth: mesa.ancho,
+        maxWidth: mesa.ancho,
+        minHeight: mesa.alto,
+        maxHeight: mesa.alto,
+        child: child,
+      ),
     );
     return Positioned(
       left: caja.left - dx,
@@ -423,7 +431,13 @@ class ElementoUbicado extends StatelessWidget {
   Widget build(BuildContext context) {
     final caja = elemento.cajaRotada;
     final centrado = Center(
-      child: SizedBox(width: elemento.ancho, height: elemento.alto, child: child),
+      child: OverflowBox(
+        minWidth: elemento.ancho,
+        maxWidth: elemento.ancho,
+        minHeight: elemento.alto,
+        maxHeight: elemento.alto,
+        child: child,
+      ),
     );
     return Positioned(
       left: caja.left - dx,
