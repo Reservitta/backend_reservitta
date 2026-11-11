@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import '../../models/mesa_model.dart';
 import '../../viewmodels/table_selection_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import 'mesa_visual.dart';
 
 /// Colores e iconos de cada estado de mesa. El icono acompaña al color para que
 /// el estado no dependa solo del color (HU10-RF02, accesibilidad).
@@ -23,47 +24,50 @@ class TableStateStyle {
     required this.label,
   });
 
+  static TableStateStyle _desde(MesaPaleta p, IconData icono, String texto) =>
+      TableStateStyle(
+        fill: p.superficie,
+        border: p.borde,
+        foreground: p.texto,
+        icon: icono,
+        label: texto,
+      );
+
+  /// Paleta de la mesa para el plano.
+  static MesaPaleta paletaDe(TableVisualState state) {
+    switch (state) {
+      case TableVisualState.disponible:
+        return MesaPaleta.libre;
+      case TableVisualState.ocupada:
+        return MesaPaleta.ocupada;
+      case TableVisualState.noAdecuada:
+        return MesaPaleta.noAdecuada;
+      case TableVisualState.seleccionada:
+        return MesaPaleta.seleccionada;
+      case TableVisualState.noDisponible:
+        return MesaPaleta.fueraDeServicio;
+    }
+  }
+
   static TableStateStyle of(TableVisualState state) {
     switch (state) {
       case TableVisualState.disponible:
-        return const TableStateStyle(
-          fill: Color(0xFFE6F2E6),
-          border: AppColors.exito,
-          foreground: Color(0xFF1B5E20),
-          icon: Icons.check_circle_outline,
-          label: 'Disponible',
-        );
+        return _desde(MesaPaleta.libre, Icons.check_circle_outline, 'Disponible');
       case TableVisualState.ocupada:
-        return const TableStateStyle(
-          fill: Color(0xFFEDEAE6),
-          border: Color(0xFF9E9387),
-          foreground: Color(0xFF6B6157),
-          icon: Icons.lock_outline,
-          label: 'Ocupada',
-        );
+        return _desde(MesaPaleta.ocupada, Icons.lock_outline, 'Ocupada');
       case TableVisualState.noAdecuada:
-        return const TableStateStyle(
-          fill: Color(0xFFFFF3D6),
-          border: Color(0xFFE0A100),
-          foreground: Color(0xFF7A5A00),
-          icon: Icons.group_off_outlined,
-          label: 'No adecuada para el grupo',
+        return _desde(
+          MesaPaleta.noAdecuada,
+          Icons.group_off_outlined,
+          'No adecuada para el grupo',
         );
       case TableVisualState.seleccionada:
-        return const TableStateStyle(
-          fill: AppColors.marca,
-          border: Color(0xFF7E2F14),
-          foreground: Colors.white,
-          icon: Icons.check_circle,
-          label: 'Seleccionada',
-        );
+        return _desde(MesaPaleta.seleccionada, Icons.check_circle, 'Seleccionada');
       case TableVisualState.noDisponible:
-        return const TableStateStyle(
-          fill: Color(0xFFEDEAE6),
-          border: Color(0xFFBDB3A7),
-          foreground: AppColors.textoSuave,
-          icon: Icons.event_busy_outlined,
-          label: 'No disponible',
+        return _desde(
+          MesaPaleta.fueraDeServicio,
+          Icons.event_busy_outlined,
+          'No disponible',
         );
     }
   }
@@ -81,7 +85,7 @@ class TableMapWidget extends StatelessWidget {
     required this.onTapMesa,
   });
 
-  static const double _padding = 24;
+  static const double _padding = 36;
 
   @override
   Widget build(BuildContext context) {
@@ -111,15 +115,9 @@ class TableMapWidget extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
+        PisoDelSalon(
           key: const ValueKey('table_map'),
-          height: math.min(380, math.max(220, height)),
-          clipBehavior: Clip.antiAlias,
-          decoration: BoxDecoration(
-            color: const Color(0xFFFFFDF9),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.divisor),
-          ),
+          alto: math.min(520, math.max(260, height)),
           child: InteractiveViewer(
             minScale: 0.8,
             maxScale: 4,
@@ -173,7 +171,6 @@ class _TableTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TableStateStyle.of(state);
-    final redonda = mesa.forma == MesaModel.formaRedonda;
 
     return Semantics(
       button: true,
@@ -182,41 +179,11 @@ class _TableTile extends StatelessWidget {
       child: GestureDetector(
         key: ValueKey('table_tile_${mesa.id}'),
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: style.fill,
-            shape: redonda ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: redonda ? null : BorderRadius.circular(6),
-            border: Border.all(
-              color: style.border,
-              width: state == TableVisualState.seleccionada ? 4 : 2,
-            ),
-          ),
-          alignment: Alignment.center,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(style.icon, color: style.foreground, size: 22),
-                  Text(
-                    mesa.nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: style.foreground,
-                    ),
-                  ),
-                  Text(
-                    '${mesa.capacidad} pers.',
-                    style: TextStyle(fontSize: 12, color: style.foreground),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        child: MesaVisual(
+          mesa: mesa,
+          paleta: TableStateStyle.paletaDe(state),
+          icono: style.icon,
+          seleccionada: state == TableVisualState.seleccionada,
         ),
       ),
     );

@@ -8,6 +8,9 @@ import '../models/zona_model.dart';
 import '../services/table_layout_service.dart';
 import '../viewmodels/plan_editor_viewmodel.dart';
 import '../theme/app_theme.dart';
+import 'widgets/mesa_visual.dart';
+
+export 'widgets/mesa_visual.dart' show SillasPainter;
 
 /// Editor del plano de mesas del administrador (HU34-RF03): espacios (pisos, patio…),
 /// mesas redondas, cuadradas o rectangulares que se arrastran a su lugar, con nombre,
@@ -337,7 +340,7 @@ class _PlanEditorViewState extends State<PlanEditorView> {
                   key: ValueKey('tab_espacio_${z.id}'),
                   label: Text('${z.nombre} (${_contar(z.id)})'),
                   selected: z.id == _vm.zonaActivaId,
-                  selectedColor: const Color(0xFFFFE3D6),
+                  selectedColor: AppColors.marcaSuave,
                   onSelected: (_) => _vm.seleccionarZona(z.id),
                 ),
               ),
@@ -432,7 +435,7 @@ class _PlanEditorViewState extends State<PlanEditorView> {
           margin: const EdgeInsets.all(12),
           clipBehavior: Clip.antiAlias,
           decoration: BoxDecoration(
-            color: const Color(0xFFFFFDF9),
+            color: const Color(0xFFF6F1E9),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: PlanEditorView.cardBorder),
           ),
@@ -496,10 +499,10 @@ class _CuadriculaPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final fina = Paint()
-      ..color = const Color(0xFFF0E8DC)
+      ..color = const Color(0xFFEDE5D8)
       ..strokeWidth = 1;
     final gruesa = Paint()
-      ..color = const Color(0xFFE6DACA)
+      ..color = const Color(0xFFE2D8C7)
       ..strokeWidth = 1;
     for (var x = 0.0; x <= size.width; x += PlanEditorViewModel.paso * 2) {
       canvas.drawLine(
@@ -521,72 +524,6 @@ class _CuadriculaPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
-/// Dibuja una silla por cada lugar de la mesa, repartidas alrededor.
-class SillasPainter extends CustomPainter {
-  final int capacidad;
-  final String forma;
-  final Color color;
-
-  const SillasPainter({
-    required this.capacidad,
-    required this.forma,
-    required this.color,
-  });
-
-  static const double radio = 7;
-  static const double separacion = 9;
-
-  /// Centros de las sillas respecto de la esquina de la mesa.
-  static List<Offset> posiciones(int capacidad, String forma, Size size) {
-    final n = capacidad.clamp(0, TableLayoutValidator.capacidadMaxima);
-    final w = size.width;
-    final h = size.height;
-    final lista = <Offset>[];
-    if (forma == MesaModel.formaRedonda) {
-      final rx = w / 2 + separacion + radio;
-      final ry = h / 2 + separacion + radio;
-      for (var i = 0; i < n; i++) {
-        final a = -math.pi / 2 + 2 * math.pi * i / math.max(n, 1);
-        lista.add(Offset(w / 2 + rx * math.cos(a), h / 2 + ry * math.sin(a)));
-      }
-      return lista;
-    }
-    final d = separacion + radio;
-    final perimetro = 2 * (w + h);
-    for (var i = 0; i < n; i++) {
-      var t = (i + 0.5) * perimetro / n;
-      if (t < w) {
-        lista.add(Offset(t, -d));
-      } else if ((t -= w) < h) {
-        lista.add(Offset(w + d, t));
-      } else if ((t -= h) < w) {
-        lista.add(Offset(w - t, h + d));
-      } else {
-        t -= w;
-        lista.add(Offset(-d, h - t));
-      }
-    }
-    return lista;
-  }
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final relleno = Paint()..color = color.withAlpha(60);
-    final borde = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5;
-    for (final p in posiciones(capacidad, forma, size)) {
-      canvas.drawCircle(p, radio, relleno);
-      canvas.drawCircle(p, radio, borde);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant SillasPainter old) =>
-      old.capacidad != capacidad || old.forma != forma || old.color != color;
-}
-
 class _MesaTile extends StatelessWidget {
   final PlanEditorViewModel vm;
   final MesaModel mesa;
@@ -597,12 +534,11 @@ class _MesaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final seleccionada = vm.seleccionadaId == mesa.id;
     final conError = vm.erroresDe(mesa.id).isNotEmpty;
-    final redonda = mesa.forma == MesaModel.formaRedonda;
-    final color = conError
-        ? PlanEditorView.errorRed
+    final paleta = conError
+        ? MesaPaleta.editorConError
         : seleccionada
-        ? PlanEditorView.terracotta
-        : AppColors.textoSuave;
+            ? MesaPaleta.editorSeleccionada
+            : MesaPaleta.editor;
 
     return Positioned(
       left: mesa.x ?? 0,
@@ -619,52 +555,11 @@ class _MesaTile extends StatelessWidget {
           onPanStart: (_) => vm.seleccionar(mesa.id),
           onPanUpdate: (d) => vm.arrastrarMesa(mesa.id, d.delta.dx, d.delta.dy),
           onPanEnd: (_) => vm.soltarMesa(mesa.id),
-          child: CustomPaint(
-            painter: SillasPainter(
-              capacidad: mesa.capacidad,
-              forma: mesa.forma,
-              color: color,
-            ),
-            child: Container(
-              decoration: BoxDecoration(
-                color: seleccionada
-                    ? const Color(0xFFFFE3D6)
-                    : AppColors.divisor,
-                shape: redonda ? BoxShape.circle : BoxShape.rectangle,
-                borderRadius: redonda ? null : BorderRadius.circular(10),
-                border: Border.all(
-                  color: color,
-                  width: seleccionada || conError ? 3 : 1.5,
-                ),
-              ),
-              alignment: Alignment.center,
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        mesa.nombre.isEmpty ? '¿Nombre?' : mesa.nombre,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                          color: PlanEditorView.darkText,
-                        ),
-                      ),
-                      Text(
-                        '${mesa.capacidad} ${mesa.capacidad == 1 ? 'silla' : 'sillas'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: PlanEditorView.mutedText,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+          child: MesaVisual(
+            mesa: mesa,
+            paleta: paleta,
+            seleccionada: seleccionada || conError,
+            detalle: '${mesa.capacidad} ${mesa.capacidad == 1 ? 'silla' : 'sillas'}',
           ),
         ),
       ),

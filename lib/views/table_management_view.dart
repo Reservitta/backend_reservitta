@@ -2,12 +2,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
-import '../models/mesa_model.dart';
 import '../models/reservation_model.dart';
 import '../models/table_live_status.dart';
 import '../viewmodels/admin_operations_viewmodel.dart';
 import 'plan_editor_view.dart';
 import '../theme/app_theme.dart';
+import 'widgets/mesa_visual.dart';
 
 /// Color, ícono y etiqueta de cada estado de mesa en la vista de gestión (HU31-RF02).
 class TableLiveStyle {
@@ -23,36 +23,37 @@ class TableLiveStyle {
     required this.icon,
   });
 
+  static TableLiveStyle _desde(MesaPaleta p, IconData icono) => TableLiveStyle(
+        fill: p.superficie,
+        border: p.borde,
+        foreground: p.texto,
+        icon: icono,
+      );
+
+  /// Paleta de la mesa para el plano.
+  static MesaPaleta paletaDe(EstadoMesaVivo estado) {
+    switch (estado) {
+      case EstadoMesaVivo.disponible:
+        return MesaPaleta.libre;
+      case EstadoMesaVivo.ocupada:
+        return MesaPaleta.ocupada;
+      case EstadoMesaVivo.combinada:
+        return MesaPaleta.combinada;
+      case EstadoMesaVivo.fueraDeServicio:
+        return MesaPaleta.fueraDeServicio;
+    }
+  }
+
   static TableLiveStyle of(EstadoMesaVivo estado) {
     switch (estado) {
       case EstadoMesaVivo.disponible:
-        return const TableLiveStyle(
-          fill: Color(0xFFE6F2E6),
-          border: AppColors.exito,
-          foreground: Color(0xFF1B5E20),
-          icon: Icons.check_circle_outline,
-        );
+        return _desde(MesaPaleta.libre, Icons.check_circle_outline);
       case EstadoMesaVivo.ocupada:
-        return const TableLiveStyle(
-          fill: Color(0xFFFFE3D6),
-          border: AppColors.marca,
-          foreground: Color(0xFF7E2F14),
-          icon: Icons.restaurant,
-        );
+        return _desde(MesaPaleta.ocupada, Icons.restaurant);
       case EstadoMesaVivo.combinada:
-        return const TableLiveStyle(
-          fill: Color(0xFFE3F2FD),
-          border: Color(0xFF1565C0),
-          foreground: Color(0xFF0D47A1),
-          icon: Icons.link,
-        );
+        return _desde(MesaPaleta.combinada, Icons.link);
       case EstadoMesaVivo.fueraDeServicio:
-        return const TableLiveStyle(
-          fill: Color(0xFFECEFF1),
-          border: Color(0xFF78909C),
-          foreground: Color(0xFF455A64),
-          icon: Icons.build_circle_outlined,
-        );
+        return _desde(MesaPaleta.fueraDeServicio, Icons.build_circle_outlined);
     }
   }
 }
@@ -73,7 +74,7 @@ class TableManagementView extends StatelessWidget {
   static const Color _terracotta = AppColors.marca;
   static const Color _textDark = AppColors.texto;
   static const Color _textMuted = AppColors.textoSuave;
-  static const double _padding = 24;
+  static const double _padding = 36;
 
   @override
   Widget build(BuildContext context) {
@@ -203,15 +204,9 @@ class TableManagementView extends StatelessWidget {
     final width = maxX - minX + _padding * 2;
     final height = maxY - minY + _padding * 2;
 
-    return Container(
+    return PisoDelSalon(
       key: const ValueKey('mesas_plano'),
-      height: math.min(460, math.max(240, height)),
-      clipBehavior: Clip.antiAlias,
-      decoration: BoxDecoration(
-        color: const Color(0xFFFFFDF9),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.divisor),
-      ),
+      alto: math.min(560, math.max(280, height)),
       child: InteractiveViewer(
         minScale: 0.8,
         maxScale: 4,
@@ -303,45 +298,16 @@ class _MesaTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final s = TableLiveStyle.of(estado.estado);
     final m = estado.mesa;
-    final redonda = m.forma == MesaModel.formaRedonda;
     return Semantics(
       button: true,
       label: '${m.nombre}, capacidad ${m.capacidad} personas, ${estado.etiqueta}',
       child: GestureDetector(
         key: ValueKey('mesa_${m.id}'),
         onTap: onTap,
-        child: Container(
-          decoration: BoxDecoration(
-            color: s.fill,
-            shape: redonda ? BoxShape.circle : BoxShape.rectangle,
-            borderRadius: redonda ? null : BorderRadius.circular(6),
-            border: Border.all(color: s.border, width: 2),
-          ),
-          alignment: Alignment.center,
-          child: FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Padding(
-              padding: const EdgeInsets.all(6),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(s.icon, color: s.foreground, size: 22),
-                  Text(
-                    m.nombre,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 15,
-                      color: s.foreground,
-                    ),
-                  ),
-                  Text(
-                    '${m.capacidad} pers.',
-                    style: TextStyle(fontSize: 12, color: s.foreground),
-                  ),
-                ],
-              ),
-            ),
-          ),
+        child: MesaVisual(
+          mesa: m,
+          paleta: TableLiveStyle.paletaDe(estado.estado),
+          icono: s.icon,
         ),
       ),
     );
@@ -365,7 +331,7 @@ class _SelectorEspacio extends StatelessWidget {
           ChoiceChip(
             key: ValueKey('chip_espacio_admin_${z.id}'),
             selected: operaciones.zonaMesasId == z.id,
-            selectedColor: const Color(0xFFFFE3D6),
+            selectedColor: AppColors.marcaSuave,
             label: Text(
               '${z.nombre} (${operaciones.estadosMesas.where((e) => e.mesa.zonaId == z.id).length})',
             ),
@@ -376,7 +342,7 @@ class _SelectorEspacio extends StatelessWidget {
           ChoiceChip(
             key: const ValueKey('chip_espacio_admin_sin_espacio'),
             selected: operaciones.zonaMesasId == AdminOperationsViewModel.sinEspacioId,
-            selectedColor: const Color(0xFFFFE3D6),
+            selectedColor: AppColors.marcaSuave,
             label: Text('Sin espacio (${operaciones.mesasSinEspacio})'),
             onSelected: (_) =>
                 operaciones.seleccionarZonaMesas(AdminOperationsViewModel.sinEspacioId),
