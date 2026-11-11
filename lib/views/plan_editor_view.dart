@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 
 import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
+import '../models/plantillas_plano.dart';
 import '../models/table_layout_validator.dart';
 import '../models/zona_model.dart';
 import '../services/table_layout_service.dart';
@@ -216,6 +217,91 @@ class _PlanEditorViewState extends State<PlanEditorView> {
   static String _fechaCorta(DateTime f) {
     String dos(int n) => n.toString().padLeft(2, '0');
     return '${dos(f.day)}/${dos(f.month)}/${f.year} ${dos(f.hour)}:${dos(f.minute)}';
+  }
+
+  Future<void> _verPlantillas() async {
+    final elegida = await showDialog<PlantillaPlano>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        key: const ValueKey('dialogo_plantillas'),
+        title: const Text('Plantillas de plano'),
+        content: SizedBox(
+          width: 480,
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(bottom: 10),
+                child: Text(
+                  'Empieza con un plano ya armado y ajústalo a tu salón. Se puede deshacer.',
+                  style: TextStyle(fontSize: 13, color: PlanEditorView.mutedText),
+                ),
+              ),
+              for (final p in PlantillaPlano.todas)
+                Card(
+                  elevation: 0,
+                  margin: const EdgeInsets.only(bottom: 8),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    side: const BorderSide(color: PlanEditorView.cardBorder),
+                  ),
+                  child: ListTile(
+                    key: ValueKey('plantilla_${p.id}'),
+                    onTap: () => Navigator.of(ctx).pop(p),
+                    leading: const Icon(Icons.dashboard_customize_outlined, color: PlanEditorView.terracotta),
+                    title: Text(p.nombre, style: const TextStyle(fontWeight: FontWeight.w700)),
+                    subtitle: Text('${p.descripcion}\n${p.mesas.length} mesas · ${p.elementos.length} de decoración'),
+                    isThreeLine: true,
+                  ),
+                ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('btn_cancelar_plantillas'),
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancelar'),
+          ),
+        ],
+      ),
+    );
+    if (elegida == null || !mounted) return;
+
+    var reemplazar = false;
+    if (_vm.espacioActivoConPiezas) {
+      final decision = await showDialog<String>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          key: const ValueKey('dialogo_aplicar_plantilla'),
+          title: Text('Usar "${elegida.nombre}"'),
+          content: const Text(
+            'Este espacio ya tiene piezas. ¿Quieres reemplazarlas por la plantilla o agregar la plantilla junto a lo que hay?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop('cancelar'),
+              child: const Text('Cancelar'),
+            ),
+            OutlinedButton(
+              key: const ValueKey('btn_plantilla_agregar'),
+              onPressed: () => Navigator.of(ctx).pop('agregar'),
+              child: const Text('Agregar'),
+            ),
+            FilledButton(
+              key: const ValueKey('btn_plantilla_reemplazar'),
+              style: FilledButton.styleFrom(backgroundColor: PlanEditorView.errorRed),
+              onPressed: () => Navigator.of(ctx).pop('reemplazar'),
+              child: const Text('Reemplazar'),
+            ),
+          ],
+        ),
+      );
+      if (decision == null || decision == 'cancelar' || !mounted) return;
+      reemplazar = decision == 'reemplazar';
+    }
+    _vm.aplicarPlantilla(elegida, reemplazar: reemplazar);
+    _avisar('Plantilla "${elegida.nombre}" aplicada. Ajusta lo que necesites y guarda.');
   }
 
   Future<void> _eliminarSeleccion(int cantidad) async {
@@ -591,6 +677,7 @@ class _PlanEditorViewState extends State<PlanEditorView> {
             accion('btn_eliminar_barra', 'Eliminar (Supr)', Icons.delete_outline,
                 hay ? () => _eliminarSeleccion(_vm.cantidadSeleccionada) : null),
             separador,
+            accion('btn_plantillas', 'Plantillas de plano', Icons.dashboard_customize_outlined, _verPlantillas),
             accion('btn_modo_multiple', 'Seleccionar varias piezas', Icons.select_all, _vm.alternarModoMultiple,
                 activo: _vm.modoMultiple),
             const SizedBox(width: 8),

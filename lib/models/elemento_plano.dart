@@ -34,7 +34,8 @@ class ElementoPlano {
   ];
 
   static const double tamanoMinimo = 8;
-  static const double tamanoMaximo = 600;
+  /// Una pared o una barra pueden cruzar todo el salón.
+  static const double tamanoMaximo = 1200;
   static const int textoMax = 40;
 
   final String id;

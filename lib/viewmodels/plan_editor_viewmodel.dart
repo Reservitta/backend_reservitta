@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 
 import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
+import '../models/plantillas_plano.dart';
 import '../models/table_layout_validator.dart';
 import '../models/zona_model.dart';
 import '../services/table_layout_service.dart';
@@ -932,6 +933,74 @@ class PlanEditorViewModel extends ChangeNotifier {
     _elementos = [for (final e in _elementos) if (e.id != id) e];
     if (_elementoSeleccionadoId == id) _elementoSeleccionadoId = null;
     _multi.remove(id);
+    notifyListeners();
+  }
+
+  // ---------------------------------------------------------------------------
+  // Plantillas
+  // ---------------------------------------------------------------------------
+
+  /// El espacio activo ya tiene mesas o decoración.
+  bool get espacioActivoConPiezas => mesasVisibles.isNotEmpty || elementosVisibles.isNotEmpty;
+
+  /// Pone una plantilla en el espacio activo. Con [reemplazar] quita antes lo que hay
+  /// en ese espacio; si no, la agrega junto a lo que ya está. Se puede deshacer.
+  void aplicarPlantilla(PlantillaPlano plantilla, {required bool reemplazar}) {
+    _registrar('plantilla');
+    if (reemplazar) {
+      final idsMesas = {for (final m in mesasVisibles) m.id};
+      final idsElementos = {for (final e in elementosVisibles) e.id};
+      _mesas = [
+        for (final m in _mesas)
+          if (!idsMesas.contains(m.id))
+            m.copyWith(combinableCon: m.combinableCon.where((x) => !idsMesas.contains(x)).toList()),
+      ];
+      _elementos = [for (final e in _elementos) if (!idsElementos.contains(e.id)) e];
+    }
+
+    final zona = _zonaParaNuevo;
+    final nuevos = <String>{};
+    for (final pm in plantilla.mesas) {
+      final preset = presetsMesa.firstWhere((p) => p.id == pm.preset);
+      final mesa = MesaModel(
+        id: _idTemporal(),
+        nombre: _nombreNuevo(),
+        capacidad: preset.capacidad,
+        forma: preset.forma,
+        ancho: preset.ancho,
+        alto: preset.alto,
+        tipo: preset.tipo,
+        x: pm.x,
+        y: pm.y,
+        rotacion: pm.rotacion,
+        zonaId: zona,
+      );
+      _mesas = [..._mesas, mesa];
+      nuevos.add(mesa.id);
+    }
+    for (final pe in plantilla.elementos) {
+      final medidas = PlantillaPlano.medidasDe(pe);
+      final e = ElementoPlano(
+        id: _idTemporal(),
+        tipo: pe.tipo,
+        x: pe.x,
+        y: pe.y,
+        ancho: medidas.ancho,
+        alto: medidas.alto,
+        rotacion: pe.rotacion,
+        etiqueta: medidas.texto,
+        zonaId: zona,
+      );
+      _elementos = [..._elementos, e];
+      nuevos.add(e.id);
+    }
+    _seleccionadaId = null;
+    _elementoSeleccionadoId = null;
+    _multi
+      ..clear()
+      ..addAll(nuevos);
+    _modoMultiple = true;
+    _camposConError = {};
     notifyListeners();
   }
 

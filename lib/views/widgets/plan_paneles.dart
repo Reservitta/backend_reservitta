@@ -303,8 +303,8 @@ class _PanelElementoPlanoState extends State<PanelElementoPlano> {
           Slider(
             key: const ValueKey('slider_elemento_ancho'),
             min: ElementoPlano.tamanoMinimo,
-            max: 400,
-            value: e.ancho.clamp(ElementoPlano.tamanoMinimo, 400).toDouble(),
+            max: 1200,
+            value: e.ancho.clamp(ElementoPlano.tamanoMinimo, 1200).toDouble(),
             onChanged: (v) => vm.cambiarTamanoElemento(e.id, ancho: v),
           ),
           if (!e.esCircular) ...[
