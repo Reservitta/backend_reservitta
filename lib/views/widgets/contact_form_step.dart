@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import '../../models/reservation_draft_model.dart';
 import '../../utils/validators.dart';
+import '../../theme/app_theme.dart';
 
 /// Paso 7: Formulario de datos de contacto y creación de cuenta (HU13-RF01,
 /// HU13-RF02, HU14-RF01).
@@ -60,12 +61,12 @@ class ContactFormStep extends StatefulWidget {
     this.initialConfirmPassword = '',
   });
 
-  static const Color terracotta = Color(0xFFB34A26);
-  static const Color creamBg = Color(0xFFFAF6F0);
-  static const Color darkText = Color(0xFF2E241E);
-  static const Color mutedText = Color(0xFF7A6E65);
-  static const Color cardBorder = Color(0xFFEDE4D8);
-  static const Color creamAccent = Color(0xFFF3ECE1);
+  static const Color terracotta = AppColors.marca;
+  static const Color creamBg = AppColors.fondo;
+  static const Color darkText = AppColors.texto;
+  static const Color mutedText = AppColors.textoSuave;
+  static const Color cardBorder = AppColors.divisor;
+  static const Color creamAccent = AppColors.marcaSuave;
 
   @override
   State<ContactFormStep> createState() => _ContactFormStepState();
@@ -171,9 +172,10 @@ class _ContactFormStepState extends State<ContactFormStep> {
           const Text(
             '¿Cómo te contactamos?',
             style: TextStyle(
-              fontSize: 22,
-              fontFamily: 'serif',
-              fontWeight: FontWeight.bold,
+              fontSize: 30,
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
               color: ContactFormStep.darkText,
             ),
           ),
@@ -193,7 +195,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: const Color(0xFFFBF4ED),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: ContactFormStep.terracotta.withAlpha(80)),
               ),
               child: const Row(
@@ -220,7 +222,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
           Container(
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(10),
               border: Border.all(color: ContactFormStep.cardBorder),
               boxShadow: [
                 BoxShadow(
@@ -231,9 +233,22 @@ class _ContactFormStepState extends State<ContactFormStep> {
               ],
             ),
             padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+            child: LayoutBuilder(
+              builder: (context, c) {
+                final dos = c.maxWidth >= 620;
+                final ancho = dos ? (c.maxWidth - 20) / 2 : c.maxWidth;
+                Widget campo(List<Widget> hijos) => SizedBox(
+                      width: ancho,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: hijos,
+                      ),
+                    );
+                return Wrap(
+                  spacing: 20,
+                  runSpacing: 14,
+                  children: [
+                    campo([
                 // Nombre completo
                 _buildSectionLabel('Nombre completo'),
                 const SizedBox(height: 6),
@@ -251,8 +266,9 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   validator: AppValidators.validateName,
                   onChanged: widget.onNameChanged,
                 ),
-                const SizedBox(height: 18),
 
+                    ]),
+                    campo([
                 // Correo electrónico
                 _buildSectionLabel('Correo electrónico'),
                 const SizedBox(height: 6),
@@ -270,8 +286,9 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   validator: AppValidators.validateEmail,
                   onChanged: widget.onEmailChanged,
                 ),
-                const SizedBox(height: 18),
 
+                    ]),
+                    campo([
                 // Teléfono
                 _buildSectionLabel('Teléfono (${widget.phoneDigits} dígitos)'),
                 const SizedBox(height: 6),
@@ -294,7 +311,10 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   ),
                   onChanged: widget.onPhoneChanged,
                 ),
-              ],
+                    ]),
+                  ],
+                );
+              },
             ),
           ),
           const SizedBox(height: 20),
@@ -339,12 +359,12 @@ class _ContactFormStepState extends State<ContactFormStep> {
       key: const ValueKey('container_crear_cuenta'),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: ContactFormStep.cardBorder),
       ),
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: CheckboxListTile(
           key: const ValueKey('checkbox_crear_cuenta'),
           value: isAccountMandatory ? true : widget.draft.crearCuenta,
@@ -382,7 +402,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
       key: const ValueKey('container_password'),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: ContactFormStep.cardBorder),
         boxShadow: [
           BoxShadow(
@@ -449,6 +469,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
               hint: 'Ingresa tu contraseña',
               prefixIcon: Icons.lock_outline,
               suffixIcon: IconButton(
+        tooltip: 'Mostrar u ocultar contraseña',
                 icon: Icon(
                   _mostrarPassword ? Icons.visibility_off : Icons.visibility,
                   color: ContactFormStep.mutedText,
@@ -490,6 +511,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
                   hint: 'Repite tu contraseña',
                   prefixIcon: Icons.lock_outline,
                   suffixIcon: IconButton(
+        tooltip: 'Mostrar u ocultar contraseña',
                     icon: Icon(
                       _mostrarConfirmPassword
                           ? Icons.visibility_off
@@ -531,7 +553,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: ContactFormStep.creamBg,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: ContactFormStep.cardBorder),
       ),
       child: Column(
@@ -577,7 +599,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
   }
 
   Widget _buildConstraintRow(String label, bool isMet, String keySuffix) {
-    final color = isMet ? const Color(0xFF2E7D32) : ContactFormStep.mutedText;
+    final color = isMet ? AppColors.exito : ContactFormStep.mutedText;
     return Row(
       key: ValueKey(keySuffix),
       mainAxisSize: MainAxisSize.min,
@@ -608,7 +630,7 @@ class _ContactFormStepState extends State<ContactFormStep> {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: ContactFormStep.creamBg,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: ContactFormStep.cardBorder),
       ),
       child: const Row(
@@ -670,26 +692,26 @@ class _ContactFormStepState extends State<ContactFormStep> {
       fillColor: readOnly ? const Color(0xFFF3EFEA) : ContactFormStep.creamBg,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: ContactFormStep.cardBorder),
       ),
       enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: const BorderSide(color: ContactFormStep.cardBorder),
       ),
       focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(
           color: readOnly ? ContactFormStep.cardBorder : ContactFormStep.terracotta,
           width: readOnly ? 1.0 : 1.5,
         ),
       ),
       errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(color: Colors.red.shade400),
       ),
       focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         borderSide: BorderSide(color: Colors.red.shade700, width: 1.5),
       ),
       errorMaxLines: 2,

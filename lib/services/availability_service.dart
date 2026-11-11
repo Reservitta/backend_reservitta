@@ -1,5 +1,7 @@
 import '../models/booking_models.dart';
+import '../models/elemento_plano.dart';
 import '../models/mesa_model.dart';
+import 'table_service.dart';
 import '../models/reservation_model.dart';
 import '../models/restaurant_model.dart';
 import '../models/table_availability_models.dart';
@@ -337,7 +339,7 @@ class AvailabilityService {
     final libres = disponibilidad.mesasLibres;
     final individuales =
         libres
-            .where((m) => m.capacidad >= personas)
+            .where((m) => m.capacidad >= personas && m.admite(personas))
             .map((m) => TableOption(mesa: m, personas: personas))
             .toList()
           ..sort((a, b) {
@@ -442,6 +444,7 @@ class AvailabilityService {
     if (mesas.isEmpty) return const FloorPlanResult.sinPlano();
 
     final zonas = await _loadZonas(restaurant.id);
+    final elementos = await _loadElementos(restaurant.id);
     final disponibilidad = await checkAvailability(
       restaurant: restaurant,
       inicio: inicio,
@@ -456,6 +459,7 @@ class AvailabilityService {
     return FloorPlanResult(
       configurado: true,
       zonas: zonas,
+      elementos: elementos,
       reason: reason,
       mesas: [
         for (final m in mesas)
@@ -624,7 +628,7 @@ class AvailabilityService {
     final libres = mesas.where((m) => hasSlot([m])).toList();
     final individuales =
         libres
-            .where((m) => m.capacidad >= personas)
+            .where((m) => m.capacidad >= personas && m.admite(personas))
             .map((m) => TableOption(mesa: m, personas: personas))
             .toList()
           ..sort((a, b) {
@@ -667,11 +671,13 @@ class AvailabilityService {
     final mesas = configurado ? conPosicion : todas;
 
     final zonas = await _loadZonas(restaurant.id);
+    final elementos = await _loadElementos(restaurant.id);
     final validation = validateDate(restaurant: restaurant, fecha: fecha);
     if (!validation.isValid) {
       return FloorPlanResult(
         configurado: configurado,
         zonas: zonas,
+        elementos: elementos,
         reason: validation.reason,
         mesas: [
           for (final m in mesas)
@@ -684,6 +690,7 @@ class AvailabilityService {
     return FloorPlanResult(
       configurado: configurado,
       zonas: zonas,
+      elementos: elementos,
       mesas: [
         for (final m in mesas)
           PlanoMesa(
@@ -704,6 +711,57 @@ class AvailabilityService {
     );
   }
 
+  /// El restaurante tiene al menos una mesa que se pueda reservar. Si no la tiene, la
+  /// reserva se hace sin mesa y el restaurante la asigna.
+  Future<bool> restauranteTieneMesas(RestaurantModel restaurant) async {
+    return (await _loadMesas(restaurant)).isNotEmpty;
+  }
+
+  /// Plano con el estado de cada mesa en una hora concreta ([inicio]): ocupada si
+  /// otra reserva se traslapa con [inicio, inicio + duracionMin]. Sin plano
+  /// configurado devuelve todas las mesas para mostrarlas en lista.
+  Future<FloorPlanResult> getFloorPlanAtTime({
+    required RestaurantModel restaurant,
+    required DateTime inicio,
+    int duracionMin = 90,
+  }) async {
+    final todas = await _loadMesas(restaurant);
+    if (todas.isEmpty) return const FloorPlanResult.sinPlano();
+
+    final conPosicion = todas.where((m) => m.tienePosicion).toList();
+    final configurado = conPosicion.isNotEmpty;
+    final mesas = configurado ? conPosicion : todas;
+
+    final zonas = await _loadZonas(restaurant.id);
+    final elementos = await _loadElementos(restaurant.id);
+    final disponibilidad = await checkAvailability(
+      restaurant: restaurant,
+      inicio: inicio,
+      duracionMin: duracionMin,
+    );
+    final reason = disponibilidad.reason == AvailabilityFailure.sinDisponibilidad
+        ? null
+        : disponibilidad.reason;
+
+    return FloorPlanResult(
+      configurado: configurado,
+      zonas: zonas,
+      elementos: elementos,
+      reason: reason,
+      mesas: [
+        for (final m in mesas)
+          PlanoMesa(
+            mesa: m,
+            estado: reason != null
+                ? MesaEstado.noDisponible
+                : (disponibilidad.mesasBloqueadasIds.contains(m.id)
+                    ? MesaEstado.ocupada
+                    : MesaEstado.disponible),
+          ),
+      ],
+    );
+  }
+
   /// Mesas que se pueden reservar: las que el administrador marcó fuera de servicio
   /// (HU31-RF01) no se ofrecen.
   Future<List<MesaModel>> _loadMesas(RestaurantModel restaurant) async {
@@ -719,6 +777,16 @@ class AvailabilityService {
       return desdeRepo.isNotEmpty ? desdeRepo : restaurant.mesas;
     } catch (_) {
       return restaurant.mesas;
+    }
+  }
+
+  Future<List<ElementoPlano>> _loadElementos(String restaurantId) async {
+    final repo = _tables;
+    if (repo is! TableService) return const [];
+    try {
+      return await repo.getElementos(restaurantId);
+    } catch (_) {
+      return const [];
     }
   }
 

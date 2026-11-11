@@ -93,11 +93,10 @@ class ReservationService implements ReservationRepository {
       );
     }
     final inicio = reservation.inicio;
-    if (inicio == null ||
-        reservation.restauranteId.isEmpty ||
-        reservation.mesaIds.isEmpty) {
+    // Sin mesas (restaurante que no configuró su mapa) la reserva se guarda sin mesa.
+    if (inicio == null || reservation.restauranteId.isEmpty) {
       throw ArgumentError(
-        'La reservación necesita restaurante, mesas y hora de inicio.',
+        'La reservación necesita restaurante y hora de inicio.',
       );
     }
 

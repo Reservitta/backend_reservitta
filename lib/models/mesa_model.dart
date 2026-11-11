@@ -1,4 +1,7 @@
+import 'dart:math' as math;
+
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/painting.dart' show Offset, Rect;
 
 /// Modelo inmutable de Mesa para gestión de capacidad y asignación (HU04-RF01 Criterio 1)
 class MesaModel {
@@ -11,6 +14,13 @@ class MesaModel {
     formaCuadrada,
     formaRectangular,
   ];
+
+  // Tipos de mesa del plano
+  static const String tipoRegular = 'regular';
+  static const String tipoBarra = 'barra';
+  static const String tipoAlta = 'alta';
+  static const String tipoSillon = 'sillon';
+  static const List<String> tiposValidos = [tipoRegular, tipoBarra, tipoAlta, tipoSillon];
 
   /// Estado manual que fija el administrador (HU31-RF01); null = se deriva de las reservas.
   static const String estadoFueraDeServicio = 'fuera_de_servicio';
@@ -28,6 +38,18 @@ class MesaModel {
   final double alto;
   final String? estadoManual;
 
+  /// Giro de la mesa en el plano, en grados (0 a 359).
+  final double rotacion;
+
+  /// Regular, barra, alta o sillón.
+  final String tipo;
+
+  /// Grupo mínimo que se acepta en la mesa (1 por defecto).
+  final int minPersonas;
+
+  /// Grupo máximo; si es null, el número de sillas.
+  final int? maxPersonas;
+
   const MesaModel({
     required this.id,
     required this.nombre,
@@ -41,7 +63,31 @@ class MesaModel {
     this.ancho = 100.0,
     this.alto = 100.0,
     this.estadoManual,
+    this.rotacion = 0,
+    this.tipo = 'regular',
+    this.minPersonas = 1,
+    this.maxPersonas,
   });
+
+  /// Grupo máximo que admite la mesa.
+  int get maxEfectivo => maxPersonas ?? capacidad;
+
+  /// La mesa acepta un grupo de [personas] según su mínimo y máximo.
+  bool admite(int personas) => personas >= minPersonas && personas <= maxEfectivo;
+
+  /// Caja que ocupa la mesa en el plano una vez girada.
+  Rect get cajaRotada {
+    final cx = (x ?? 0) + ancho / 2;
+    final cy = (y ?? 0) + alto / 2;
+    final r = rotacion * math.pi / 180;
+    final c = math.cos(r).abs();
+    final sn = math.sin(r).abs();
+    return Rect.fromCenter(
+      center: Offset(cx, cy),
+      width: ancho * c + alto * sn,
+      height: ancho * sn + alto * c,
+    );
+  }
 
   /// El administrador la marcó fuera de servicio (por ejemplo, por mantenimiento).
   bool get fueraDeServicio => estadoManual == estadoFueraDeServicio;
@@ -96,6 +142,10 @@ class MesaModel {
       ancho: (data['ancho'] as num?)?.toDouble() ?? 100.0,
       alto: (data['alto'] as num?)?.toDouble() ?? 100.0,
       estadoManual: data['estadoManual'] as String?,
+      rotacion: (data['rotacion'] as num?)?.toDouble() ?? 0,
+      tipo: (data['tipo'] as String?) ?? 'regular',
+      minPersonas: (data['minPersonas'] as num?)?.toInt() ?? 1,
+      maxPersonas: (data['maxPersonas'] as num?)?.toInt(),
     );
   }
 
@@ -112,6 +162,10 @@ class MesaModel {
       'ancho': ancho,
       'alto': alto,
       'estadoManual': estadoManual,
+      'rotacion': rotacion,
+      'tipo': tipo,
+      'minPersonas': minPersonas,
+      if (maxPersonas != null) 'maxPersonas': maxPersonas,
     };
   }
 
@@ -128,6 +182,11 @@ class MesaModel {
     double? ancho,
     double? alto,
     String? estadoManual,
+    double? rotacion,
+    String? tipo,
+    int? minPersonas,
+    int? maxPersonas,
+    bool sinMaximo = false,
   }) {
     return MesaModel(
       id: id ?? this.id,
@@ -142,6 +201,10 @@ class MesaModel {
       ancho: ancho ?? this.ancho,
       alto: alto ?? this.alto,
       estadoManual: estadoManual ?? this.estadoManual,
+      rotacion: rotacion ?? this.rotacion,
+      tipo: tipo ?? this.tipo,
+      minPersonas: minPersonas ?? this.minPersonas,
+      maxPersonas: sinMaximo ? null : (maxPersonas ?? this.maxPersonas),
     );
   }
 }

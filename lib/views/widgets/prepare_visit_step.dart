@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/reservation_draft_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Pantalla / Paso "¿Quieres preparar tu visita?" (HU15-RF01)
 ///
@@ -15,11 +16,11 @@ class PrepareVisitStep extends StatelessWidget {
   final VoidCallback onPersonalizarVisita;
   final bool isProcessing;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   const PrepareVisitStep({
     super.key,
@@ -58,7 +59,7 @@ class PrepareVisitStep extends StatelessWidget {
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               border: Border.all(color: _cardBorder),
             ),
             child: Row(
@@ -92,7 +93,7 @@ class PrepareVisitStep extends StatelessWidget {
             elevation: 0,
             color: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               side: const BorderSide(color: _cardBorder),
             ),
             child: Padding(
@@ -142,7 +143,7 @@ class PrepareVisitStep extends StatelessWidget {
                         foregroundColor: _primaryTerracotta,
                         side: const BorderSide(color: _primaryTerracotta, width: 1.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                       onPressed: isProcessing ? null : onSoloReservar,
@@ -170,7 +171,7 @@ class PrepareVisitStep extends StatelessWidget {
             elevation: 0,
             color: Colors.white,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               side: const BorderSide(color: _primaryTerracotta, width: 1.5),
             ),
             child: Padding(
@@ -224,7 +225,7 @@ class PrepareVisitStep extends StatelessWidget {
                       style: FilledButton.styleFrom(
                         backgroundColor: _primaryTerracotta,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                       ),
                       onPressed: isProcessing ? null : onPersonalizarVisita,

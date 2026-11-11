@@ -5,6 +5,7 @@ import '../models/ocasion_model.dart';
 import '../services/ocasion_service.dart';
 import '../viewmodels/ocasion_viewmodel.dart';
 import 'widgets/ocasion_form_dialog.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de gestión de Ocasiones Especiales y Experiencias para Administradores (HU33-RF01 y HU33-RF02)
 class OcasionListView extends StatefulWidget {
@@ -28,11 +29,11 @@ class OcasionListView extends StatefulWidget {
 class _OcasionListViewState extends State<OcasionListView> {
   late final OcasionViewModel _viewModel;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   @override
   void initState() {
@@ -189,7 +190,7 @@ class _OcasionListViewState extends State<OcasionListView> {
           builder: (context, setDialogState) {
             return AlertDialog(
               key: const ValueKey('dialogo_editar_experiencia_individual'),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
               title: const Text('Editar Experiencia', style: TextStyle(fontWeight: FontWeight.bold)),
               content: SingleChildScrollView(
                 child: Column(
@@ -470,7 +471,7 @@ class _OcasionListViewState extends State<OcasionListView> {
       key: ValueKey('card_ocasion_${ocasion.id}'),
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         side: const BorderSide(color: _cardBorder),
       ),
       elevation: 0,
@@ -487,7 +488,7 @@ class _OcasionListViewState extends State<OcasionListView> {
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: _primaryTerracotta.withAlpha(25),
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                   child: Icon(
                     _obtenerIcono(ocasion.icono),
@@ -582,7 +583,7 @@ class _OcasionListViewState extends State<OcasionListView> {
                             if (exp.descripcionCorta.isNotEmpty)
                               Text(
                                 exp.descripcionCorta,
-                                style: const TextStyle(fontSize: 11, color: _textMuted),
+                                style: const TextStyle(fontSize: 12, color: _textMuted),
                               ),
                           ],
                         ),
@@ -597,7 +598,7 @@ class _OcasionListViewState extends State<OcasionListView> {
                         child: Text(
                           exp.precioFormateado,
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
                             color: exp.esGratis ? Colors.green.shade900 : Colors.brown.shade900,
                           ),

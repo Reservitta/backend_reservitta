@@ -3,11 +3,12 @@ import 'package:flutter/material.dart';
 import '../../models/ocasion_model.dart';
 import '../../models/platillo_model.dart';
 import '../../viewmodels/ocasion_selection_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
-const Color _terracotta = Color(0xFFB34A26);
-const Color _cardBorder = Color(0xFFEDE4D8);
-const Color _textDark = Color(0xFF2E241E);
-const Color _textMuted = Color(0xFF7A6E65);
+const Color _terracotta = AppColors.marca;
+const Color _cardBorder = AppColors.divisor;
+const Color _textDark = AppColors.texto;
+const Color _textMuted = AppColors.textoSuave;
 
 String _dinero(double v) => '\$${v.toStringAsFixed(2)} MXN';
 
@@ -71,7 +72,7 @@ class OcasionStep extends StatelessWidget {
                 decoration: InputDecoration(
                   labelText: 'Cuéntanos qué celebras',
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onChanged: vm.setDetalleOtro,
@@ -89,7 +90,7 @@ class OcasionStep extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF3D6),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                 ),
                 child: const Row(
                   children: [
@@ -115,7 +116,7 @@ class OcasionStep extends StatelessWidget {
                 style: FilledButton.styleFrom(
                   backgroundColor: _terracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                   ),
                 ),
                 onPressed: vm.puedeContinuar ? onContinuar : null,
@@ -160,7 +161,7 @@ class OcasionStep extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: _cardBorder),
       ),
       child: Column(
@@ -203,7 +204,7 @@ class OcasionStep extends StatelessWidget {
                   key: ValueKey('precio_exp_${e.id}'),
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
-                    color: e.esGratis ? const Color(0xFF2E7D32) : _terracotta,
+                    color: e.esGratis ? AppColors.exito : _terracotta,
                   ),
                 ),
               ),
@@ -238,7 +239,7 @@ class OcasionStep extends StatelessWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         children: [
@@ -283,13 +284,13 @@ class _TarjetaOcasion extends StatelessWidget {
       child: InkWell(
         key: ValueKey('card_ocasion_${ocasion.id}'),
         onTap: onTap,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         child: Container(
           width: 150,
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: seleccionada ? const Color(0xFFFFF3E8) : Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: seleccionada ? _terracotta : _cardBorder,
               width: seleccionada ? 2.5 : 1.5,
@@ -356,7 +357,7 @@ class PostreFelicitacionSheet extends StatefulWidget {
       useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       builder: (_) => PostreFelicitacionSheet(vm: vm),
     );
@@ -536,7 +537,7 @@ class _PostreFelicitacionSheetState extends State<PostreFelicitacionSheet> {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: const Color(0xFFFFF3E8),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

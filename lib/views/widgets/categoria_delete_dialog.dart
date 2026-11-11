@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme/app_theme.dart';
 
 /// Diálogo de confirmación antes de eliminar una categoría (HU24-RF02 Criterio 2)
 class CategoriaDeleteDialog extends StatefulWidget {
@@ -14,9 +15,9 @@ class CategoriaDeleteDialog extends StatefulWidget {
   });
 
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const Color _error = Color(0xFFD84A38);
   static const Color _errorLight = Color(0xFFFDEAE8);
   static const Color _warning = Color(0xFFF57C00);
@@ -86,7 +87,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: CategoriaDeleteDialog._cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: CategoriaDeleteDialog._cardBorder, width: 1),
             boxShadow: [
               BoxShadow(
@@ -162,7 +163,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: CategoriaDeleteDialog._warningLight,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(6),
                     border: Border.all(
                       color: CategoriaDeleteDialog._warning.withValues(alpha: 0.35),
                     ),
@@ -216,7 +217,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
                         foregroundColor: CategoriaDeleteDialog._textDark,
                         side: const BorderSide(color: CategoriaDeleteDialog._cardBorder),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),
@@ -234,7 +235,7 @@ class _CategoriaDeleteDialogState extends State<CategoriaDeleteDialog> {
                         backgroundColor: CategoriaDeleteDialog._error,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
                         padding: const EdgeInsets.symmetric(vertical: 13),
                       ),

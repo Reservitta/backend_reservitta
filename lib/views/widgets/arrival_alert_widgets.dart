@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../models/arrival_alert.dart';
+import '../../theme/app_theme.dart';
 
 /// Colores de una alerta de llegada (HU30-RF03): ámbar si está por llegar, rojo si se retrasa.
 class ArrivalAlertStyle {
@@ -48,7 +49,7 @@ class ArrivalAlertChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: s.background,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(6),
         border: Border.all(color: s.border),
       ),
       child: Row(
@@ -59,7 +60,7 @@ class ArrivalAlertChip extends StatelessWidget {
           Text(
             alerta.texto,
             style: TextStyle(
-              fontSize: 11.5,
+              fontSize: 12,
               fontWeight: FontWeight.w700,
               color: s.foreground,
             ),
@@ -97,15 +98,15 @@ class ArrivalAlertTile extends StatelessWidget {
       label: '${alerta.texto}: $cliente, ${_hora(r.effectiveStart)}, $mesa',
       child: Material(
         color: s.background,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         child: InkWell(
           key: ValueKey('alerta_${r.id}'),
-          borderRadius: BorderRadius.circular(14),
+          borderRadius: BorderRadius.circular(8),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(14),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(color: s.border),
             ),
             child: Row(
@@ -126,17 +127,17 @@ class ArrivalAlertTile extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text(
                         '$cliente · ${_hora(r.effectiveStart)} · $mesa · ${r.personas} pers.',
-                        style: const TextStyle(fontSize: 13, color: Color(0xFF2E241E)),
+                        style: const TextStyle(fontSize: 13, color: AppColors.texto),
                       ),
                       if (extras.isNotEmpty)
                         Text(
                           extras.join(' · '),
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF7A6E65)),
+                          style: const TextStyle(fontSize: 12, color: AppColors.textoSuave),
                         ),
                     ],
                   ),
                 ),
-                const Icon(Icons.chevron_right, color: Color(0xFF7A6E65)),
+                const Icon(Icons.chevron_right, color: AppColors.textoSuave),
               ],
             ),
           ),

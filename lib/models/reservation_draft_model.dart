@@ -28,6 +28,10 @@ class ReservationDraftModel {
   /// Espacios (piso, patio…) de las mesas elegidas, solo para mostrarlos en el resumen
   /// (HU34-RF04). No se guardan en la reserva.
   final List<String> espaciosNombres;
+
+  /// El restaurante no configuró sus mesas: la reserva se hace sin mesa y el
+  /// restaurante la asigna al recibirla.
+  final bool sinMesaAsignada;
   final TimeOfDay? horario;
   final String usuarioId; // HU14-RF02: ID de la cuenta creada o asociada a la reserva
 
@@ -55,6 +59,7 @@ class ReservationDraftModel {
     this.mesaIds = const [],
     this.mesasNombres = const [],
     this.espaciosNombres = const [],
+    this.sinMesaAsignada = false,
     this.horario,
     ReservationContactModel? contactData,
     this.usuarioId = '',
@@ -132,6 +137,7 @@ class ReservationDraftModel {
     List<String>? mesaIds,
     List<String>? mesasNombres,
     List<String>? espaciosNombres,
+    bool? sinMesaAsignada,
     TimeOfDay? Function()? horario,
     ReservationContactModel? Function()? contactData,
     String? usuarioId,
@@ -157,6 +163,7 @@ class ReservationDraftModel {
       mesaIds: mesaIds ?? this.mesaIds,
       mesasNombres: mesasNombres ?? this.mesasNombres,
       espaciosNombres: espaciosNombres ?? this.espaciosNombres,
+      sinMesaAsignada: sinMesaAsignada ?? this.sinMesaAsignada,
       horario: horario != null ? horario() : this.horario,
       contactData: nextContact,
       usuarioId: usuarioId ?? this.usuarioId,
@@ -205,7 +212,7 @@ class ReservationDraftModel {
   bool get hasDate => fecha != null;
   bool get hasDuration => duracionMin >= 30;
   bool get hasPeople => personas >= 1;
-  bool get hasTables => mesaIds.isNotEmpty;
+  bool get hasTables => mesaIds.isNotEmpty || sinMesaAsignada;
   bool get hasTime => horario != null;
 
   /// Indica si el borrador cuenta con todos los datos necesarios para el resumen (HU12-RF01).

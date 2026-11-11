@@ -6,6 +6,7 @@ import '../services/platillo_service.dart';
 import '../viewmodels/platillo_viewmodel.dart';
 import 'widgets/platillo_card.dart';
 import 'widgets/platillo_form_dialog.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de Gestión del Menú y Platillos (HU24-RF04 y HU32-RF01)
 /// Permite:
@@ -29,15 +30,15 @@ class PlatilloListView extends StatefulWidget {
     this.showAppBar = true,
   });
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _primary = Color(0xFFE4572E);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
-  static const Color _success = Color(0xFF2E7D32);
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _creamAccent = AppColors.marcaSuave;
+  static const Color _creamLight = AppColors.fondo;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
+  static const Color _success = AppColors.exito;
   static const Color _error = Color(0xFFD84A38);
 
   @override
@@ -165,7 +166,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: const Text('¿Eliminar platillo?'),
         content: Text(
           'Estás a punto de eliminar "${platillo.nombre}". Esta acción no se puede deshacer.',
@@ -279,7 +280,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                       const Text(
                                         'Menú',
                                         style: TextStyle(
-                                          fontFamily: 'serif',
+                                          fontFamily: AppTheme.familiaTitulos,
                                           fontSize: 28,
                                           fontWeight: FontWeight.bold,
                                           color: PlatilloListView._textDark,
@@ -337,7 +338,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                                   Text(
                                                     'Tiempo Real Activo',
                                                     style: TextStyle(
-                                                      fontSize: 11.5,
+                                                      fontSize: 12,
                                                       fontWeight: FontWeight.w600,
                                                       color: PlatilloListView
                                                           ._primaryTerracotta,
@@ -373,7 +374,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                                 horizontal: 16, vertical: 12),
                                         border: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(6),
                                           borderSide: const BorderSide(
                                             color:
                                                 PlatilloListView._cardBorder,
@@ -381,7 +382,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                         ),
                                         enabledBorder: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(6),
                                           borderSide: const BorderSide(
                                             color:
                                                 PlatilloListView._cardBorder,
@@ -389,7 +390,7 @@ class _PlatilloListViewState extends State<PlatilloListView> {
                                         ),
                                         focusedBorder: OutlineInputBorder(
                                           borderRadius:
-                                              BorderRadius.circular(12),
+                                              BorderRadius.circular(6),
                                           borderSide: const BorderSide(
                                             color: PlatilloListView._primary,
                                             width: 1.8,

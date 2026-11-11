@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../viewmodels/pedido_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Resultado devuelto al cerrar el detalle de platillo (HU16-RF04, HU16-RF05, HU17-RF01).
 class PlatilloDetalleResult {
@@ -67,12 +68,12 @@ class PlatilloDetalleSheet extends StatefulWidget {
   static const int limitePorDefecto =
       PedidoViewModel.limiteCaracteresObservacionDefault; // 200
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _creamLight = AppColors.fondo;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const Color _dangerRed = Color(0xFFC62828);
 
   const PlatilloDetalleSheet({
@@ -217,7 +218,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
       ),
       decoration: const BoxDecoration(
         color: PlatilloDetalleSheet._cardBg,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 24),
@@ -241,6 +242,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                   child: Align(
                     alignment: Alignment.centerRight,
                     child: IconButton(
+        tooltip: 'Cerrar',
                       key: const ValueKey('btn_cerrar_detalle_platillo'),
                       icon: const Icon(Icons.close, size: 22),
                       onPressed: () => Navigator.of(context).pop(),
@@ -255,7 +257,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
             // 1. Imagen del platillo (HU16-RF04 Criterio 1)
             ClipRRect(
               key: const ValueKey('detalle_platillo_imagen'),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               child: Container(
                 height: 170,
                 width: double.infinity,
@@ -338,7 +340,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: PlatilloDetalleSheet._creamLight,
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(10),
                       border: Border.all(color: PlatilloDetalleSheet._cardBorder),
                     ),
                     child: Text(
@@ -415,15 +417,15 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                   vertical: 12,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(color: PlatilloDetalleSheet._cardBorder),
                 ),
                 enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(color: PlatilloDetalleSheet._cardBorder),
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   borderSide: const BorderSide(
                     color: PlatilloDetalleSheet._primaryTerracotta,
                     width: 1.6,
@@ -452,7 +454,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               decoration: BoxDecoration(
                 color: PlatilloDetalleSheet._creamLight,
-                borderRadius: BorderRadius.circular(14),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: PlatilloDetalleSheet._cardBorder),
               ),
               child: Row(
@@ -470,6 +472,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       IconButton(
+        tooltip: 'Quitar uno',
                         key: const ValueKey('btn_decrementar_cantidad'),
                         icon: const Icon(Icons.remove_circle_outline),
                         color: PlatilloDetalleSheet._primaryTerracotta,
@@ -488,6 +491,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                         ),
                       ),
                       IconButton(
+        tooltip: 'Agregar uno',
                         key: const ValueKey('btn_incrementar_cantidad'),
                         icon: const Icon(Icons.add_circle_outline),
                         color: PlatilloDetalleSheet._primaryTerracotta,
@@ -507,7 +511,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFEBEE),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(6),
                   border: Border.all(color: const Color(0xFFEF9A9A)),
                 ),
                 child: Row(
@@ -550,7 +554,7 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                       ? PlatilloDetalleSheet._dangerRed
                       : PlatilloDetalleSheet._primaryTerracotta,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                 ),
                 onPressed: _confirmar,

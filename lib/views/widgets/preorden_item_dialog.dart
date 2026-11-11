@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../utils/validators.dart';
+import '../../theme/app_theme.dart';
 
 /// Diálogo modal para que el cliente agregue y personalice un platillo al preordenar (HU24-RF05).
 /// Cumple con:
@@ -16,13 +17,13 @@ class PreordenItemDialog extends StatefulWidget {
     required this.platillo,
   });
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _primary = Color(0xFFE4572E);
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _creamLight = AppColors.fondo;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   static Future<Map<String, dynamic>?> show(
     BuildContext context, {
@@ -89,7 +90,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
         child: Container(
           decoration: BoxDecoration(
             color: PreordenItemDialog._cardBg,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: PreordenItemDialog._cardBorder),
             boxShadow: [
               BoxShadow(
@@ -121,6 +122,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                         ),
                       ),
                       IconButton(
+        tooltip: 'Cerrar',
                         icon: const Icon(Icons.close, size: 20),
                         onPressed: () => Navigator.of(context).pop(),
                         visualDensity: VisualDensity.compact,
@@ -134,7 +136,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: PreordenItemDialog._creamLight,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: PreordenItemDialog._cardBorder),
                     ),
                     child: Row(
@@ -224,6 +226,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                         child: Row(
                           children: [
                             IconButton(
+        tooltip: 'Quitar uno',
                               key: const ValueKey('btn_decrementar_preorden'),
                               icon: const Icon(Icons.remove, size: 18),
                               onPressed: _cantidad > 1 ? _decrementar : null,
@@ -242,6 +245,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                               ),
                             ),
                             IconButton(
+        tooltip: 'Agregar uno',
                               key: const ValueKey('btn_incrementar_preorden'),
                               icon: const Icon(Icons.add, size: 18),
                               onPressed: _incrementar,
@@ -297,17 +301,17 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                         contentPadding: const EdgeInsets.symmetric(
                             horizontal: 14, vertical: 12),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PreordenItemDialog._cardBorder),
                         ),
                         enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PreordenItemDialog._cardBorder),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           borderSide: const BorderSide(
                               color: PreordenItemDialog._primary, width: 1.8),
                         ),
@@ -331,7 +335,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             child: Text(
                               'Este platillo se elabora con receta estándar y no admite modificaciones personalizadas.',
                               style: TextStyle(
-                                fontSize: 11.5,
+                                fontSize: 12,
                                 color: PreordenItemDialog._textMuted,
                               ),
                             ),
@@ -377,7 +381,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             side: const BorderSide(
                                 color: PreordenItemDialog._cardBorder),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 13),
                           ),
@@ -393,7 +397,7 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             backgroundColor: PreordenItemDialog._primary,
                             foregroundColor: Colors.white,
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(6),
                             ),
                             padding: const EdgeInsets.symmetric(vertical: 13),
                           ),

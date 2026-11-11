@@ -17,6 +17,7 @@ import '../services/admin_alert_service.dart';
 import '../services/operations_config_service.dart';
 import '../services/reminder_service.dart';
 import '../services/table_status_service.dart';
+import '../models/elemento_plano.dart';
 
 /// Estado operativo del día del restaurante, compartido por el dashboard (HU25),
 /// las alertas de llegada (HU30), los pedidos (HU29) y las mesas (HU31).
@@ -41,6 +42,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
   List<ReservationModel> _reservasHoy = const [];
   List<MesaModel> _mesas = const [];
   List<ZonaModel> _zonas = const [];
+  List<ElementoPlano> _elementos = const [];
   String? _zonaMesasId;
   List<ArrivalAlert> _alertas = const [];
   List<TableLiveStatus> _estadosMesas = const [];
@@ -56,6 +58,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
   StreamSubscription<List<ReservationModel>>? _reservasSub;
   StreamSubscription<List<MesaModel>>? _mesasSub;
   StreamSubscription<List<ZonaModel>>? _zonasSub;
+  StreamSubscription<List<ElementoPlano>>? _elementosSub;
   Timer? _timer;
 
   AdminOperationsViewModel({
@@ -121,6 +124,19 @@ class AdminOperationsViewModel extends ChangeNotifier {
     ]);
   }
 
+  /// Elementos decorativos del espacio activo (o todos si no hay espacios).
+  List<ElementoPlano> get elementosVisibles {
+    final id = zonaMesasId;
+    if (id == null) return List.unmodifiable(_elementos);
+    return List.unmodifiable([
+      for (final e in _elementos)
+        if (id == sinEspacioId
+            ? !_zonas.any((z) => z.id == e.zonaId)
+            : e.zonaId == id)
+          e,
+    ]);
+  }
+
   /// Mesas que no pertenecen a ningún espacio existente (cuando ya hay espacios).
   int get mesasSinEspacio => _zonas.isEmpty
       ? 0
@@ -177,6 +193,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
     _suscribirReservas();
     _suscribirMesas();
     _suscribirZonas();
+    _suscribirElementos();
     _timer?.cancel();
     if (tick > Duration.zero) {
       _timer = Timer.periodic(tick, (_) => _alTick());
@@ -188,6 +205,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
     await _reservasSub?.cancel();
     await _mesasSub?.cancel();
     await _zonasSub?.cancel();
+    await _elementosSub?.cancel();
     await iniciar();
     // Espera a que llegue la primera lectura para que el indicador se cierre bien.
     for (var i = 0; i < 50 && cargando && !_disposed; i++) {
@@ -231,6 +249,19 @@ class AdminOperationsViewModel extends ChangeNotifier {
       _zonasSub = _mesasService.zonasStream(restaurantId).listen(
         (lista) {
           _zonas = lista;
+          notifyListeners();
+        },
+        onError: (Object e) {},
+      );
+    } catch (_) {}
+  }
+
+  void _suscribirElementos() {
+    _elementosSub?.cancel();
+    try {
+      _elementosSub = _mesasService.elementosStream(restaurantId).listen(
+        (lista) {
+          _elementos = lista;
           notifyListeners();
         },
         onError: (Object e) {},

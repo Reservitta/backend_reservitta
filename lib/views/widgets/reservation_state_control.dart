@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../models/reservation_model.dart';
 import '../../models/reservation_status_flow.dart';
+import '../../theme/app_theme.dart';
 
 /// Colores e ícono de cada estado operativo de una reserva (HU27-RF02).
 class ReservationStateStyle {
@@ -30,7 +31,7 @@ class ReservationStateStyle {
         return const ReservationStateStyle(
           background: Color(0xFFE8F5E9),
           border: Color(0xFFA5D6A7),
-          foreground: Color(0xFF2E7D32),
+          foreground: AppColors.exito,
           icon: Icons.restaurant_rounded,
         );
       case ReservationModel.estadoFinalizada:
@@ -223,7 +224,7 @@ class _ReservationStateControlState extends State<ReservationStateControl> {
               : FilledButton.icon(
                   key: ValueKey('boton_estado_$destino'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xFFB34A26),
+                    backgroundColor: AppColors.marca,
                   ),
                   onPressed: () => _seleccionar(destino),
                   icon: Icon(ReservationStateStyle.of(destino).icon, size: 18),

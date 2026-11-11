@@ -8,6 +8,7 @@ import 'reservation_detail_view.dart';
 import 'widgets/alert_settings_sheet.dart';
 import 'widgets/arrival_alert_widgets.dart';
 import 'widgets/reservation_state_control.dart';
+import '../theme/app_theme.dart';
 
 /// Pantalla de listado de reservas para administradores de restaurante (HU26-RF02)
 ///
@@ -42,13 +43,13 @@ class AdminReservationsView extends StatefulWidget {
     this.operaciones,
   });
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _creamAccent = AppColors.marcaSuave;
+  static const Color _creamLight = AppColors.fondo;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
 
   @override
   State<AdminReservationsView> createState() => _AdminReservationsViewState();
@@ -233,7 +234,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                 const Text(
                   'Reservas',
                   style: TextStyle(
-                    fontFamily: 'serif',
+                    fontFamily: AppTheme.familiaTitulos,
                     fontSize: 28,
                     fontWeight: FontWeight.bold,
                     color: AdminReservationsView._textDark,
@@ -247,7 +248,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                   ),
                   decoration: BoxDecoration(
                     color: AdminReservationsView._creamAccent,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
@@ -261,7 +262,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                       Text(
                         'Tiempo real',
                         style: TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: AdminReservationsView._primaryTerracotta,
                         ),
@@ -301,7 +302,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
             Container(
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: AdminReservationsView._cardBorder),
               ),
               child: Row(
@@ -355,7 +356,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                               child: const Text(
                                 'Hoy',
                                 style: TextStyle(
-                                  fontSize: 10.5,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color:
                                       AdminReservationsView._primaryTerracotta,
@@ -481,7 +482,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.red.shade200),
           ),
           child: Column(
@@ -538,7 +539,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
           padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 42),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: AdminReservationsView._cardBorder),
           ),
           child: Column(
@@ -595,7 +596,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AdminReservationsView._cardBorder),
       ),
       child: Column(
@@ -624,7 +625,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
 
   Widget _buildEncabezadoTabla() {
     const headerStyle = TextStyle(
-      fontSize: 11.5,
+      fontSize: 12,
       fontWeight: FontWeight.w700,
       letterSpacing: 0.6,
       color: AdminReservationsView._textMuted,
@@ -634,7 +635,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
       decoration: const BoxDecoration(
         color: AdminReservationsView._creamLight,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(8)),
       ),
       child: const Row(
         children: [
@@ -832,7 +833,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                   ),
                   decoration: BoxDecoration(
                     color: badgeStyle.background,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: badgeStyle.border),
                   ),
                   child: Row(
@@ -848,7 +849,7 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                         child: Text(
                           reserva.etiquetaEstado,
                           style: TextStyle(
-                            fontSize: 11.5,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: badgeStyle.foreground,
                           ),

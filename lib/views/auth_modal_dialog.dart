@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
+import '../theme/app_theme.dart';
 
 class AuthModalDialog extends StatefulWidget {
   final AuthMode initialMode;
@@ -66,100 +67,234 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
     super.dispose();
   }
 
+  bool _verClaveLogin = false;
+  bool _verClaveRegistro = false;
+  bool _verClaveConfirmar = false;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final tamano = MediaQuery.sizeOf(context);
+    final dosPaneles = tamano.width >= 820;
+    final alto = tamano.height * 0.90;
 
     return Dialog(
       backgroundColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       child: ConstrainedBox(
         constraints: BoxConstraints(
-          maxWidth: 480,
-          maxHeight: MediaQuery.of(context).size.height * 0.90,
+          maxWidth: dosPaneles ? 920 : 480,
+          maxHeight: alto,
         ),
         child: Container(
           decoration: BoxDecoration(
             color: theme.colorScheme.surface,
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: const [
               BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.08),
+                color: Color.fromRGBO(0, 0, 0, 0.12),
                 blurRadius: 32,
                 spreadRadius: 0,
                 offset: Offset(0, 12),
               ),
-              BoxShadow(
-                color: Color.fromRGBO(0, 0, 0, 0.04),
-                blurRadius: 12,
-                spreadRadius: 0,
-                offset: Offset(0, 4),
-              ),
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(32),
-              child: ListenableBuilder(
-                listenable: _viewModel,
-                builder: (context, _) {
-                  return Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+            borderRadius: BorderRadius.circular(12),
+            child: ListenableBuilder(
+              listenable: _viewModel,
+              builder: (context, _) {
+                final formulario = SingleChildScrollView(
+                  padding: EdgeInsets.all(dosPaneles ? 36 : 28),
+                  child: _buildContenido(theme),
+                );
+                if (!dosPaneles) return formulario;
+                final altoPanel = alto < 660 ? alto : 660.0;
+                return SizedBox(
+                  height: altoPanel,
+                  child: Row(
                     children: [
-                      // Header: Título principal y botón de cierre minimalista
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (_viewModel.currentMode == AuthMode.registerForm)
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                              onPressed: () => _viewModel.backToRoleSelection(),
-                              tooltip: 'Regresar',
-                            )
-                          else if (_viewModel.currentMode == AuthMode.forgotPassword)
-                            IconButton(
-                              icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                              onPressed: () => _viewModel.setMode(AuthMode.login),
-                              tooltip: 'Volver',
-                            )
-                          else
-                            const SizedBox(width: 40),
-                          Text(
-                            _getTitle(_viewModel.currentMode),
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.3,
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.close_rounded, size: 20, color: Colors.grey),
-                            onPressed: () => Navigator.of(context).pop(),
-                            tooltip: 'Cerrar',
-                            hoverColor: const Color.fromRGBO(0, 0, 0, 0.05),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Cuerpo dinámico del modal
-                      if (_viewModel.currentMode == AuthMode.login)
-                        _buildLoginForm(theme)
-                      else if (_viewModel.currentMode == AuthMode.registerRoleSelection)
-                        _buildRoleSelectionStep(theme)
-                      else if (_viewModel.currentMode == AuthMode.registerForm)
-                        _buildRegisterForm(theme)
-                      else if (_viewModel.currentMode == AuthMode.forgotPassword)
-                        _buildForgotPasswordForm(theme),
+                      SizedBox(width: 340, child: _buildPanelMarca()),
+                      Expanded(child: Center(child: formulario)),
                     ],
-                  );
-                },
-              ),
+                  ),
+                );
+              },
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _buildContenido(ThemeData theme) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Header: Título principal y botón de cierre minimalista
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            if (_viewModel.currentMode == AuthMode.registerForm)
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                onPressed: () => _viewModel.backToRoleSelection(),
+                tooltip: 'Regresar',
+              )
+            else if (_viewModel.currentMode == AuthMode.forgotPassword)
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                onPressed: () => _viewModel.setMode(AuthMode.login),
+                tooltip: 'Volver',
+              )
+            else
+              const SizedBox(width: 40),
+            Flexible(
+              child: Text(
+                _getTitle(_viewModel.currentMode),
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: AppTheme.familiaTitulos,
+                  fontWeight: FontWeight.w700,
+                  fontVariations: [FontVariation('wght', 700)],
+                  fontSize: 26,
+                  letterSpacing: -0.4,
+                  color: AppColors.texto,
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, size: 20, color: AppColors.textoSuave),
+              onPressed: () => Navigator.of(context).pop(),
+              tooltip: 'Cerrar',
+            ),
+          ],
+        ),
+        const SizedBox(height: 24),
+
+        // Cuerpo dinámico del modal
+        if (_viewModel.currentMode == AuthMode.login)
+          _buildLoginForm(theme)
+        else if (_viewModel.currentMode == AuthMode.registerRoleSelection)
+          _buildRoleSelectionStep(theme)
+        else if (_viewModel.currentMode == AuthMode.registerForm)
+          _buildRegisterForm(theme)
+        else if (_viewModel.currentMode == AuthMode.forgotPassword)
+          _buildForgotPasswordForm(theme),
+      ],
+    );
+  }
+
+  /// Panel de marca de la izquierda (solo en pantallas anchas).
+  Widget _buildPanelMarca() {
+    final modo = _viewModel.currentMode;
+    final esAdmin = _viewModel.selectedRole == 'admin' &&
+        (modo == AuthMode.registerForm || modo == AuthMode.registerRoleSelection);
+
+    final String titular;
+    final String detalle;
+    final List<String> puntos;
+    switch (modo) {
+      case AuthMode.login:
+        titular = 'Qué bueno verte de nuevo';
+        detalle = 'Entra para ver y gestionar tus reservas.';
+        puntos = const [
+          'Reserva en segundos',
+          'Elige tu mesa en el mapa',
+          'Recibe tu confirmación al instante',
+        ];
+      case AuthMode.forgotPassword:
+        titular = 'Recupera tu acceso';
+        detalle = 'Te enviaremos un enlace para que elijas una nueva contraseña.';
+        puntos = const [
+          'Revisa también tu bandeja de spam',
+          'El enlace funciona por tiempo limitado',
+        ];
+      case AuthMode.registerRoleSelection:
+      case AuthMode.registerForm:
+        if (esAdmin) {
+          titular = 'Haz crecer tu restaurante';
+          detalle = 'Recibe reservas y organiza tu salón desde un solo lugar.';
+          puntos = const [
+            'Arma el plano de tus mesas',
+            'Controla tus reservas del día',
+            'Publica tu menú y tus horarios',
+          ];
+        } else {
+          titular = 'Tu mesa, sin complicaciones';
+          detalle = 'Descubre restaurantes, elige tu mesa y reserva en minutos.';
+          puntos = const [
+            'Reserva en segundos',
+            'Guarda tu historial de visitas',
+            'Personaliza tu visita con anticipación',
+          ];
+        }
+    }
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(32, 36, 32, 32),
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [AppColors.marca, Color(0xFF4A2B17)],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.16),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: const Icon(Icons.restaurant_menu, color: Colors.white, size: 28),
+          ),
+          const Spacer(),
+          Text(
+            titular,
+            style: const TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              fontSize: 32,
+              height: 1.12,
+              letterSpacing: -0.5,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            detalle,
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.45,
+              color: Colors.white.withValues(alpha: 0.88),
+            ),
+          ),
+          const SizedBox(height: 26),
+          for (final punto in puntos)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(Icons.check_circle_outline, size: 20, color: Colors.white),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      punto,
+                      style: const TextStyle(fontSize: 14, height: 1.3, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          const Spacer(),
+        ],
       ),
     );
   }
@@ -191,18 +326,23 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Correo Electrónico',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: _viewModel.fieldErrors['loginEmail'],
           ),
         ),
         const SizedBox(height: 16),
         TextField(
           controller: _viewModel.loginPasswordController,
-          obscureText: true,
+          obscureText: !_verClaveLogin,
           decoration: InputDecoration(
             labelText: 'Contraseña',
             prefixIcon: const Icon(Icons.lock_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            suffixIcon: IconButton(
+              tooltip: _verClaveLogin ? 'Ocultar contraseña' : 'Mostrar contraseña',
+              icon: Icon(_verClaveLogin ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              onPressed: () => setState(() => _verClaveLogin = !_verClaveLogin),
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: _viewModel.fieldErrors['loginPassword'],
           ),
         ),
@@ -212,7 +352,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           child: TextButton(
             onPressed: () => _viewModel.setMode(AuthMode.forgotPassword),
             style: TextButton.styleFrom(
-              foregroundColor: Colors.grey.shade700,
+              foregroundColor: AppColors.textoSuave,
             ),
             child: const Text('¿Olvidaste tu contraseña?'),
           ),
@@ -224,8 +364,8 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         const SizedBox(height: 20),
         FilledButton(
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: _viewModel.isLoading
               ? null
@@ -252,7 +392,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           children: [
             const Text(
               '¿No tienes cuenta? ',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: AppColors.textoSuave),
             ),
             TextButton(
               onPressed: () => _viewModel.setMode(AuthMode.registerRoleSelection),
@@ -267,11 +407,11 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           Center(
             child: TextButton.icon(
               key: const ValueKey('btn_continuar_como_invitado'),
-              icon: const Icon(Icons.arrow_forward_outlined, size: 16, color: Color(0xFFB34A26)),
+              icon: const Icon(Icons.arrow_forward_outlined, size: 16, color: AppColors.marca),
               label: const Text(
                 'Continuar reserva sin cuenta',
                 style: TextStyle(
-                  color: Color(0xFFB34A26),
+                  color: AppColors.marca,
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
                 ),
@@ -307,28 +447,28 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         Text(
           'Selecciona la opción que mejor se acomode a tu perfil.',
           textAlign: TextAlign.center,
-          style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          style: TextStyle(color: AppColors.textoSuave, fontSize: 14),
         ),
         const SizedBox(height: 24),
 
         // Opción 1: Cliente / Comensal
         InkWell(
           onTap: () => _viewModel.setSelectedRole('visitante'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isClient ? theme.colorScheme.primary : Colors.grey.shade200,
+                color: isClient ? AppColors.marca : AppColors.divisor,
                 width: isClient ? 2 : 1,
               ),
-              color: isClient ? theme.colorScheme.primaryContainer.withAlpha(60) : theme.colorScheme.surface,
+              color: isClient ? AppColors.marcaSuave : theme.colorScheme.surface,
               boxShadow: isClient
                   ? [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withAlpha(20),
+                        color: AppColors.marca.withAlpha(20),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       )
@@ -339,13 +479,13 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
               children: [
                 Icon(
                   isClient ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: isClient ? theme.colorScheme.primary : Colors.grey.shade400,
+                  color: isClient ? AppColors.marca : AppColors.borde,
                 ),
                 const SizedBox(width: 12),
                 Icon(
                   Icons.person_pin_outlined,
                   size: 32,
-                  color: isClient ? theme.colorScheme.primary : Colors.grey.shade600,
+                  color: isClient ? AppColors.marca : AppColors.textoSuave,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -357,13 +497,13 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
-                          color: isClient ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                          color: isClient ? AppColors.marca : theme.colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Quiero hacer reservas, ver mi historial y enterarme de promociones en restaurantes.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.35),
+                        style: TextStyle(fontSize: 12, color: AppColors.textoSuave, height: 1.35),
                       ),
                     ],
                   ),
@@ -377,21 +517,21 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         // Opción 2: Administrador de Restaurante
         InkWell(
           onTap: () => _viewModel.setSelectedRole('admin'),
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(8),
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(8),
               border: Border.all(
-                color: isAdmin ? theme.colorScheme.primary : Colors.grey.shade200,
+                color: isAdmin ? AppColors.marca : AppColors.divisor,
                 width: isAdmin ? 2 : 1,
               ),
-              color: isAdmin ? theme.colorScheme.primaryContainer.withAlpha(60) : theme.colorScheme.surface,
+              color: isAdmin ? AppColors.marcaSuave : theme.colorScheme.surface,
               boxShadow: isAdmin
                   ? [
                       BoxShadow(
-                        color: theme.colorScheme.primary.withAlpha(20),
+                        color: AppColors.marca.withAlpha(20),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       )
@@ -402,13 +542,13 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
               children: [
                 Icon(
                   isAdmin ? Icons.radio_button_checked : Icons.radio_button_unchecked,
-                  color: isAdmin ? theme.colorScheme.primary : Colors.grey.shade400,
+                  color: isAdmin ? AppColors.marca : AppColors.borde,
                 ),
                 const SizedBox(width: 12),
                 Icon(
                   Icons.storefront_outlined,
                   size: 32,
-                  color: isAdmin ? theme.colorScheme.primary : Colors.grey.shade600,
+                  color: isAdmin ? AppColors.marca : AppColors.textoSuave,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -420,13 +560,13 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
                         style: TextStyle(
                           fontWeight: FontWeight.w600,
                           fontSize: 15,
-                          color: isAdmin ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+                          color: isAdmin ? AppColors.marca : theme.colorScheme.onSurface,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'Busco inscribir mi restaurante a la plataforma para gestionar mesas y reservas.',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600, height: 1.35),
+                        style: TextStyle(fontSize: 12, color: AppColors.textoSuave, height: 1.35),
                       ),
                     ],
                   ),
@@ -439,8 +579,8 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         const SizedBox(height: 28),
         FilledButton.icon(
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           icon: const Icon(Icons.arrow_forward, size: 18),
           label: const Text('Siguiente', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
@@ -469,7 +609,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Nombre Completo *',
             prefixIcon: const Icon(Icons.person_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['nombre'],
           ),
         ),
@@ -480,7 +620,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Correo Electrónico *',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['correo'],
           ),
         ),
@@ -496,18 +636,23 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             labelText: 'Teléfono (10 dígitos numéricos) *',
             hintText: '5512345678',
             prefixIcon: const Icon(Icons.phone_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['telefono'],
           ),
         ),
         const SizedBox(height: 12),
         TextField(
           controller: _viewModel.registerPasswordController,
-          obscureText: true,
+          obscureText: !_verClaveRegistro,
           decoration: InputDecoration(
             labelText: 'Contraseña (mínimo 8 caracteres) *',
             prefixIcon: const Icon(Icons.lock_outline),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            suffixIcon: IconButton(
+              tooltip: _verClaveRegistro ? 'Ocultar contraseña' : 'Mostrar contraseña',
+              icon: Icon(_verClaveRegistro ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              onPressed: () => setState(() => _verClaveRegistro = !_verClaveRegistro),
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['password'],
           ),
           onChanged: (_) => setState(() {}),
@@ -520,11 +665,16 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         const SizedBox(height: 12),
         TextField(
           controller: _viewModel.confirmPasswordController,
-          obscureText: true,
+          obscureText: !_verClaveConfirmar,
           decoration: InputDecoration(
             labelText: 'Confirmar Contraseña *',
             prefixIcon: const Icon(Icons.lock_reset_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            suffixIcon: IconButton(
+              tooltip: _verClaveConfirmar ? 'Ocultar contraseña' : 'Mostrar contraseña',
+              icon: Icon(_verClaveConfirmar ? Icons.visibility_off_outlined : Icons.visibility_outlined),
+              onPressed: () => setState(() => _verClaveConfirmar = !_verClaveConfirmar),
+            ),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
             errorText: fe['confirmPassword'],
           ),
           onChanged: (_) => setState(() {}),
@@ -537,7 +687,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             decoration: InputDecoration(
               labelText: 'Nombre de tu Restaurante (Opcional)',
               prefixIcon: const Icon(Icons.storefront_outlined),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
               helperText: 'Completarás los datos y horarios en el siguiente paso',
               errorText: fe['restaurante'],
             ),
@@ -558,8 +708,8 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         const SizedBox(height: 20),
         FilledButton(
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: _viewModel.isLoading
               ? null
@@ -594,7 +744,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
       children: [
         Text(
           'Ingresa tu correo electrónico y te enviaremos el enlace para restablecer tu contraseña.',
-          style: TextStyle(fontSize: 13, color: Colors.grey.shade600, height: 1.4),
+          style: TextStyle(fontSize: 13, color: AppColors.textoSuave, height: 1.4),
         ),
         const SizedBox(height: 20),
         TextField(
@@ -603,7 +753,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           decoration: InputDecoration(
             labelText: 'Correo Electrónico',
             prefixIcon: const Icon(Icons.email_outlined),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
           ),
         ),
         if (_viewModel.resetErrorMessage != null) ...[
@@ -617,8 +767,8 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
         const SizedBox(height: 20),
         FilledButton(
           style: FilledButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            minimumSize: const Size.fromHeight(52),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           ),
           onPressed: _viewModel.isResetLoading
               ? null
@@ -641,18 +791,18 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.red.shade200),
+        color: const Color(0xFFFDECEA),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.error_outline_rounded, color: Colors.red, size: 20),
+          const Icon(Icons.error_outline_rounded, color: AppColors.error, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: Colors.red, fontSize: 13),
+              style: const TextStyle(color: AppColors.error, fontSize: 13),
             ),
           ),
         ],
@@ -664,18 +814,18 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.green.shade200),
+        color: const Color(0xFFE8F5E9),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.exito.withValues(alpha: 0.4)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle_outline_rounded, color: Colors.green, size: 20),
+          const Icon(Icons.check_circle_outline_rounded, color: AppColors.exito, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: Colors.green, fontSize: 13),
+              style: const TextStyle(color: AppColors.exito, fontSize: 13),
             ),
           ),
         ],
@@ -693,9 +843,9 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
       key: const ValueKey('modal_password_constraints'),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFFAF6F0),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFEDE4D8)),
+        color: AppColors.fondo,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.divisor),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -705,7 +855,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF2E241E),
+              color: AppColors.texto,
             ),
           ),
           const SizedBox(height: 8),
@@ -740,7 +890,7 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
   }
 
   Widget _buildConstraintRow(String label, bool isMet, String keySuffix) {
-    final color = isMet ? const Color(0xFF2E7D32) : const Color(0xFF7A6E65);
+    final color = isMet ? AppColors.exito : AppColors.textoSuave;
     return Row(
       key: ValueKey(keySuffix),
       mainAxisSize: MainAxisSize.min,
@@ -751,12 +901,14 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           color: color,
         ),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color,
-            fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
         ),
       ],

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Tarjeta para cada platillo en la lista de gestión del menú (HU24-RF04)
 /// Incluye un switch directo para cambiar disponibilidad con un solo toque,
@@ -11,13 +12,13 @@ class PlatilloCard extends StatelessWidget {
   final VoidCallback onEditar;
   final VoidCallback onEliminar;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
+  static const Color _primaryTerracotta = AppColors.marca;
   static const Color _cardBg = Color(0xFFFFFFFF);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
-  static const Color _creamLight = Color(0xFFFAF5ED);
-  static const Color _creamAccent = Color(0xFFF3ECE1);
-  static const Color _textDark = Color(0xFF2E241E);
-  static const Color _textMuted = Color(0xFF7A6E65);
+  static const Color _cardBorder = AppColors.divisor;
+  static const Color _creamLight = AppColors.fondo;
+  static const Color _creamAccent = AppColors.marcaSuave;
+  static const Color _textDark = AppColors.texto;
+  static const Color _textMuted = AppColors.textoSuave;
   static const Color _error = Color(0xFFD84A38);
 
   const PlatilloCard({
@@ -37,7 +38,7 @@ class PlatilloCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: _cardBg,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: disponible ? _cardBorder : Colors.orange.shade200,
           width: 1.1,
@@ -57,7 +58,7 @@ class PlatilloCard extends StatelessWidget {
           children: [
             // 1. Miniatura de imagen
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(6),
               child: Container(
                 width: 76,
                 height: 76,
@@ -137,7 +138,7 @@ class PlatilloCard extends StatelessWidget {
                           child: Text(
                             categoriaNombre,
                             style: const TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: _primaryTerracotta,
                             ),
@@ -155,7 +156,7 @@ class PlatilloCard extends StatelessWidget {
                         child: Text(
                           disponible ? 'Disponible' : 'Agotado',
                           style: TextStyle(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w700,
                             color: disponible
                                 ? Colors.green.shade800
@@ -184,7 +185,7 @@ class PlatilloCard extends StatelessWidget {
                                 Text(
                                   'Personalizable',
                                   style: TextStyle(
-                                    fontSize: 10.5,
+                                    fontSize: 12,
                                     fontWeight: FontWeight.w700,
                                     color: Color(0xFF1E5288),
                                   ),
@@ -230,7 +231,7 @@ class PlatilloCard extends StatelessWidget {
                 Text(
                   disponible ? 'Activo' : 'Agotado',
                   style: TextStyle(
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: disponible ? Colors.green.shade800 : Colors.orange.shade900,
                   ),

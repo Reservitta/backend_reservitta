@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../viewmodels/table_selection_viewmodel.dart';
+import '../../theme/app_theme.dart';
 
 /// Selector de espacio (piso, patio, interior…) del paso "Elige tu mesa" (HU34-RF04).
 /// Solo aparece si el restaurante tiene más de un espacio con mesas.
@@ -9,7 +10,7 @@ class SpaceSelector extends StatelessWidget {
 
   const SpaceSelector({super.key, required this.viewModel});
 
-  static const Color terracotta = Color(0xFFB34A26);
+  static const Color terracotta = AppColors.marca;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +21,7 @@ class SpaceSelector extends StatelessWidget {
       children: [
         const Text(
           '¿En qué espacio quieres sentarte?',
-          style: TextStyle(fontWeight: FontWeight.w600, color: Color(0xFF2E241E)),
+          style: TextStyle(fontWeight: FontWeight.w600, color: AppColors.texto),
         ),
         const SizedBox(height: 8),
         Wrap(

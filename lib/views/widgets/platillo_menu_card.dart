@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
+import '../../theme/app_theme.dart';
 
 /// Modo de visualización para la tarjeta del platillo
 enum PlatilloCardMode {
@@ -32,9 +33,9 @@ class PlatilloMenuCard extends StatelessWidget {
   final VoidCallback? onDecrementar;
   final VoidCallback? onTap;
 
-  static const Color _primaryTerracotta = Color(0xFFB34A26);
-  static const Color _lightBg = Color(0xFFFBF8F4);
-  static const Color _cardBorder = Color(0xFFEDE4D8);
+  static const Color _primaryTerracotta = AppColors.marca;
+  static const Color _lightBg = AppColors.fondo;
+  static const Color _cardBorder = AppColors.divisor;
 
   const PlatilloMenuCard({
     super.key,
@@ -63,7 +64,7 @@ class PlatilloMenuCard extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         side: BorderSide(
           color: cantidad > 0 ? _primaryTerracotta : _cardBorder,
           width: cantidad > 0 ? 1.5 : 1.0,
@@ -71,7 +72,7 @@ class PlatilloMenuCard extends StatelessWidget {
       ),
       color: Colors.white,
       child: InkWell(
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(8),
         onTap: onTap ?? (cantidad > 0 ? onEditar : onAgregar),
         child: Padding(
           padding: const EdgeInsets.all(12),
@@ -121,7 +122,7 @@ class PlatilloMenuCard extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: _primaryTerracotta,
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                           border: Border.all(color: Colors.white, width: 1.5),
                           boxShadow: [
                             BoxShadow(
@@ -159,7 +160,7 @@ class PlatilloMenuCard extends StatelessWidget {
                             style: const TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 15,
-                              color: Color(0xFF2E241E),
+                              color: AppColors.texto,
                             ),
                           ),
                         ),
@@ -176,7 +177,7 @@ class PlatilloMenuCard extends StatelessWidget {
                             child: const Text(
                               'Personalizable',
                               style: TextStyle(
-                                fontSize: 10,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: Color(0xFF1E5288),
                               ),
@@ -191,7 +192,7 @@ class PlatilloMenuCard extends StatelessWidget {
                         platillo.descripcion,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: Color(0xFF7A6E65),
+                          color: AppColors.textoSuave,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -217,8 +218,8 @@ class PlatilloMenuCard extends StatelessWidget {
                             child: Text(
                               tag,
                               style: const TextStyle(
-                                fontSize: 10,
-                                color: Color(0xFF7A6E65),
+                                fontSize: 12,
+                                color: AppColors.textoSuave,
                               ),
                             ),
                           );
@@ -232,7 +233,7 @@ class PlatilloMenuCard extends StatelessWidget {
                         'Observación: ${observacion.trim()}',
                         key: ValueKey('txt_observacion_platillo_${platillo.id}'),
                         style: const TextStyle(
-                          fontSize: 11.5,
+                          fontSize: 12,
                           fontStyle: FontStyle.italic,
                           color: Color(0xFF1E5288),
                         ),
@@ -289,6 +290,7 @@ class PlatilloMenuCard extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   IconButton(
+        tooltip: 'Quitar uno',
                                     key: ValueKey(
                                       'btn_decrementar_platillo_${platillo.id}',
                                     ),
@@ -315,6 +317,7 @@ class PlatilloMenuCard extends StatelessWidget {
                                     ),
                                   ),
                                   IconButton(
+        tooltip: 'Agregar uno',
                                     key: ValueKey(
                                       'btn_incrementar_platillo_${platillo.id}',
                                     ),
