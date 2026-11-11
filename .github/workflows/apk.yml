@@ -23,6 +23,9 @@ jobs:
 
       - uses: subosito/flutter-action@v2
         with:
+          # La misma versión con la que se desarrolla el proyecto: una más nueva puede exigir
+          # otro Android Gradle Plugin y romper la compilación.
+          flutter-version: '3.47.6'
           channel: stable
           cache: true
 
