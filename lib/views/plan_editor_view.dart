@@ -392,59 +392,71 @@ class _PlanEditorViewState extends State<PlanEditorView> {
                 'Plano de mesas',
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
               ),
-              actions: [
-                Padding(
-                  padding: const EdgeInsets.only(right: 6),
-                  child: Center(
-                    child: _EstadoGuardado(
-                      guardando: _vm.guardando,
-                      conCambios: _vm.hayCambios,
-                      compacto: MediaQuery.sizeOf(context).width < 760,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  key: const ValueKey('btn_historial'),
-                  tooltip: 'Historial de cambios',
-                  onPressed: _verHistorial,
-                  icon: const Icon(Icons.history),
-                ),
-                TextButton(
-                  key: const ValueKey('btn_descartar_plano'),
-                  onPressed: _vm.hayCambios && !_vm.guardando
-                      ? _vm.descartar
-                      : null,
-                  child: const Text('Descartar'),
-                ),
-                Padding(
-                  padding: const EdgeInsets.only(right: 12, left: 4),
-                  child: FilledButton(
-                    key: const ValueKey('btn_guardar_plano'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: PlanEditorView.terracotta,
-                    ),
-                    onPressed: _vm.hayCambios && !_vm.guardando
-                        ? _guardar
-                        : null,
-                    child: _vm.guardando
-                        ? const SizedBox(
-                            width: 16,
-                            height: 16,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text('Guardar plano'),
-                  ),
-                ),
-              ],
+              actions: _accionesBarra(context),
             ),
             body: _cuerpo(),
           ),
         );
       },
     );
+  }
+
+  /// Acciones de la barra superior; en celular se reducen a íconos para que quepan.
+  List<Widget> _accionesBarra(BuildContext context) {
+    final celular = MediaQuery.sizeOf(context).width < 560;
+    final guardarActivo = _vm.hayCambios && !_vm.guardando;
+    return [
+      Padding(
+        padding: const EdgeInsets.only(right: 2),
+        child: Center(
+          child: _EstadoGuardado(
+            guardando: _vm.guardando,
+            conCambios: _vm.hayCambios,
+            compacto: MediaQuery.sizeOf(context).width < 760,
+          ),
+        ),
+      ),
+      IconButton(
+        key: const ValueKey('btn_historial'),
+        tooltip: 'Historial de cambios',
+        visualDensity: celular ? VisualDensity.compact : null,
+        onPressed: _verHistorial,
+        icon: const Icon(Icons.history),
+      ),
+      if (celular)
+        IconButton(
+          key: const ValueKey('btn_descartar_plano'),
+          tooltip: 'Descartar cambios',
+          visualDensity: VisualDensity.compact,
+          onPressed: guardarActivo ? _vm.descartar : null,
+          icon: const Icon(Icons.restore_outlined),
+        )
+      else
+        TextButton(
+          key: const ValueKey('btn_descartar_plano'),
+          onPressed: guardarActivo ? _vm.descartar : null,
+          child: const Text('Descartar'),
+        ),
+      Padding(
+        padding: EdgeInsets.only(right: celular ? 8 : 12, left: 4),
+        child: FilledButton(
+          key: const ValueKey('btn_guardar_plano'),
+          style: FilledButton.styleFrom(
+            backgroundColor: PlanEditorView.terracotta,
+            minimumSize: celular ? const Size(0, 40) : null,
+            padding: celular ? const EdgeInsets.symmetric(horizontal: 14) : null,
+          ),
+          onPressed: guardarActivo ? _guardar : null,
+          child: _vm.guardando
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : Text(celular ? 'Guardar' : 'Guardar plano'),
+        ),
+      ),
+    ];
   }
 
   Widget _cuerpo() {

@@ -100,7 +100,7 @@ class PaletaPlano extends StatelessWidget {
     if (horizontal) {
       return Container(
         key: const ValueKey('paleta_plano'),
-        height: 112,
+        height: 118,
         color: Colors.white,
         child: ListView(
           scrollDirection: Axis.horizontal,
@@ -232,6 +232,7 @@ class _Ficha extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   etiqueta,
+                  textScaler: const TextScaler.linear(1),
                   maxLines: 2,
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,

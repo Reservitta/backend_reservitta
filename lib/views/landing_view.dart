@@ -153,6 +153,7 @@ class _LandingViewState extends State<LandingView> {
     final ancho = MediaQuery.sizeOf(context).width;
     final amplio = ancho >= 920;
     final medio = ancho >= 520;
+    final celular = ancho < 480;
 
     void gestionarReserva() {
       Navigator.of(context).push(
@@ -167,13 +168,13 @@ class _LandingViewState extends State<LandingView> {
       elevation: 0,
       scrolledUnderElevation: 0,
       shape: const Border(bottom: BorderSide(color: AppColors.divisor)),
-      titleSpacing: amplio ? 28 : 16,
+      titleSpacing: amplio ? 28 : 12,
       title: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: celular ? 34 : 40,
+            height: celular ? 34 : 40,
             decoration: BoxDecoration(
               color: AppColors.marca,
               borderRadius: BorderRadius.circular(6),
@@ -184,8 +185,8 @@ class _LandingViewState extends State<LandingView> {
               size: 22,
             ),
           ),
-          const SizedBox(width: 12),
-          const Flexible(
+          SizedBox(width: celular ? 8 : 12),
+          Flexible(
             child: Text(
             'Reservitta',
             maxLines: 1,
@@ -193,8 +194,8 @@ class _LandingViewState extends State<LandingView> {
             style: TextStyle(
               fontFamily: AppTheme.familiaTitulos,
               fontWeight: FontWeight.w700,
-              fontVariations: [FontVariation('wght', 700)],
-              fontSize: 26,
+              fontVariations: const [FontVariation('wght', 700)],
+              fontSize: celular ? 21 : 26,
               letterSpacing: -0.4,
               color: AppColors.texto,
             ),
@@ -223,7 +224,9 @@ class _LandingViewState extends State<LandingView> {
             onPressed: gestionarReserva,
           ),
         if (!_viewModel.isUserAuthenticated) ...[
-          if (medio)
+          if (celular)
+            const SizedBox.shrink()
+          else if (medio)
             Padding(
               padding: const EdgeInsets.only(left: 8),
               child: OutlinedButton(
@@ -256,11 +259,11 @@ class _LandingViewState extends State<LandingView> {
               ),
             ),
           Padding(
-            padding: EdgeInsets.only(left: 8, right: amplio ? 28 : 12),
+            padding: EdgeInsets.only(left: 4, right: amplio ? 28 : 10),
             child: FilledButton.icon(
               key: const ValueKey('boton_header_iniciar_sesion'),
               style: FilledButton.styleFrom(
-                padding: EdgeInsets.symmetric(horizontal: medio ? 22 : 14),
+                padding: EdgeInsets.symmetric(horizontal: medio ? 22 : 12),
               ),
               onPressed: () =>
                   AuthModalDialog.show(context, initialMode: AuthMode.login),
@@ -1089,12 +1092,14 @@ class _LandingViewState extends State<LandingView> {
                   children: [
                     Icon(Icons.restaurant, size: 18, color: AppColors.marca),
                     SizedBox(width: 8),
-                    Text(
-                      'Acceso Rápido: Mi Pedido',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.texto,
+                    Expanded(
+                      child: Text(
+                        'Acceso Rápido: Mi Pedido',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.texto,
+                        ),
                       ),
                     ),
                   ],

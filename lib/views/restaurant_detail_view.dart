@@ -286,8 +286,9 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
         : _buildFallbackBanner(theme, r);
     final conFoto = r.imagenPrincipalUrl.isNotEmpty;
 
+    final angosto = MediaQuery.sizeOf(context).width < 600;
     return SizedBox(
-      height: 300,
+      height: angosto ? 320 : 300,
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -340,11 +341,13 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                     const SizedBox(height: 10),
                     Text(
                       r.nombre,
-                      style: const TextStyle(
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
                         fontFamily: AppTheme.familiaTitulos,
                         fontWeight: FontWeight.w700,
-                        fontVariations: [FontVariation('wght', 700)],
-                        fontSize: 38,
+                        fontVariations: const [FontVariation('wght', 700)],
+                        fontSize: MediaQuery.sizeOf(context).width < 600 ? 28 : 38,
                         height: 1.1,
                         letterSpacing: -0.6,
                         color: Colors.white,
@@ -359,6 +362,8 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                           Expanded(
                             child: Text(
                               r.direccion,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
                               style: const TextStyle(color: Colors.white, fontSize: 15),
                             ),
                           ),
@@ -522,7 +527,9 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(dia, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      Expanded(
+                        child: Text(dia, style: const TextStyle(fontWeight: FontWeight.w500)),
+                      ),
                       Text(
                         h.abierto ? '${h.apertura} - ${h.cierre}' : 'Cerrado',
                         style: TextStyle(
@@ -566,10 +573,10 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
         ),
       ),
       child: Align(
-        alignment: const Alignment(0, -0.35),
+        alignment: const Alignment(0, -0.62),
         child: Container(
-          width: 88,
-          height: 88,
+          width: 72,
+          height: 72,
           alignment: Alignment.center,
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.85),
@@ -581,7 +588,7 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
                   nombre.characters.first.toUpperCase(),
                   style: const TextStyle(
                     fontFamily: AppTheme.familiaTitulos,
-                    fontSize: 40,
+                    fontSize: 32,
                     fontWeight: FontWeight.w700,
                     color: AppColors.marca,
                   ),

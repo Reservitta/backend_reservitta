@@ -319,9 +319,11 @@ class TableLegend extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              Text(
-                TableStateStyle.of(e).label,
-                style: const TextStyle(fontSize: 12, color: AppColors.texto),
+              Flexible(
+                child: Text(
+                  TableStateStyle.of(e).label,
+                  style: const TextStyle(fontSize: 12, color: AppColors.texto),
+                ),
               ),
             ],
           ),

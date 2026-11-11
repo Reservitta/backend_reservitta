@@ -257,12 +257,17 @@ class _SlotChip extends StatelessWidget {
                       padding: EdgeInsets.only(right: 4),
                       child: Icon(Icons.check, size: 16, color: Colors.white),
                     ),
-                  Text(
-                    label,
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                      color: selected ? Colors.white : AppColors.texto,
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        label,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: selected ? Colors.white : AppColors.texto,
+                        ),
+                      ),
                     ),
                   ),
                 ],

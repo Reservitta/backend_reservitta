@@ -901,12 +901,14 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
           color: color,
         ),
         const SizedBox(width: 8),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: color,
-            fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+        Flexible(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: isMet ? FontWeight.w600 : FontWeight.normal,
+            ),
           ),
         ),
       ],

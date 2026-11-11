@@ -625,17 +625,20 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
               child: const Icon(Icons.arrow_back, color: darkText, size: 22),
             ),
           ),
-          const SizedBox(width: 16),
-          const Text(
-            'Haz tu reserva',
-            style: TextStyle(
-              fontSize: 28,
-              fontFamily: AppTheme.familiaTitulos,
-              fontWeight: FontWeight.bold,
-              color: darkText,
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Text(
+              'Haz tu reserva',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 26,
+                fontFamily: AppTheme.familiaTitulos,
+                fontWeight: FontWeight.bold,
+                color: darkText,
+              ),
             ),
           ),
-          const Spacer(),
           IconButton(
             tooltip: 'Cancelar reserva',
             icon: const Icon(Icons.close, color: mutedText),
@@ -1475,13 +1478,16 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: const [
-            Text(
-              'SELECCIONA UNA SUCURSAL',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 1.2,
-                color: Color(0xFF8C6E53),
+            Flexible(
+              child: Text(
+                'SELECCIONA UNA SUCURSAL',
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.2,
+                  color: Color(0xFF8C6E53),
+                ),
               ),
             ),
             Text(
@@ -1843,7 +1849,7 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               IconButton(
-        tooltip: 'Anterior',
+                tooltip: 'Anterior',
                 key: const ValueKey('btn_mes_anterior'),
                 icon: const Icon(Icons.chevron_left, color: terracotta),
                 onPressed: () {
@@ -1856,17 +1862,21 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   });
                 },
               ),
-              Text(
-                '$mesNombre $year',
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: AppTheme.familiaTitulos,
-                  fontWeight: FontWeight.bold,
-                  color: darkText,
+              Flexible(
+                child: Text(
+                  '$mesNombre $year',
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontFamily: AppTheme.familiaTitulos,
+                    fontWeight: FontWeight.bold,
+                    color: darkText,
+                  ),
                 ),
               ),
               IconButton(
-        tooltip: 'Siguiente',
+                tooltip: 'Siguiente',
                 key: const ValueKey('btn_mes_siguiente'),
                 icon: const Icon(Icons.chevron_right, color: terracotta),
                 onPressed: () {
@@ -2192,12 +2202,15 @@ class _ReservationFlowViewState extends State<ReservationFlowView> {
                   children: [
                     const Icon(Icons.timer_outlined, color: darkText, size: 22),
                     const SizedBox(width: 14),
-                    Text(
-                      label,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        color: darkText,
+                    Flexible(
+                      child: Text(
+                        label,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: darkText,
+                        ),
                       ),
                     ),
                     if (isSugerida) ...[

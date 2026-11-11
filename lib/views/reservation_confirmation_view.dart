@@ -350,11 +350,14 @@ class _ReservationConfirmationViewState
                 const Icon(Icons.confirmation_number_outlined,
                     size: 20, color: ReservationConfirmationView.terracotta),
                 const SizedBox(width: 10),
-                const Text(
-                  'Código de reserva',
-                  style: TextStyle(fontSize: 13, color: ReservationConfirmationView.mutedText),
+                const Flexible(
+                  child: Text(
+                    'Código de reserva',
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, color: ReservationConfirmationView.mutedText),
+                  ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
                 Flexible(
                   child: Text(
                     widget.reservation.id,
@@ -868,15 +871,18 @@ class _ReservationConfirmationViewState
           color: ReservationConfirmationView.terracotta.withAlpha(60),
         ),
       ),
-      child: Row(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
         children: [
           const Icon(
             Icons.mark_email_unread_outlined,
             color: ReservationConfirmationView.terracotta,
             size: 20,
           ),
-          const SizedBox(width: 10),
-          const Expanded(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: 240),
             child: Text(
               '¿Deseas recibir tu comprobante de reserva?',
               style: TextStyle(
@@ -923,11 +929,15 @@ class _ReservationConfirmationViewState
         children: [
           Icon(icon, size: 20, color: ReservationConfirmationView.terracotta),
           const SizedBox(width: 12),
-          Text(label,
+          Flexible(
+            child: Text(
+              label,
               style: const TextStyle(
                 fontSize: 13,
                 color: ReservationConfirmationView.mutedText,
-              )),
+              ),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
