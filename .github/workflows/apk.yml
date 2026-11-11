@@ -1,0 +1,48 @@
+name: APK de Android
+
+# Compila el APK de Reservitta en la nube (no depende de ninguna computadora) y lo deja
+# descargable en la pestaña "Actions" > ejecución > "Artifacts".
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # El archivo .env no se sube a git (es local); la app lo declara como recurso, así
+      # que se crea vacío para compilar. No contiene claves de Firebase: esas van en
+      # lib/firebase_options.dart y android/app/google-services.json.
+      - name: Crear .env vacío
+        run: echo "# Archivo local" > .env
+
+      - run: flutter pub get
+
+      - name: Pruebas
+        run: flutter test
+
+      - name: Compilar APK de producción
+        run: flutter build apk --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reservitta-apk
+          path: build/app/outputs/flutter-apk/app-release.apk
+          if-no-files-found: error
+          retention-days: 30
