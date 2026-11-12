@@ -63,12 +63,13 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     this.firestore,
     this.mailCollection = 'mail',
     http.Client? httpClient,
-  })  : apiKey = apiKey ??
-            (const String.fromEnvironment('RESEND_API_KEY').isNotEmpty
-                ? const String.fromEnvironment('RESEND_API_KEY')
-                : (const String.fromEnvironment('EMAIL_SERVICE_KEY').isNotEmpty
-                    ? const String.fromEnvironment('EMAIL_SERVICE_KEY')
-                    : kResendApiKey)),
+  })  : apiKey = (apiKey ??
+                (const String.fromEnvironment('RESEND_API_KEY').isNotEmpty
+                    ? const String.fromEnvironment('RESEND_API_KEY')
+                    : (const String.fromEnvironment('EMAIL_SERVICE_KEY').isNotEmpty
+                        ? const String.fromEnvironment('EMAIL_SERVICE_KEY')
+                        : kResendApiKey)))
+            .trim(),
         senderEmail = senderEmail ?? kResendDefaultSender,
         _customHttpClient = httpClient;
 
@@ -84,9 +85,9 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     }
 
     // -------------------------------------------------------------------------
-    // 1. Envío directo con la API de Resend
+    // 1. Envío directo con la API de Resend (en plataformas nativas sin CORS: Android/iOS)
     // -------------------------------------------------------------------------
-    if (apiKey.isNotEmpty) {
+    if (!kIsWeb && apiKey.isNotEmpty) {
       final client = _customHttpClient ?? http.Client();
       try {
         debugPrint('[EmailClient] Despachando correo vía Resend API a: $cleanTo');
@@ -123,6 +124,17 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     }
 
     // -------------------------------------------------------------------------
+    // 2. En Web (o respaldo sin clave nativa):
+    // La Cloud Function 'enviarConfirmacionReserva' en Firebase escucha la creación
+    // de la reserva en Firestore y despacha el correo desde el backend, evitando
+    // el bloqueo de CORS por completo.
+    // -------------------------------------------------------------------------
+    if (kIsWeb) {
+      debugPrint('[EmailClient] En Web: El correo se despacha automáticamente vía Cloud Function en Firestore.');
+      return true;
+    }
+
+    // -------------------------------------------------------------------------
     // 2. Respaldo vía Firestore si fue configurado
     // -------------------------------------------------------------------------
     if (firestore != null) {
@@ -140,7 +152,14 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
       } catch (_) {}
     }
 
-    // Modo simulado / sandbox para pruebas si aún no se coloca la API Key
+    // En release nativo no debemos fingir éxito si faltó inyectar la API key.
+    if (kReleaseMode) {
+      throw StateError(
+        'RESEND_API_KEY no está configurada en esta compilación (--dart-define=RESEND_API_KEY=...).',
+      );
+    }
+
+    // Modo simulado / sandbox solo para desarrollo/pruebas cuando no hay API Key
     return true;
   }
 
