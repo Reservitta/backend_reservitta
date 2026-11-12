@@ -63,12 +63,13 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     this.firestore,
     this.mailCollection = 'mail',
     http.Client? httpClient,
-  })  : apiKey = apiKey ??
-            (const String.fromEnvironment('RESEND_API_KEY').isNotEmpty
-                ? const String.fromEnvironment('RESEND_API_KEY')
-                : (const String.fromEnvironment('EMAIL_SERVICE_KEY').isNotEmpty
-                    ? const String.fromEnvironment('EMAIL_SERVICE_KEY')
-                    : kResendApiKey)),
+  })  : apiKey = (apiKey ??
+                (const String.fromEnvironment('RESEND_API_KEY').isNotEmpty
+                    ? const String.fromEnvironment('RESEND_API_KEY')
+                    : (const String.fromEnvironment('EMAIL_SERVICE_KEY').isNotEmpty
+                        ? const String.fromEnvironment('EMAIL_SERVICE_KEY')
+                        : kResendApiKey)))
+            .trim(),
         senderEmail = senderEmail ?? kResendDefaultSender,
         _customHttpClient = httpClient;
 
@@ -151,7 +152,14 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
       } catch (_) {}
     }
 
-    // Modo simulado / sandbox para pruebas si aún no se coloca la API Key
+    // En release nativo no debemos fingir éxito si faltó inyectar la API key.
+    if (kReleaseMode) {
+      throw StateError(
+        'RESEND_API_KEY no está configurada en esta compilación (--dart-define=RESEND_API_KEY=...).',
+      );
+    }
+
+    // Modo simulado / sandbox solo para desarrollo/pruebas cuando no hay API Key
     return true;
   }
 

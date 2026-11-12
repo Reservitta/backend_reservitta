@@ -32,11 +32,20 @@ jobs:
       # El archivo .env no se sube a git (es local); la app lo declara como recurso, así
       # que se crea con los secrets para compilar. No contiene claves de Firebase: esas van en
       # lib/firebase_options.dart y android/app/google-services.json.
+      - name: Verificar RESEND_API_KEY en secrets (sin exponer valor)
+        env:
+          RESEND_KEY: ${{ secrets.RESEND_API_KEY }}
+        run: |
+          if [ -z "$RESEND_KEY" ]; then
+            echo "::error::RESEND_API_KEY llegó vacía desde GitHub Secrets. Verifica Repository secrets (o agrega environment al job si solo está en Environment secrets)."
+            exit 1
+          fi
+
       - name: Crear .env con secrets
         env:
           RESEND_KEY: ${{ secrets.RESEND_API_KEY }}
         run: |
-          echo "RESEND_API_KEY=$RESEND_KEY" > .env
+          printf 'RESEND_API_KEY=%s\n' "$RESEND_KEY" > .env
 
       - run: flutter pub get
 
