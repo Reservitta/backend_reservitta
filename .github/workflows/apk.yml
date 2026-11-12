@@ -41,7 +41,7 @@ jobs:
         run: flutter test
 
       - name: Compilar APK de producción
-        run: flutter build apk --release
+        run: flutter build apk --release --dart-define=RESEND_API_KEY=${{ secrets.RESEND_API_KEY }}
 
       - uses: actions/upload-artifact@v4
         with:
