@@ -1,1 +1,76 @@
-﻿{"flutter":{"platforms":{"android":{"default":{"projectId":"reservitta-dev","appId":"1:57296769818:android:2a81866bc0caa4185712a3","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"reservitta-dev","configurations":{"android":"1:57296769818:android:2a81866bc0caa4185712a3","ios":"1:57296769818:ios:077a9c964c1b64255712a3","web":"1:57296769818:web:40de73d126f4778c5712a3"}}}}},"firestore":{"rules":"firestore.rules","indexes":"firestore.indexes.json"},"storage":{"rules":"storage.rules"},"hosting":{"public":"build/web","ignore":["firebase.json","**/.*","**/node_modules/**"],"rewrites":[{"source":"**","destination":"/index.html"}],"headers":[{"source":"**/*.@(js|css|woff2|ttf|png|jpg|svg|wasm)","headers":[{"key":"Cache-Control","value":"public, max-age=31536000, immutable"}]},{"source":"index.html","headers":[{"key":"Cache-Control","value":"no-cache"}]},{"source":"flutter_service_worker.js","headers":[{"key":"Cache-Control","value":"no-cache"}]}]}}
+{
+  "flutter": {
+    "platforms": {
+      "android": {
+        "default": {
+          "projectId": "reservitta-dev",
+          "appId": "1:57296769818:android:2a81866bc0caa4185712a3",
+          "fileOutput": "android/app/google-services.json"
+        }
+      },
+      "dart": {
+        "lib/firebase_options.dart": {
+          "projectId": "reservitta-dev",
+          "configurations": {
+            "android": "1:57296769818:android:2a81866bc0caa4185712a3",
+            "ios": "1:57296769818:ios:077a9c964c1b64255712a3",
+            "web": "1:57296769818:web:40de73d126f4778c5712a3"
+          }
+        }
+      }
+    }
+  },
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "storage.rules"
+  },
+  "functions": {
+    "source": "functions"
+  },
+  "hosting": {
+    "public": "build/web",
+    "ignore": [
+      "firebase.json",
+      "**/.*",
+      "**/node_modules/**"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ],
+    "headers": [
+      {
+        "source": "**/*.@(js|css|woff2|ttf|png|jpg|svg|wasm)",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        "source": "index.html",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "flutter_service_worker.js",
+        "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      }
+    ]
+  }
+}
