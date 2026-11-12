@@ -84,9 +84,9 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     }
 
     // -------------------------------------------------------------------------
-    // 1. Envío directo con la API de Resend
+    // 1. Envío directo con la API de Resend (en plataformas nativas sin CORS: Android/iOS)
     // -------------------------------------------------------------------------
-    if (apiKey.isNotEmpty) {
+    if (!kIsWeb && apiKey.isNotEmpty) {
       final client = _customHttpClient ?? http.Client();
       try {
         debugPrint('[EmailClient] Despachando correo vía Resend API a: $cleanTo');
@@ -120,6 +120,17 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
           client.close();
         }
       }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. En Web (o respaldo sin clave nativa):
+    // La Cloud Function 'enviarConfirmacionReserva' en Firebase escucha la creación
+    // de la reserva en Firestore y despacha el correo desde el backend, evitando
+    // el bloqueo de CORS por completo.
+    // -------------------------------------------------------------------------
+    if (kIsWeb) {
+      debugPrint('[EmailClient] En Web: El correo se despacha automáticamente vía Cloud Function en Firestore.');
+      return true;
     }
 
     // -------------------------------------------------------------------------
