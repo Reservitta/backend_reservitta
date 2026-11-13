@@ -1,41 +1,23 @@
-# Reservitta Email Server (Nodemailer + Gmail SMTP)
+# Reservitta Email Server (Brevo HTTP API)
 
-Microservicio ligero para enviar los comprobantes y recordatorios de reserva de **Reservitta** hacia cualquier correo destinatario (`@gmail.com`, `@outlook.com`, `@hotmail.com`, etc.) sin exponer credenciales en Flutter Web ni activar el plan de pago (Blaze) en Firebase.
+Microservicio ligero para enviar los comprobantes y recordatorios de reserva de **Reservitta** hacia cualquier correo destinatario (`@gmail.com`, `@outlook.com`, `@hotmail.com`, etc.) por HTTPS (puerto 443, compatible con el plan gratuito de Render) sin necesidad de dominio propio.
 
-## 1. Crear Contraseña de Aplicación en Google
-1. Inicia sesión en la cuenta de Google que enviará los correos (ej. `reservitta.notificaciones@gmail.com`).
-2. Ve a **Gestionar tu cuenta de Google → Seguridad**.
-3. Activa la **Verificación en 2 pasos** si aún no está activa.
-4. Entra a **Contraseñas de aplicaciones**, crea una nueva (ej. `Reservitta Render`) y copia la clave de 16 caracteres.
+## 1. Configurar Brevo (Gratis: 300 correos/día)
+1. Crea una cuenta gratuita en [brevo.com](https://www.brevo.com).
+2. Ve a **Senders, Domains & Dedicated IPs → Senders → Add a sender** y agrega/verifica tu correo de Gmail (te llegará un código de verificación a ese Gmail).
+3. Ve a **SMTP & API → API Keys → Generate a new API key** y copia la clave (`xkeysib-...`).
 
-## 2. Desplegar gratis en Render
-1. Crea una cuenta en [render.com](https://render.com) e inicia sesión con GitHub.
-2. Haz clic en **New + → Web Service** y selecciona este repositorio.
-3. Configura el servicio:
-   - **Root Directory:** `email_server`
-   - **Runtime:** `Node`
-   - **Build Command:** `npm install`
-   - **Start Command:** `npm start`
-   - **Instance Type:** `Free`
-4. En **Environment Variables**, agrega:
-   - `GMAIL_USER` = tu correo de Gmail
-   - `GMAIL_APP_PASSWORD` = la contraseña de aplicación de 16 caracteres
-   - `EMAIL_FROM_NAME` = `Reservitta`
-   - `ALLOWED_ORIGINS` = `https://reservitta-dev.web.app,https://reservitta-dev.firebaseapp.com`
-   - `REQUIRE_FIREBASE_AUTH` = `true`
-   - `FIREBASE_PROJECT_ID` = `reservitta-dev`
-5. Despliega y copia la URL pública que te asigne Render (ej. `https://reservitta-email.onrender.com`).
+## 2. Variables de entorno en Render
+En tu Web Service de Render (**Root Directory:** `email_server`), configura:
+- `BREVO_API_KEY` = tu clave `xkeysib-...`
+- `BREVO_SENDER_EMAIL` = el correo Gmail que verificaste en Brevo *(o `GMAIL_USER` si ya la tenías)*
+- `EMAIL_FROM_NAME` = `Reservitta`
+- `ALLOWED_ORIGINS` = `https://reservitta-dev.web.app,https://reservitta-dev.firebaseapp.com`
+- `REQUIRE_FIREBASE_AUTH` = `true`
+- `FIREBASE_PROJECT_ID` = `reservitta-dev`
 
 ## 3. Conectar Flutter (Web y Móvil)
-Pasa la URL de tu servicio mediante `.env` o `--dart-define`:
-
 ```bash
-flutter build web --release --dart-define=EMAIL_BACKEND_URL=https://reservitta-email.onrender.com
-firebase deploy --only hosting
+flutter build web --release --dart-define=EMAIL_BACKEND_URL=https://backend-reservitta.onrender.com
+npx firebase-tools deploy --only hosting
 ```
-
-O en tu archivo `.env` local:
-```env
-EMAIL_BACKEND_URL=https://reservitta-email.onrender.com
-```
-
