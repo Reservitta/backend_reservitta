@@ -1,17 +1,31 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 /// ============================================================================
-/// CONFIGURACIÓN DE CORREO TRANSACCIONAL (RESEND API)
+/// CONFIGURACIÓN DE ENVÍO DE CORREO TRANSACCIONAL
 /// ============================================================================
-/// Para enviar correos reales gratis con Resend (3,000 correos/mes):
-/// 1. Crea una cuenta gratuita en https://resend.com
-/// 2. Genera una API Key en https://resend.com/api-keys
-/// 3. Configura tu API Key en el archivo .env (RESEND_API_KEY=re_...) 
-///    o mediante --dart-define=RESEND_API_KEY=re_...
+/// URL del microservicio de correo (Nodemailer + Gmail SMTP en Render / local).
+/// Configúrala en `.env` (EMAIL_BACKEND_URL=https://...) o mediante
+/// `--dart-define=EMAIL_BACKEND_URL=https://...`.
+String get kEmailBackendUrl {
+  const dartDefineUrl = String.fromEnvironment('EMAIL_BACKEND_URL');
+  if (dartDefineUrl.isNotEmpty) return dartDefineUrl.trim();
+
+  try {
+    if (dotenv.isInitialized) {
+      final envUrl = (dotenv.env['EMAIL_BACKEND_URL'] ?? '').trim();
+      if (envUrl.isNotEmpty) return envUrl;
+    }
+  } catch (_) {}
+
+  return '';
+}
+
+/// Resend API Key (respaldo nativo opcional si no se usa [kEmailBackendUrl]).
 String get kResendApiKey {
   // 1. Intenta leer de --dart-define en tiempo de compilación
   const dartDefineKey = String.fromEnvironment('RESEND_API_KEY');
@@ -49,21 +63,28 @@ abstract class WhatsAppBusinessApiClient {
   });
 }
 
-/// Implementación de cliente de correo transaccional con Resend API.
+/// Implementación de cliente de correo transaccional.
+/// Prioriza el backend HTTP propio (Nodemailer + Gmail SMTP) cuando [emailBackendUrl]
+/// está configurado, evitando problemas de CORS en Web y exposición de secretos.
 class DefaultTransactionalEmailClient implements TransactionalEmailClient {
+  final String emailBackendUrl;
   final String apiKey;
   final String senderEmail;
   final FirebaseFirestore? firestore;
   final String mailCollection;
   final http.Client? _customHttpClient;
+  final Future<String?> Function()? _idTokenProvider;
 
   DefaultTransactionalEmailClient({
+    String? emailBackendUrl,
     String? apiKey,
     String? senderEmail,
     this.firestore,
     this.mailCollection = 'mail',
     http.Client? httpClient,
-  })  : apiKey = (apiKey ??
+    Future<String?> Function()? idTokenProvider,
+  })  : emailBackendUrl = (emailBackendUrl ?? kEmailBackendUrl).trim(),
+        apiKey = (apiKey ??
                 (const String.fromEnvironment('RESEND_API_KEY').isNotEmpty
                     ? const String.fromEnvironment('RESEND_API_KEY')
                     : (const String.fromEnvironment('EMAIL_SERVICE_KEY').isNotEmpty
@@ -71,7 +92,19 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
                         : kResendApiKey)))
             .trim(),
         senderEmail = senderEmail ?? kResendDefaultSender,
-        _customHttpClient = httpClient;
+        _customHttpClient = httpClient,
+        _idTokenProvider = idTokenProvider;
+
+  Future<String?> _resolveFirebaseIdToken() async {
+    if (_idTokenProvider != null) {
+      return await _idTokenProvider();
+    }
+    try {
+      return await FirebaseAuth.instance.currentUser?.getIdToken();
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   Future<bool> sendEmail({
@@ -85,7 +118,54 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     }
 
     // -------------------------------------------------------------------------
-    // 1. Envío directo con la API de Resend (en plataformas nativas sin CORS: Android/iOS)
+    // 1. Envío mediante Backend SMTP propio (Web + Móvil, sin CORS ni secretos)
+    // -------------------------------------------------------------------------
+    if (emailBackendUrl.isNotEmpty) {
+      final base = emailBackendUrl.endsWith('/')
+          ? emailBackendUrl.substring(0, emailBackendUrl.length - 1)
+          : emailBackendUrl;
+      final uri = Uri.parse('$base/api/send-confirmation');
+      final client = _customHttpClient ?? http.Client();
+      try {
+        final idToken = await _resolveFirebaseIdToken();
+        final headers = <String, String>{
+          'Content-Type': 'application/json',
+          if (idToken != null && idToken.isNotEmpty)
+            'Authorization': 'Bearer $idToken',
+        };
+
+        debugPrint('[EmailClient] Despachando correo vía Backend SMTP a: $cleanTo');
+        final response = await client
+            .post(
+              uri,
+              headers: headers,
+              body: jsonEncode({
+                'to': cleanTo,
+                'subject': subject,
+                'text': body,
+                'html': _buildHtmlMessage(subject, body),
+              }),
+            )
+            .timeout(const Duration(seconds: 45));
+
+        debugPrint('[EmailClient] Respuesta Backend SMTP (HTTP ${response.statusCode}): ${response.body}');
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          return true;
+        }
+
+        throw Exception(
+          'Error al enviar correo (Status ${response.statusCode}): ${response.body}',
+        );
+      } finally {
+        if (_customHttpClient == null) {
+          client.close();
+        }
+      }
+    }
+
+    // -------------------------------------------------------------------------
+    // 2. Respaldo directo con Resend API (solo en plataformas nativas sin CORS)
     // -------------------------------------------------------------------------
     if (!kIsWeb && apiKey.isNotEmpty) {
       final client = _customHttpClient ?? http.Client();
@@ -124,18 +204,7 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
     }
 
     // -------------------------------------------------------------------------
-    // 2. En Web (o respaldo sin clave nativa):
-    // La Cloud Function 'enviarConfirmacionReserva' en Firebase escucha la creación
-    // de la reserva en Firestore y despacha el correo desde el backend, evitando
-    // el bloqueo de CORS por completo.
-    // -------------------------------------------------------------------------
-    if (kIsWeb) {
-      debugPrint('[EmailClient] En Web: El correo se despacha automáticamente vía Cloud Function en Firestore.');
-      return true;
-    }
-
-    // -------------------------------------------------------------------------
-    // 2. Respaldo vía Firestore si fue configurado
+    // 3. Respaldo vía Firestore si fue configurado
     // -------------------------------------------------------------------------
     if (firestore != null) {
       try {
@@ -152,14 +221,16 @@ class DefaultTransactionalEmailClient implements TransactionalEmailClient {
       } catch (_) {}
     }
 
-    // En release nativo no debemos fingir éxito si faltó inyectar la API key.
+    // En compilación release (Web o nativo) no debemos fingir éxito si falta configurar el servicio.
     if (kReleaseMode) {
       throw StateError(
-        'RESEND_API_KEY no está configurada en esta compilación (--dart-define=RESEND_API_KEY=...).',
+        kIsWeb
+            ? 'EMAIL_BACKEND_URL no está configurada en esta compilación Web (--dart-define=EMAIL_BACKEND_URL=...).'
+            : 'EMAIL_BACKEND_URL o RESEND_API_KEY no están configuradas en esta compilación.',
       );
     }
 
-    // Modo simulado / sandbox solo para desarrollo/pruebas cuando no hay API Key
+    // Modo simulado / sandbox solo para desarrollo/pruebas cuando no hay backend ni API Key
     return true;
   }
 
