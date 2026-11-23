@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/anticipo_reserva.dart';
 import '../models/booking_models.dart';
 import '../models/notification_delivery_result.dart';
 import '../models/reservation_access.dart';
@@ -79,6 +80,18 @@ class ReservationBookingService {
     final efectivoTelefono =
         contactoTelefono.isNotEmpty ? contactoTelefono : draft.contactoTelefono;
 
+    // Con anticipo activo la reserva queda pendiente: bloquea la mesa, pero no se
+    // confirma hasta que el restaurante revise el comprobante.
+    final pideAnticipo = restaurant.requiereAnticipo;
+    final anticipo = pideAnticipo
+        ? AnticipoReserva.desdeConfig(
+            config: restaurant.anticipo,
+            cuenta: restaurant.datosBancarios,
+            ahora: DateTime.now(),
+            inicioReserva: inicio,
+          )
+        : null;
+
     final reserva = ReservationModel.create(
       id: '',
       restauranteId: restaurant.id,
@@ -93,7 +106,8 @@ class ReservationBookingService {
       personas: draft.personas,
       mesaIds: draft.mesaIds,
       mesasNombres: draft.mesasNombres,
-      estado: estadoInicial,
+      estado: pideAnticipo ? ReservationModel.estadoPendiente : estadoInicial,
+      anticipo: anticipo,
       tokenGestion: ReservationAccess.generarToken(),
       preordenItems: draft.preordenItems,
       alergias: draft.alergias,

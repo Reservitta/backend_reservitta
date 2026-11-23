@@ -85,7 +85,7 @@ class ReservationSummaryStep extends StatelessWidget {
         const SizedBox(height: 16),
 
         // Nota aclaratoria: solo confirmación, no crea la reserva todavía (HU12-RF01)
-        _buildConfirmationNotice(),
+        ..._buildAvisos(),
 
         if (showActionButton && onConfirm != null) ...[
           const SizedBox(height: 24),
@@ -717,6 +717,63 @@ class ReservationSummaryStep extends StatelessWidget {
             child: const Text(
               'Modificar',
               style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Avisos del resumen: primero el anticipo (si el restaurante lo pide) y luego la nota
+  /// de que esta pantalla aún no crea la reserva.
+  List<Widget> _buildAvisos() {
+    return [
+      if (draft.restaurant.requiereAnticipo) ...[
+        _buildAnticipoNotice(),
+        const SizedBox(height: 12),
+      ],
+      _buildConfirmationNotice(),
+    ];
+  }
+
+  /// Aviso de anticipo: el cliente sabe antes de reservar que tendrá que transferir.
+  Widget _buildAnticipoNotice() {
+    final r = draft.restaurant;
+    final politica = r.anticipo.politicaCancelacion;
+    return Container(
+      key: const ValueKey('aviso_anticipo_resumen'),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFF7E6),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFE8B04C)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.payments_outlined, size: 20, color: Color(0xFF8A5300)),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Este restaurante pide un anticipo de \$${r.anticipo.monto.toStringAsFixed(2)} MXN',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: darkText,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Al reservar verás cómo transferirlo y subir tu comprobante. '
+                  'Tu mesa queda apartada y se confirma cuando el restaurante lo revise; '
+                  'el anticipo se descuenta de tu cuenta final.'
+                  '${politica.isEmpty ? '' : '\nCancelación: $politica'}',
+                  style: const TextStyle(fontSize: 12.5, height: 1.4, color: darkText),
+                ),
+              ],
             ),
           ),
         ],

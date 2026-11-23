@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/anticipo_reserva.dart';
 import '../models/booking_models.dart';
 import '../models/reservation_access.dart';
 import '../models/reservation_detail.dart';
@@ -332,6 +333,57 @@ class ReservationService implements ReservationRepository {
     await _reservationsRef.doc(reservationId).update({
       'estado': estadoNormalizado,
       'estadoActualizadoEn': FieldValue.serverTimestamp(),
+    });
+  }
+
+  /// El cliente avisa que ya subió su comprobante del anticipo.
+  Future<void> marcarComprobanteEnviado(String reservationId) async {
+    await _reservationsRef.doc(reservationId).update({
+      'anticipo.estado': AnticipoReserva.estadoComprobanteEnviado,
+      'anticipo.comprobanteEnviadoEn': FieldValue.serverTimestamp(),
+      'anticipo.motivoRechazo': FieldValue.delete(),
+    });
+  }
+
+  /// El restaurante revisó el comprobante: la reserva queda confirmada y se programa
+  /// su recordatorio.
+  Future<void> confirmarAnticipo({
+    required String reservationId,
+    required String usuarioId,
+    DateTime? ahora,
+  }) async {
+    final momento = ahora ?? DateTime.now();
+    final ref = _reservationsRef.doc(reservationId);
+    final snap = await ref.get();
+    if (!snap.exists) throw StateError('La reservación $reservationId no existe.');
+    final res = ReservationModel.fromFirestore(snap);
+    if (res.anticipo == null) {
+      throw StateError('Esta reservación no tiene anticipo.');
+    }
+    if (res.isCancelada) {
+      throw StateError('La reservación ya fue cancelada.');
+    }
+    await ref.update({
+      'anticipo.estado': AnticipoReserva.estadoConfirmado,
+      'anticipo.motivoRechazo': FieldValue.delete(),
+      // Solo pasa a confirmada si seguía pendiente; si ya avanzó no se retrocede.
+      if (res.isPendiente) 'estado': ReservationModel.estadoConfirmada,
+      'estadoActualizadoPor': usuarioId,
+      'estadoActualizadoEn': Timestamp.fromDate(momento),
+    });
+    try {
+      await _recordatorios.programar(res.copyWith(estado: ReservationModel.estadoConfirmada));
+    } catch (_) {}
+  }
+
+  /// El comprobante no sirve (monto distinto, ilegible…): el cliente puede subir otro.
+  Future<void> rechazarAnticipo({
+    required String reservationId,
+    required String motivo,
+  }) async {
+    await _reservationsRef.doc(reservationId).update({
+      'anticipo.estado': AnticipoReserva.estadoRechazado,
+      'anticipo.motivoRechazo': motivo.trim(),
     });
   }
 

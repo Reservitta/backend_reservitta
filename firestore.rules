@@ -213,6 +213,48 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Comprobantes de transferencia (anticipos de reservas y pedidos). Los ve su dueño y
+    // el administrador del restaurante; el cliente puede reemplazar el suyo.
+    match /comprobantes/{comprobanteId} {
+      allow read: if hasReservittaProfile()
+                  && (resource.data.usuarioId == request.auth.uid
+                      || isAdminOfReservationRestaurant(resource.data));
+      allow create: if hasReservittaProfile()
+                    && request.resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.tipo in ['reserva', 'pedido']
+                    && request.resource.data.imagen is string
+                    && request.resource.data.imagen.size() <= 900000;
+      allow update: if hasReservittaProfile()
+                    && resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.usuarioId == resource.data.usuarioId
+                    && request.resource.data.restauranteId == resource.data.restauranteId
+                    && request.resource.data.imagen is string
+                    && request.resource.data.imagen.size() <= 900000;
+      allow delete: if false;
+    }
+
+    // Pedidos a domicilio y para recoger. El cliente crea el suyo "recibido" y solo puede
+    // avisar que subió su comprobante; el restaurante gestiona el resto.
+    match /pedidos/{pedidoId} {
+      allow read: if hasReservittaProfile()
+                  && (resource.data.usuarioId == request.auth.uid
+                      || isAdminOfReservationRestaurant(resource.data));
+      allow create: if hasReservittaProfile()
+                    && request.resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.estado == 'recibido'
+                    && request.resource.data.pago.estado == 'pendiente'
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() > 0;
+      allow update: if isAdminOfReservationRestaurant(resource.data)
+                    || (hasReservittaProfile()
+                        && resource.data.usuarioId == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['pago', 'actualizadoEn'])
+                        && request.resource.data.pago.metodo == resource.data.pago.metodo
+                        && request.resource.data.pago.estado == 'comprobante_enviado');
+      allow delete: if false;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }

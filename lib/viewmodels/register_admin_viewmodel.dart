@@ -15,6 +15,15 @@ class RegisterAdminViewModel extends ChangeNotifier {
   final TextEditingController nombreRestauranteController =
       TextEditingController();
 
+  /// El restaurante recibe pedidos a domicilio y para recoger.
+  bool _ofreceDelivery = false;
+  bool get ofreceDelivery => _ofreceDelivery;
+  set ofreceDelivery(bool valor) {
+    if (_ofreceDelivery == valor) return;
+    _ofreceDelivery = valor;
+    notifyListeners();
+  }
+
   bool _isLoading = false;
   String? _errorMessage;
   String? _successMessage;
@@ -66,6 +75,7 @@ class RegisterAdminViewModel extends ChangeNotifier {
         nombreRestaurante: nombreRestaurante.isNotEmpty
             ? nombreRestaurante
             : null,
+        ofreceDelivery: _ofreceDelivery,
       );
 
       _successMessage =

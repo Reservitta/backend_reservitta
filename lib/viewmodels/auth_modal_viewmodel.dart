@@ -37,6 +37,15 @@ class AuthModalViewModel extends ChangeNotifier {
   final Map<String, String?> fieldErrors = {};
 
   /// Flags que indican si el usuario ya intentó enviar el formulario
+  /// El restaurante recibe pedidos a domicilio y para recoger (solo registro de admin).
+  bool _ofreceDelivery = false;
+  bool get ofreceDelivery => _ofreceDelivery;
+  set ofreceDelivery(bool valor) {
+    if (_ofreceDelivery == valor) return;
+    _ofreceDelivery = valor;
+    notifyListeners();
+  }
+
   bool _registerSubmitted = false;
   bool _loginSubmitted = false;
 
@@ -300,6 +309,7 @@ class AuthModalViewModel extends ChangeNotifier {
           nombreRestaurante: nombreRestaurante.isNotEmpty
               ? nombreRestaurante
               : null,
+          ofreceDelivery: _ofreceDelivery,
         );
       } else {
         await _authService.registerVisitor(
