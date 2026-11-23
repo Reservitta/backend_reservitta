@@ -108,6 +108,7 @@ class ReservationBookingService {
       mesasNombres: draft.mesasNombres,
       estado: pideAnticipo ? ReservationModel.estadoPendiente : estadoInicial,
       anticipo: anticipo,
+      sucursalId: draft.branch?.id ?? '',
       tokenGestion: ReservationAccess.generarToken(),
       preordenItems: draft.preordenItems,
       alergias: draft.alergias,

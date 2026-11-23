@@ -1,3 +1,5 @@
+import '../../models/inventario_models.dart';
+import 'receta_editor.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../models/categoria_model.dart';
@@ -72,6 +74,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
 
   Uint8List? _localImageBytes;
   String? _localImageExt;
+  List<RecetaItem> _receta = const [];
 
   @override
   void initState() {
@@ -87,6 +90,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
       _isDisponible = p.isActivo;
       _permitePersonalizacion = p.permitePersonalizacion;
       _limiteCaracteresObs = p.limiteCaracteresObs;
+      _receta = p.receta;
     } else {
       _nombreController = TextEditingController();
       _precioController = TextEditingController();
@@ -161,6 +165,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         permitePersonalizacion: _permitePersonalizacion,
         placeholderObservacion: _placeholderObsController.text.trim(),
         limiteCaracteresObs: _limiteCaracteresObs,
+        receta: _receta,
         nuevaImagenBytes: _localImageBytes,
         nuevaImagenExt: _localImageExt,
       );
@@ -177,6 +182,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         permitePersonalizacion: _permitePersonalizacion,
         placeholderObservacion: _placeholderObsController.text.trim(),
         limiteCaracteresObs: _limiteCaracteresObs,
+        receta: _receta,
         customImageBytes: _localImageBytes,
         customImageExt: _localImageExt,
       );
@@ -724,6 +730,15 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Receta: insumos que descuenta del inventario al prepararse
+                    RecetaEditor(
+                      restaurantId: widget.viewModel.restaurantId,
+                      inicial: _receta,
+                      enabled: !_isSubmitting,
+                      onChanged: (r) => _receta = r,
                     ),
                     const SizedBox(height: 16),
 

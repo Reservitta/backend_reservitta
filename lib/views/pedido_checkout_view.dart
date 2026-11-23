@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/anticipo_reserva.dart';
+import '../models/branch_model.dart';
 import '../models/pedido_model.dart';
 import '../models/restaurant_model.dart';
 import '../services/auth_service.dart';
@@ -14,6 +15,7 @@ import 'widgets/transferencia_widgets.dart';
 /// datos de contacto y confirmación.
 class PedidoCheckoutView extends StatefulWidget {
   final RestaurantModel restaurant;
+  final BranchModel? sucursal;
   final CarritoViewModel carrito;
   final PedidoService? pedidoService;
   final AuthService? authService;
@@ -21,6 +23,7 @@ class PedidoCheckoutView extends StatefulWidget {
   const PedidoCheckoutView({
     super.key,
     required this.restaurant,
+    this.sucursal,
     required this.carrito,
     this.pedidoService,
     this.authService,
@@ -66,6 +69,8 @@ class _PedidoCheckoutViewState extends State<PedidoCheckoutView> {
       id: _pedidoId,
       restauranteId: widget.restaurant.id,
       restauranteNombre: widget.restaurant.nombre,
+      sucursalId: widget.sucursal?.id ?? '',
+      sucursalNombre: widget.sucursal?.nombre ?? '',
       usuarioId: uid,
       contactoNombre: _nombre.text,
       contactoTelefono: _telefono.text,
@@ -345,9 +350,11 @@ class _PedidoCheckoutViewState extends State<PedidoCheckoutView> {
                           grupo: _tipoEntrega,
                           icono: Icons.storefront_outlined,
                           titulo: 'Recoger en el local',
-                          detalle: r.direccion.isEmpty
-                              ? 'Pasas por tu pedido.'
-                              : r.direccion,
+                          detalle: (widget.sucursal?.direccion.isNotEmpty ?? false)
+                              ? widget.sucursal!.direccion
+                              : (r.direccion.isEmpty
+                                  ? 'Pasas por tu pedido.'
+                                  : r.direccion),
                           onTap: (v) => setState(() => _tipoEntrega = v),
                         ),
                         _opcion(

@@ -194,6 +194,9 @@ class ReservationModel {
   /// solo se envía al correo o WhatsApp capturados y nunca se muestra en pantalla.
   final String tokenGestion;
 
+  /// Sucursal elegida al reservar (de ella salen los insumos de la preorden).
+  final String sucursalId;
+
   /// Anticipo que el restaurante pidió para confirmar la reserva (null si no aplica).
   final AnticipoReserva? anticipo;
 
@@ -226,6 +229,7 @@ class ReservationModel {
     this.estadoPreordenActualizadoEn,
     this.historialPedido = const [],
     this.tokenGestion = '',
+    this.sucursalId = '',
     this.anticipo,
   });
 
@@ -254,6 +258,7 @@ class ReservationModel {
     Map<String, dynamic>? ocasionEspecial,
     List<Map<String, dynamic>> experiencias = const [],
     String tokenGestion = '',
+    String sucursalId = '',
     AnticipoReserva? anticipo,
   }) {
     final effectiveFin = fin ??
@@ -285,6 +290,7 @@ class ReservationModel {
       ocasionEspecial: ocasionEspecial,
       experiencias: experiencias,
       tokenGestion: tokenGestion,
+      sucursalId: sucursalId,
       anticipo: anticipo,
     );
   }
@@ -890,6 +896,7 @@ class ReservationModel {
       estadoPreordenActualizadoEn: pedidoActualizadoEn,
       historialPedido: historialPedidoList,
       tokenGestion: (data['tokenGestion'] as String?) ?? '',
+      sucursalId: (data['sucursalId'] as String?) ?? '',
       anticipo: data['anticipo'] is Map
           ? AnticipoReserva.fromMap(Map<String, dynamic>.from(data['anticipo'] as Map))
           : null,
@@ -943,6 +950,7 @@ class ReservationModel {
     };
 
     if (tokenGestion.isNotEmpty) map['tokenGestion'] = tokenGestion;
+    if (sucursalId.isNotEmpty) map['sucursalId'] = sucursalId;
     if (anticipo != null) map['anticipo'] = anticipo!.toMap();
 
     // HU17-RF02 Criterio 3: con "solo reservar" no se genera ningún registro de
@@ -1012,6 +1020,7 @@ class ReservationModel {
     DateTime? estadoPreordenActualizadoEn,
     List<Map<String, dynamic>>? historialPedido,
     String? tokenGestion,
+    String? sucursalId,
     AnticipoReserva? anticipo,
   }) {
     return ReservationModel(
@@ -1045,6 +1054,7 @@ class ReservationModel {
           estadoPreordenActualizadoEn ?? this.estadoPreordenActualizadoEn,
       historialPedido: historialPedido ?? this.historialPedido,
       tokenGestion: tokenGestion ?? this.tokenGestion,
+      sucursalId: sucursalId ?? this.sucursalId,
       anticipo: anticipo ?? this.anticipo,
     );
   }

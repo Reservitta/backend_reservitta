@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/branch_model.dart';
 import '../models/categoria_model.dart';
 import '../models/platillo_model.dart';
 import '../models/restaurant_model.dart';
@@ -17,6 +18,9 @@ import 'widgets/transferencia_widgets.dart';
 /// carrito (sin personalización) y continúa al pago y la entrega.
 class PedidoOnlineView extends StatefulWidget {
   final RestaurantModel restaurant;
+
+  /// Sucursal que prepara el pedido (null si el restaurante no tiene sucursales).
+  final BranchModel? sucursal;
   final CategoriaService? categoriaService;
   final PlatilloService? platilloService;
   final PedidoService? pedidoService;
@@ -26,6 +30,7 @@ class PedidoOnlineView extends StatefulWidget {
   const PedidoOnlineView({
     super.key,
     required this.restaurant,
+    this.sucursal,
     this.categoriaService,
     this.platilloService,
     this.pedidoService,
@@ -58,6 +63,7 @@ class _PedidoOnlineViewState extends State<PedidoOnlineView> {
       MaterialPageRoute(
         builder: (_) => PedidoCheckoutView(
           restaurant: widget.restaurant,
+          sucursal: widget.sucursal,
           carrito: _carrito,
           pedidoService: widget.pedidoService,
           authService: widget.authService,
@@ -100,7 +106,9 @@ class _PedidoOnlineViewState extends State<PedidoOnlineView> {
       backgroundColor: AppColors.fondo,
       appBar: AppBar(
         title: Text(
-          'Pedir en ${widget.restaurant.nombre}',
+          widget.sucursal == null
+              ? 'Pedir en ${widget.restaurant.nombre}'
+              : 'Pedir en ${widget.sucursal!.nombre}',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
@@ -138,14 +146,21 @@ class _PedidoOnlineViewState extends State<PedidoOnlineView> {
           if (!snap.hasData) {
             return const Center(child: CircularProgressIndicator());
           }
-          final platillos = snap.data!;
+          // Solo lo que esa sucursal puede preparar con su inventario.
+          final platillos = [
+            for (final p in snap.data!)
+              if (p.disponibleEn(widget.sucursal?.id)) p,
+          ];
           if (platillos.isEmpty) {
-            return const Center(
+            return Center(
               child: Padding(
-                padding: EdgeInsets.all(24),
+                padding: const EdgeInsets.all(24),
                 child: Text(
-                  'Este restaurante aún no tiene platillos disponibles para pedir.',
-                  key: ValueKey('menu_pedido_vacio'),
+                  widget.sucursal == null
+                      ? 'Este restaurante aún no tiene platillos disponibles para pedir.'
+                      : 'Esta sucursal no tiene platillos disponibles por ahora. '
+                          'Prueba con otra sucursal o vuelve más tarde.',
+                  key: const ValueKey('menu_pedido_vacio'),
                   textAlign: TextAlign.center,
                 ),
               ),

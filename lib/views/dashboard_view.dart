@@ -20,6 +20,9 @@ class DashboardView extends StatelessWidget {
   /// Resumen de pedidos a domicilio y para recoger (solo si el restaurante los ofrece).
   final Widget? pedidosOnline;
 
+  /// Aviso de inventario: insumos bajos o agotados (solo si ya hay insumos registrados).
+  final Widget? inventario;
+
   const DashboardView({
     super.key,
     required this.operaciones,
@@ -28,6 +31,7 @@ class DashboardView extends StatelessWidget {
     required this.onAbrirReserva,
     this.onIrAPedidos,
     this.pedidosOnline,
+    this.inventario,
     this.restauranteNombre = '',
   });
 
@@ -96,6 +100,10 @@ class DashboardView extends StatelessWidget {
                       if (pedidosOnline != null) ...[
                         const SizedBox(height: 16),
                         pedidosOnline!,
+                      ],
+                      if (inventario != null) ...[
+                        const SizedBox(height: 12),
+                        inventario!,
                       ],
                       const SizedBox(height: 24),
                       _alertas(),

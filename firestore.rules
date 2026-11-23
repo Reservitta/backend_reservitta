@@ -90,6 +90,21 @@ service cloud.firestore {
         // HU01-RF01: Sucursales de restaurantes accesibles públicamente
         allow read: if true;
         allow create, update, delete: if isReservittaAdmin();
+
+        // Inventario de la sucursal: existencias por insumo y bitácora de entradas y
+        // salidas. Solo lo ve y lo escribe el administrador del restaurante.
+        match /existencias/{insumoId} {
+          allow read, write: if isAdminOfRestaurantId(restaurantId);
+        }
+        match /movimientos/{movimientoId} {
+          allow read, create: if isAdminOfRestaurantId(restaurantId);
+          allow update, delete: if false;
+        }
+      }
+
+      // Catálogo de insumos del restaurante (compartido por todas sus sucursales).
+      match /insumos/{insumoId} {
+        allow read, write: if isAdminOfRestaurantId(restaurantId);
       }
 
       match /categorias/{categoriaId} {

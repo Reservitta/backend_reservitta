@@ -7,6 +7,8 @@ import '../viewmodels/home_viewmodel.dart';
 import 'admin_reservations_view.dart';
 import 'categoria_list_view.dart';
 import 'dashboard_view.dart';
+import 'inventario_view.dart';
+import '../services/inventario_service.dart';
 import 'ocasion_list_view.dart';
 import 'orders_view.dart';
 import 'pagos_config_view.dart';
@@ -26,6 +28,7 @@ enum AdminSection {
   menu,
   categorias,
   ocasiones,
+  inventario,
   pedidosOnline,
   pagos,
   configuracion,
@@ -58,10 +61,33 @@ class _HomeViewState extends State<HomeView> {
     super.initState();
     _viewModel = HomeViewModel();
     _viewModel.loadAdminSessionData();
+    InventarioAvisos.instancia.addListener(_mostrarAvisoInventario);
+  }
+
+  /// Avisa (desde cualquier pantalla del panel) cuando faltaron insumos al preparar.
+  void _mostrarAvisoInventario() {
+    final aviso = InventarioAvisos.instancia.tomar();
+    if (aviso == null || !mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          key: const ValueKey('aviso_inventario'),
+          content: Text(aviso),
+          backgroundColor: const Color(0xFF8A5300),
+          duration: const Duration(seconds: 10),
+          action: SnackBarAction(
+            label: 'Ver inventario',
+            textColor: Colors.white,
+            onPressed: () => setState(() => _seccionActual = AdminSection.inventario),
+          ),
+        ),
+      );
   }
 
   @override
   void dispose() {
+    InventarioAvisos.instancia.removeListener(_mostrarAvisoInventario);
     _operaciones?.dispose();
     _viewModel.dispose();
     super.dispose();
@@ -237,6 +263,8 @@ class _HomeViewState extends State<HomeView> {
         return 'Categorías';
       case AdminSection.ocasiones:
         return 'Ocasiones Especiales';
+      case AdminSection.inventario:
+        return 'Inventario';
       case AdminSection.pedidosOnline:
         return 'Domicilio y recoger';
       case AdminSection.pagos:
@@ -362,6 +390,12 @@ class _HomeViewState extends State<HomeView> {
                   seccion: AdminSection.ocasiones,
                   icono: Icons.celebration_outlined,
                   titulo: 'Ocasiones',
+                  isDrawer: isDrawer,
+                ),
+                _buildSidebarItem(
+                  seccion: AdminSection.inventario,
+                  icono: Icons.inventory_2_outlined,
+                  titulo: 'Inventario',
                   isDrawer: isDrawer,
                 ),
 
@@ -517,6 +551,12 @@ class _HomeViewState extends State<HomeView> {
           showAppBar: false,
         );
 
+      case AdminSection.inventario:
+        return InventarioView(
+          key: ValueKey('inventario_${currentRest.id}'),
+          restaurantId: currentRest.id,
+        );
+
       case AdminSection.pedidosOnline:
         return PedidosOnlineAdminView(restaurantId: currentRest.id);
 
@@ -564,6 +604,10 @@ class _HomeViewState extends State<HomeView> {
           onIrAReservas: () => setState(() => _seccionActual = AdminSection.reservas),
           onIrAMesas: () => setState(() => _seccionActual = AdminSection.mesas),
           onIrAPedidos: () => setState(() => _seccionActual = AdminSection.pedidos),
+          inventario: InventarioResumen(
+            restaurantId: currentRest.id,
+            onVer: () => setState(() => _seccionActual = AdminSection.inventario),
+          ),
           pedidosOnline: currentRest.ofreceDelivery
               ? PedidosOnlineResumen(
                   restaurantId: currentRest.id,

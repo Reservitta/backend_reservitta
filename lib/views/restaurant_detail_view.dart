@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/branch_model.dart';
 import '../models/categoria_model.dart';
 import '../models/platillo_model.dart';
 import '../models/restaurant_model.dart';
@@ -197,12 +198,35 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
     }
   }
 
-  void _abrirPedido() {
+  /// Con varias sucursales el cliente elige de cuál pide (cada una lleva su inventario);
+  /// con una sola (o ninguna registrada) se pide directo.
+  Future<void> _abrirPedido() async {
+    final servicio = widget.restaurantService ?? RestaurantService();
+    BranchModel? sucursal;
+    try {
+      final sucursales = await servicio.getBranches(widget.restaurant.id);
+      if (sucursales.length == 1) {
+        sucursal = sucursales.first;
+      } else if (sucursales.length > 1) {
+        if (!mounted) return;
+        sucursal = await BranchPickerDialog.show(
+          context,
+          restaurant: widget.restaurant,
+          service: servicio,
+          accion: 'pedir',
+        );
+        if (sucursal == null) return;
+      }
+    } catch (_) {
+      // Sin poder leer las sucursales se pide al restaurante en general.
+    }
+    if (!mounted) return;
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PedidoOnlineView(
           restaurant: widget.restaurant,
+          sucursal: sucursal,
           categoriaService: _categoriaService,
           platilloService: _platilloService,
           authService: _authService,

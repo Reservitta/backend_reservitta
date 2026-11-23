@@ -5,12 +5,14 @@ import '../models/order_status_flow.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_status_flow.dart';
 import '../repositories/reservation_repository.dart';
+import '../services/inventario_service.dart';
 
 /// ViewModel para la consulta y pantalla de listado de reservas del restaurante (HU26-RF01 y HU26-RF02)
 class AdminReservationsViewModel extends ChangeNotifier {
   final String restaurantId;
   final ReservationRepository _reservationRepository;
   final String Function()? _usuarioId;
+  final InventarioService _inventario;
 
   DateTime _fechaSeleccionada;
   String? _estadoFiltro;
@@ -27,7 +29,9 @@ class AdminReservationsViewModel extends ChangeNotifier {
 
     /// Quién cambia los estados (para la trazabilidad); por defecto el usuario con sesión.
     String Function()? usuarioId,
-  })  : _reservationRepository = reservationRepository ?? ReservationService(),
+    InventarioService? inventario,
+  })  : _inventario = inventario ?? InventarioService(),
+        _reservationRepository = reservationRepository ?? ReservationService(),
         // ignore: prefer_initializing_formals
         _usuarioId = usuarioId,
         _fechaSeleccionada = _normalizarFecha(initialDate ?? DateTime.now());
@@ -192,6 +196,13 @@ class AdminReservationsViewModel extends ChangeNotifier {
         nuevoEstado: nuevoEstado,
         usuarioId: _usuarioActual(),
         motivo: motivo,
+      );
+      // Al pasar a cocina se descuentan los insumos de la preorden (una sola vez).
+      await _inventario.alCambiarEstadoPreorden(
+        restaurantId,
+        reservaId,
+        ReservationModel.normalizePreordenStatus(nuevoEstado),
+        por: _usuarioActual(),
       );
       return null;
     } on InvalidOrderTransitionException catch (e) {

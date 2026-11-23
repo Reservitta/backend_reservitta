@@ -59,6 +59,10 @@ class PedidoModel {
   final String id;
   final String restauranteId;
   final String restauranteNombre;
+
+  /// Sucursal que prepara el pedido (vacía si el restaurante no tiene sucursales).
+  final String sucursalId;
+  final String sucursalNombre;
   final String usuarioId;
   final String contactoNombre;
   final String contactoTelefono;
@@ -77,6 +81,8 @@ class PedidoModel {
     required this.id,
     required this.restauranteId,
     this.restauranteNombre = '',
+    this.sucursalId = '',
+    this.sucursalNombre = '',
     this.usuarioId = '',
     this.contactoNombre = '',
     this.contactoTelefono = '',
@@ -180,6 +186,8 @@ class PedidoModel {
       id: id,
       restauranteId: (data['restauranteId'] as String?) ?? '',
       restauranteNombre: (data['restauranteNombre'] as String?) ?? '',
+      sucursalId: (data['sucursalId'] as String?) ?? '',
+      sucursalNombre: (data['sucursalNombre'] as String?) ?? '',
       usuarioId: (data['usuarioId'] as String?) ?? '',
       contactoNombre: (contacto['nombre'] as String?) ?? '',
       contactoTelefono: (contacto['telefono'] as String?) ?? '',
@@ -202,6 +210,8 @@ class PedidoModel {
   Map<String, dynamic> toMap() => {
         'restauranteId': restauranteId,
         'restauranteNombre': restauranteNombre,
+        if (sucursalId.isNotEmpty) 'sucursalId': sucursalId,
+        if (sucursalNombre.isNotEmpty) 'sucursalNombre': sucursalNombre,
         'usuarioId': usuarioId,
         'contacto': {'nombre': contactoNombre, 'telefono': contactoTelefono},
         'items': lineas.map((l) => l.toMap()).toList(),

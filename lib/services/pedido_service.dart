@@ -48,6 +48,8 @@ class PedidoService {
       id: ref.id,
       restauranteId: pedido.restauranteId,
       restauranteNombre: pedido.restauranteNombre,
+      sucursalId: pedido.sucursalId,
+      sucursalNombre: pedido.sucursalNombre,
       usuarioId: pedido.usuarioId,
       contactoNombre: pedido.contactoNombre.trim(),
       contactoTelefono: pedido.contactoTelefono.trim(),

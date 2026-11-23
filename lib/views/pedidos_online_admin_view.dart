@@ -1,7 +1,9 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../models/anticipo_reserva.dart';
 import '../models/pedido_model.dart';
+import '../services/inventario_service.dart';
 import '../services/pedido_service.dart';
 import '../theme/app_theme.dart';
 import 'widgets/transferencia_widgets.dart';
@@ -10,11 +12,13 @@ import 'widgets/transferencia_widgets.dart';
 class PedidosOnlineAdminView extends StatefulWidget {
   final String restaurantId;
   final PedidoService? service;
+  final InventarioService? inventario;
 
   const PedidosOnlineAdminView({
     super.key,
     required this.restaurantId,
     this.service,
+    this.inventario,
   });
 
   @override
@@ -23,9 +27,19 @@ class PedidosOnlineAdminView extends StatefulWidget {
 
 class _PedidosOnlineAdminViewState extends State<PedidosOnlineAdminView> {
   late final PedidoService _service = widget.service ?? PedidoService();
+  late final InventarioService _inventario = widget.inventario ?? InventarioService();
   late final Stream<List<PedidoModel>> _stream =
       _service.pedidosDelRestaurante(widget.restaurantId);
   bool _verHistorial = false;
+
+  /// Quién hace el cambio (para el historial del inventario); vacío sin sesión.
+  String _uid() {
+    try {
+      return FirebaseAuth.instance.currentUser?.uid ?? '';
+    } catch (_) {
+      return '';
+    }
+  }
 
   Future<void> _ejecutar(Future<void> Function() accion, String exito) async {
     final messenger = ScaffoldMessenger.of(context);
@@ -149,7 +163,17 @@ class _PedidosOnlineAdminViewState extends State<PedidosOnlineAdminView> {
                             child: _TarjetaPedido(
                               pedido: p,
                               onAvanzar: () => _ejecutar(
-                                () => _service.cambiarEstado(p.id, p.siguienteEstado!),
+                                () async {
+                                  final siguiente = p.siguienteEstado!;
+                                  await _service.cambiarEstado(p.id, siguiente);
+                                  // Al pasar a cocina se descuentan los insumos (una sola vez).
+                                  await _inventario.alCambiarEstadoPedido(
+                                    widget.restaurantId,
+                                    p.id,
+                                    siguiente,
+                                    por: _uid(),
+                                  );
+                                },
                                 'Pedido actualizado.',
                               ),
                               onCancelar: () => _confirmarCancelar(p),
@@ -265,7 +289,8 @@ class _TarjetaPedido extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            '${p.esDomicilio ? 'A domicilio' : 'Para recoger'} · ${p.contactoTelefono} · $concepto',
+            '${p.esDomicilio ? 'A domicilio' : 'Para recoger'} · ${p.contactoTelefono} · $concepto'
+            '${p.sucursalNombre.isEmpty ? '' : ' · ${p.sucursalNombre}'}',
             style: const TextStyle(fontSize: 13, color: AppColors.textoSuave),
           ),
           if (p.esDomicilio) ...[
