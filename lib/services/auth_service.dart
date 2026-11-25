@@ -97,6 +97,7 @@ class AuthService {
     required String telefono,
     required String password,
     String? nombreRestaurante,
+    bool ofreceDelivery = false,
   }) async {
     if (password.length < 8) {
       throw Exception('La contraseña debe tener al menos 8 caracteres.');
@@ -143,6 +144,7 @@ class AuthService {
         'telefono': telefono.trim(),
         'estado': 'inactivo',
         'perfilCompleto': false,
+        'ofreceDelivery': ofreceDelivery,
         'creadoEn': FieldValue.serverTimestamp(),
       });
       await batch.commit();

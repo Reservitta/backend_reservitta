@@ -444,7 +444,11 @@ class _PersonalizeVisitViewState extends State<PersonalizeVisitView>
               );
             }
 
-            final platillos = snapshot.data ?? [];
+            // Solo lo que se puede preparar en la sucursal elegida (según su inventario).
+            final platillos = [
+              for (final p in snapshot.data ?? <PlatilloModel>[])
+                if (p.disponibleEn(widget.draft.branch?.id)) p,
+            ];
             for (final p in platillos) {
               _catalogoPorId[p.id] = p;
             }

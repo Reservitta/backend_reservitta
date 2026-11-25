@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../models/anticipo_reserva.dart';
 import '../models/notification_delivery_result.dart';
 import '../models/operations_config.dart';
 import '../models/reservation_model.dart';
 import '../models/reservation_notification_payload.dart';
 import '../services/confirmation_notification_service.dart';
 import '../services/reminder_service.dart';
+import '../services/reservation_service.dart';
 import '../theme/app_theme.dart';
 import 'reservation_management_view.dart';
+import 'widgets/transferencia_widgets.dart';
 
 /// Pantalla de confirmación con los datos de la reserva guardada (HU11-RF04, HU19-RF01, HU19-RF02).
 ///
@@ -30,6 +33,9 @@ class ReservationConfirmationView extends StatefulWidget {
   /// Reloj para decidir si todavía alcanza a enviarse el recordatorio.
   final DateTime Function()? now;
 
+  /// Avisa que el comprobante del anticipo ya se subió; por defecto actualiza la reserva.
+  final Future<void> Function(String reservationId)? onComprobanteEnviado;
+
   const ReservationConfirmationView({
     super.key,
     required this.reservation,
@@ -39,6 +45,7 @@ class ReservationConfirmationView extends StatefulWidget {
     this.onDone,
     this.operaciones = const OperationsConfig(),
     this.now,
+    this.onComprobanteEnviado,
   });
 
   static const Color terracotta = AppColors.marca;
@@ -72,6 +79,7 @@ class _ReservationConfirmationViewState
     extends State<ReservationConfirmationView> {
   late NotificationDeliveryResult? _deliveryResult;
   bool _isResending = false;
+  bool _comprobanteEnviado = false;
 
   @override
   void initState() {
@@ -114,7 +122,7 @@ class _ReservationConfirmationViewState
   String get _estado {
     switch (widget.reservation.estado) {
       case ReservationModel.estadoPendiente:
-        return 'Pendiente';
+        return widget.reservation.esperaAnticipo ? 'Por confirmar (anticipo)' : 'Pendiente';
       case ReservationModel.estadoCancelada:
         return 'Cancelada';
       default:
@@ -212,11 +220,14 @@ class _ReservationConfirmationViewState
             ? r.mesaIds.join(' + ')
             : 'El restaurante te la asignará');
 
-    final banner = _deliveryResult == null
-        ? _buildPendingDeliveryBanner()
-        : (_deliveryResult!.exitoso
-            ? _buildSuccessDeliveryBanner()
-            : _buildFailureDeliveryBanner());
+    // Mientras espera el anticipo todavía no se envía confirmación: se muestra el pago.
+    final Widget banner = widget.reservation.anticipo != null
+        ? _buildAnticipo(widget.reservation.anticipo!)
+        : (_deliveryResult == null
+            ? _buildPendingDeliveryBanner()
+            : (_deliveryResult!.exitoso
+                ? _buildSuccessDeliveryBanner()
+                : _buildFailureDeliveryBanner()));
 
     final ticket = _buildTicket(mesas);
     final siguiente = _buildQueSigue();
@@ -316,8 +327,9 @@ class _ReservationConfirmationViewState
             child: const Icon(Icons.check_rounded, color: AppColors.exito, size: 48),
           ),
           const SizedBox(height: 20),
-          const Text(
-            '¡Reserva confirmada!',
+          Text(
+            widget.reservation.esperaAnticipo ? '¡Mesa apartada!' : '¡Reserva confirmada!',
+            key: const ValueKey('titulo_confirmacion'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontFamily: AppTheme.familiaTitulos,
@@ -330,8 +342,10 @@ class _ReservationConfirmationViewState
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'Te esperamos. Estos son los datos de tu visita.',
+          Text(
+            widget.reservation.esperaAnticipo
+                ? 'Falta un paso: transfiere tu anticipo para confirmar la reserva.'
+                : 'Te esperamos. Estos son los datos de tu visita.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 16, color: ReservationConfirmationView.mutedText),
           ),
@@ -388,6 +402,93 @@ class _ReservationConfirmationViewState
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  /// Pago del anticipo: datos para transferir, política y subida del comprobante.
+  Widget _buildAnticipo(AnticipoReserva a) {
+    final r = widget.reservation;
+    final concepto = ConceptoTransferencia.generar(
+      prefijo: 'RES',
+      id: r.id,
+      nombre: r.contactoNombre,
+    );
+    final enviado = _comprobanteEnviado || a.comprobanteEnviado;
+    final confirmado = a.confirmado;
+    String dos(int n) => n.toString().padLeft(2, '0');
+    final vence = a.venceEn;
+    return Container(
+      key: const ValueKey('tarjeta_anticipo'),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: ReservationConfirmationView.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            confirmado ? 'Anticipo confirmado' : 'Anticipo de ${formatoDinero(a.monto)}',
+            style: const TextStyle(
+              fontFamily: AppTheme.familiaTitulos,
+              fontWeight: FontWeight.w700,
+              fontVariations: [FontVariation('wght', 700)],
+              fontSize: 20,
+              color: ReservationConfirmationView.darkText,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            confirmado
+                ? 'Tu reserva está confirmada. El anticipo se descuenta de tu cuenta al finalizar la visita.'
+                : 'Tu mesa queda apartada${vence != null ? ' hasta el ${dos(vence.day)}/${dos(vence.month)} a las ${dos(vence.hour)}:${dos(vence.minute)}' : ''}. '
+                    'Transfiere el anticipo y sube tu comprobante para confirmarla; se descuenta de tu cuenta final.',
+            style: const TextStyle(
+              fontSize: 14,
+              height: 1.4,
+              color: ReservationConfirmationView.mutedText,
+            ),
+          ),
+          if (!confirmado) ...[
+            const SizedBox(height: 14),
+            TransferenciaCard(cuenta: a.cuenta, monto: a.monto, concepto: concepto),
+            if (a.rechazado && a.motivoRechazo.isNotEmpty) ...[
+              const SizedBox(height: 10),
+              Text(
+                'El restaurante no pudo validar tu comprobante: ${a.motivoRechazo}',
+                key: const ValueKey('anticipo_rechazado'),
+                style: const TextStyle(color: AppColors.error),
+              ),
+            ],
+            const SizedBox(height: 12),
+            ComprobanteUploader(
+              tipo: 'reserva',
+              refId: r.id,
+              restauranteId: r.restauranteId,
+              usuarioId: r.usuarioId,
+              yaEnviado: enviado,
+              onEnviado: () async {
+                await (widget.onComprobanteEnviado ??
+                    (id) => ReservationService().marcarComprobanteEnviado(id))(r.id);
+                if (mounted) setState(() => _comprobanteEnviado = true);
+              },
+            ),
+            if (a.politicaCancelacion.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              Text(
+                'Política de cancelación: ${a.politicaCancelacion}',
+                key: const ValueKey('politica_cancelacion'),
+                style: const TextStyle(
+                  fontSize: 13,
+                  height: 1.4,
+                  color: ReservationConfirmationView.mutedText,
+                ),
+              ),
+            ],
+          ],
         ],
       ),
     );

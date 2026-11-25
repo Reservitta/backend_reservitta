@@ -14,6 +14,7 @@ import '../models/table_live_status.dart';
 import '../models/zona_model.dart';
 import '../repositories/reservation_repository.dart';
 import '../services/admin_alert_service.dart';
+import '../services/inventario_service.dart';
 import '../services/operations_config_service.dart';
 import '../services/reminder_service.dart';
 import '../services/table_status_service.dart';
@@ -33,6 +34,7 @@ class AdminOperationsViewModel extends ChangeNotifier {
   final OperationsConfigService _configService;
   final AdminAlertService _alertService;
   final ReminderService _reminderService;
+  final InventarioService _inventario;
   final DateTime Function() _now;
   final Duration tick;
   final bool sincronizar;
@@ -68,11 +70,13 @@ class AdminOperationsViewModel extends ChangeNotifier {
     OperationsConfigService? configService,
     AdminAlertService? alertService,
     ReminderService? reminderService,
+    InventarioService? inventario,
     DateTime Function()? now,
     this.tick = const Duration(minutes: 1),
     this.sincronizar = true,
     String Function()? usuarioId,
-  })  : _reservas = reservas ?? ReservationService(),
+  })  : _inventario = inventario ?? InventarioService(),
+        _reservas = reservas ?? ReservationService(),
         _mesasService = mesasService ?? TableStatusService(),
         _configService = configService ?? OperationsConfigService(),
         _alertService = alertService ?? AdminAlertService(),
@@ -370,6 +374,13 @@ class AdminOperationsViewModel extends ChangeNotifier {
         usuarioId: _usuarioActual(),
         motivo: motivo,
         ahora: _now(),
+      );
+      // Al pasar a cocina se descuentan los insumos de la preorden (una sola vez).
+      await _inventario.alCambiarEstadoPreorden(
+        restaurantId,
+        reservaId,
+        ReservationModel.normalizePreordenStatus(nuevoEstado),
+        por: _usuarioActual(),
       );
       return null;
     } on InvalidOrderTransitionException catch (e) {

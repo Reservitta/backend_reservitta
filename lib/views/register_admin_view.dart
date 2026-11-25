@@ -111,6 +111,17 @@ class _RegisterAdminViewState extends State<RegisterAdminView> {
                         helperText: 'Se creará automáticamente como borrador',
                       ),
                     ),
+                    const SizedBox(height: 4),
+                    SwitchListTile(
+                      key: const ValueKey('switch_registro_delivery'),
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('¿Tu restaurante ofrece pedidos a domicilio?'),
+                      subtitle: const Text(
+                        'Tus clientes podrán pedir a domicilio o para recoger. Puedes cambiarlo después en Pagos y pedidos.',
+                      ),
+                      value: _viewModel.ofreceDelivery,
+                      onChanged: (v) => _viewModel.ofreceDelivery = v,
+                    ),
                     if (_viewModel.errorMessage != null) ...[
                       const SizedBox(height: 16),
                       Container(

@@ -1,3 +1,5 @@
+import '../models/inventario_models.dart';
+import '../services/inventario_service.dart';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -10,13 +12,17 @@ class PlatilloViewModel extends ChangeNotifier {
   final PlatilloService _platilloService;
   final ImagePicker _imagePicker;
   final String restaurantId;
+  final InventarioService? _inventario;
 
   PlatilloViewModel({
     required this.restaurantId,
     PlatilloService? platilloService,
     ImagePicker? imagePicker,
+    InventarioService? inventario,
   })  : _platilloService = platilloService ?? PlatilloService(),
-        _imagePicker = imagePicker ?? ImagePicker();
+        _imagePicker = imagePicker ?? ImagePicker(),
+        // ignore: prefer_initializing_formals
+        _inventario = inventario;
 
   // Controladores para campos del formulario de platillo
   final TextEditingController nombreController = TextEditingController();
@@ -189,6 +195,17 @@ class PlatilloViewModel extends ChangeNotifier {
     return esValido;
   }
 
+  /// Tras guardar una receta se revisa qué platillos se pueden preparar con el inventario.
+  /// No bloquea el guardado: si falla, se corrige en el siguiente movimiento de inventario.
+  void _recalcularDisponibilidad() {
+    try {
+      (_inventario ?? InventarioService())
+          .recalcularDisponibilidad(restaurantId)
+          .then((_) => 0)
+          .catchError((_) => 0);
+    } catch (_) {}
+  }
+
   /// 1. Crear un platillo nuevo validando reglas de negocio y subiendo imagen si existe
   Future<bool> crearPlatillo({
     String? nombre,
@@ -198,6 +215,7 @@ class PlatilloViewModel extends ChangeNotifier {
     bool? permitePersonalizacion,
     String? placeholderObservacion,
     int? limiteCaracteresObs,
+    List<RecetaItem>? receta,
     Uint8List? customImageBytes,
     String? customImageExt,
   }) async {
@@ -238,6 +256,7 @@ class PlatilloViewModel extends ChangeNotifier {
             .trim(),
         limiteCaracteresObs:
             limiteCaracteresObs ?? this.limiteCaracteresObs,
+        receta: receta ?? const [],
       );
 
       await _platilloService.crearPlatillo(
@@ -247,6 +266,7 @@ class PlatilloViewModel extends ChangeNotifier {
         imageExtension: customImageExt ?? imagenExtension,
       );
 
+      _recalcularDisponibilidad();
       limpiarFormulario();
       return true;
     } catch (e) {
@@ -270,6 +290,7 @@ class PlatilloViewModel extends ChangeNotifier {
     bool? permitePersonalizacion,
     String? placeholderObservacion,
     int? limiteCaracteresObs,
+    List<RecetaItem>? receta,
     Uint8List? nuevaImagenBytes,
     String? nuevaImagenExt,
   }) async {
@@ -310,6 +331,7 @@ class PlatilloViewModel extends ChangeNotifier {
                 : platilloOriginal.placeholderObservacion),
         limiteCaracteresObs:
             limiteCaracteresObs ?? this.limiteCaracteresObs,
+        receta: receta ?? platilloOriginal.receta,
       );
 
       await _platilloService.actualizarPlatillo(
@@ -319,6 +341,7 @@ class PlatilloViewModel extends ChangeNotifier {
         imageExtension: nuevaImagenExt ?? imagenExtension,
       );
 
+      _recalcularDisponibilidad();
       limpiarFormulario();
       return true;
     } catch (e) {

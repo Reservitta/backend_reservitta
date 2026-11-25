@@ -14,11 +14,15 @@ class BranchPickerDialog extends StatefulWidget {
   final RestaurantService service;
   final DateTime Function() clock;
 
+  /// Verbo del texto: "reservar" (por defecto) o "pedir" cuando es un pedido en línea.
+  final String accion;
+
   const BranchPickerDialog({
     super.key,
     required this.restaurant,
     required this.service,
     this.clock = DateTime.now,
+    this.accion = 'reservar',
   });
 
   static Future<BranchModel?> show(
@@ -26,6 +30,7 @@ class BranchPickerDialog extends StatefulWidget {
     required RestaurantModel restaurant,
     required RestaurantService service,
     DateTime Function()? clock,
+    String accion = 'reservar',
   }) {
     return showDialog<BranchModel>(
       context: context,
@@ -33,6 +38,7 @@ class BranchPickerDialog extends StatefulWidget {
         restaurant: restaurant,
         service: service,
         clock: clock ?? DateTime.now,
+        accion: accion,
       ),
     );
   }
@@ -110,7 +116,7 @@ class _BranchPickerDialogState extends State<BranchPickerDialog> {
               ),
               const SizedBox(height: 2),
               Text(
-                'Selecciona dónde quieres reservar en ${widget.restaurant.nombre}.',
+                'Selecciona dónde quieres ${widget.accion} en ${widget.restaurant.nombre}.',
                 style: const TextStyle(fontSize: 14, color: AppColors.textoSuave),
               ),
               const SizedBox(height: 16),
@@ -182,7 +188,7 @@ class _BranchPickerDialogState extends State<BranchPickerDialog> {
             Text(
               _fallo
                   ? 'Revisa tu conexión e inténtalo de nuevo.'
-                  : 'Por ahora no se puede reservar aquí. Prueba con otro restaurante.',
+                  : 'Por ahora no se puede ${widget.accion} aquí. Prueba con otro restaurante.',
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, color: AppColors.textoSuave),
             ),
