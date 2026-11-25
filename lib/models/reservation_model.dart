@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'anticipo_reserva.dart';
 import 'occasion_booking.dart';
 import 'preorder_restrictions.dart';
 
@@ -193,6 +194,12 @@ class ReservationModel {
   /// solo se envía al correo o WhatsApp capturados y nunca se muestra en pantalla.
   final String tokenGestion;
 
+  /// Sucursal elegida al reservar (de ella salen los insumos de la preorden).
+  final String sucursalId;
+
+  /// Anticipo que el restaurante pidió para confirmar la reserva (null si no aplica).
+  final AnticipoReserva? anticipo;
+
   const ReservationModel({
     required this.id,
     required this.restauranteId,
@@ -222,6 +229,8 @@ class ReservationModel {
     this.estadoPreordenActualizadoEn,
     this.historialPedido = const [],
     this.tokenGestion = '',
+    this.sucursalId = '',
+    this.anticipo,
   });
 
   /// Constructor factoría para instanciación con cálculo automático de hora de fin (Criterio 2)
@@ -249,6 +258,8 @@ class ReservationModel {
     Map<String, dynamic>? ocasionEspecial,
     List<Map<String, dynamic>> experiencias = const [],
     String tokenGestion = '',
+    String sucursalId = '',
+    AnticipoReserva? anticipo,
   }) {
     final effectiveFin = fin ??
         (inicio != null
@@ -279,8 +290,13 @@ class ReservationModel {
       ocasionEspecial: ocasionEspecial,
       experiencias: experiencias,
       tokenGestion: tokenGestion,
+      sucursalId: sucursalId,
+      anticipo: anticipo,
     );
   }
+
+  /// La reserva espera que el restaurante confirme el anticipo.
+  bool get esperaAnticipo => anticipo != null && !anticipo!.confirmado;
 
   /// Alias semántico para cantidad de personas (HU08-RF02 Criterio 1 y HU26-RF01 Criterio 2)
   int get cantidadPersonas => personas;
@@ -880,6 +896,10 @@ class ReservationModel {
       estadoPreordenActualizadoEn: pedidoActualizadoEn,
       historialPedido: historialPedidoList,
       tokenGestion: (data['tokenGestion'] as String?) ?? '',
+      sucursalId: (data['sucursalId'] as String?) ?? '',
+      anticipo: data['anticipo'] is Map
+          ? AnticipoReserva.fromMap(Map<String, dynamic>.from(data['anticipo'] as Map))
+          : null,
     );
   }
 
@@ -930,6 +950,8 @@ class ReservationModel {
     };
 
     if (tokenGestion.isNotEmpty) map['tokenGestion'] = tokenGestion;
+    if (sucursalId.isNotEmpty) map['sucursalId'] = sucursalId;
+    if (anticipo != null) map['anticipo'] = anticipo!.toMap();
 
     // HU17-RF02 Criterio 3: con "solo reservar" no se genera ningún registro de
     // restricciones; los campos solo existen cuando traen algo.
@@ -998,6 +1020,8 @@ class ReservationModel {
     DateTime? estadoPreordenActualizadoEn,
     List<Map<String, dynamic>>? historialPedido,
     String? tokenGestion,
+    String? sucursalId,
+    AnticipoReserva? anticipo,
   }) {
     return ReservationModel(
       id: id ?? this.id,
@@ -1030,6 +1054,8 @@ class ReservationModel {
           estadoPreordenActualizadoEn ?? this.estadoPreordenActualizadoEn,
       historialPedido: historialPedido ?? this.historialPedido,
       tokenGestion: tokenGestion ?? this.tokenGestion,
+      sucursalId: sucursalId ?? this.sucursalId,
+      anticipo: anticipo ?? this.anticipo,
     );
   }
 }

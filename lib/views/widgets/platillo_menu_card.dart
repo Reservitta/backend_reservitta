@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../theme/app_theme.dart';
+import 'platillo_imagen.dart';
 
 /// Modo de visualización para la tarjeta del platillo
 enum PlatilloCardMode {
@@ -93,11 +94,9 @@ class PlatilloMenuCard extends StatelessWidget {
                     child: platillo.imagenUrl.isNotEmpty
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(10),
-                            child: Image.network(
-                              platillo.imagenUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) =>
-                                  const Icon(
+                            child: PlatilloImagen(
+                              url: platillo.imagenUrl,
+                              fallback: const Icon(
                                 Icons.fastfood_outlined,
                                 color: _primaryTerracotta,
                                 size: 28,

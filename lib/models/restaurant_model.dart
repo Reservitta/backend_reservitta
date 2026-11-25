@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../utils/schedule_utils.dart';
 import 'mesa_model.dart';
 import 'operations_config.dart';
+import 'payment_config.dart';
 
 class DaySchedule {
   final bool abierto;
@@ -63,6 +64,13 @@ class RestaurantModel {
   /// Alertas de llegada y recordatorio del restaurante (HU30, HU21).
   final OperationsConfig operaciones;
 
+  /// El restaurante recibe pedidos a domicilio y para recoger.
+  final bool ofreceDelivery;
+
+  /// Cuenta para transferencias y anticipo de reservaciones.
+  final DatosBancarios datosBancarios;
+  final AnticipoConfig anticipo;
+
   const RestaurantModel({
     required this.id,
     required this.nombre,
@@ -85,7 +93,17 @@ class RestaurantModel {
     this.capacidadMaxima,
     this.mesas = const [],
     this.operaciones = const OperationsConfig(),
+    this.ofreceDelivery = false,
+    this.datosBancarios = const DatosBancarios(),
+    this.anticipo = const AnticipoConfig(),
   });
+
+  /// Pide anticipo solo si está activo, tiene monto y hay a dónde transferir.
+  bool get requiereAnticipo =>
+      anticipo.activo && anticipo.monto > 0 && datosBancarios.completos;
+
+  /// Acepta transferencias en pedidos si dejó su cuenta.
+  bool get aceptaTransferencia => datosBancarios.completos;
 
   // Getters de compatibilidad y campos públicos (HU01-RF01 Criterios 1 y 2)
   String get name => nombre;
@@ -207,6 +225,11 @@ class RestaurantModel {
           .map((m) => MesaModel.fromMap((m['id'] as String?) ?? '', m))
           .toList(),
       operaciones: OperationsConfig.fromRestaurantData(data),
+      ofreceDelivery: data['ofreceDelivery'] as bool? ?? false,
+      datosBancarios: DatosBancarios.fromMap(
+        data['datosBancarios'] as Map<String, dynamic>?,
+      ),
+      anticipo: AnticipoConfig.fromMap(data['anticipo'] as Map<String, dynamic>?),
     );
   }
 
@@ -274,6 +297,9 @@ class RestaurantModel {
     int? capacidadMaxima,
     List<MesaModel>? mesas,
     OperationsConfig? operaciones,
+    bool? ofreceDelivery,
+    DatosBancarios? datosBancarios,
+    AnticipoConfig? anticipo,
   }) {
     return RestaurantModel(
       id: id ?? this.id,
@@ -298,6 +324,9 @@ class RestaurantModel {
       capacidadMaxima: capacidadMaxima ?? this.capacidadMaxima,
       mesas: mesas ?? this.mesas,
       operaciones: operaciones ?? this.operaciones,
+      ofreceDelivery: ofreceDelivery ?? this.ofreceDelivery,
+      datosBancarios: datosBancarios ?? this.datosBancarios,
+      anticipo: anticipo ?? this.anticipo,
     );
   }
 }

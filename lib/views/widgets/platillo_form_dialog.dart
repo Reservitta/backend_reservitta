@@ -1,3 +1,5 @@
+import '../../models/inventario_models.dart';
+import 'receta_editor.dart';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../../models/categoria_model.dart';
@@ -6,6 +8,7 @@ import '../../services/categoria_service.dart';
 import '../../utils/validators.dart';
 import '../../viewmodels/platillo_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import 'platillo_imagen.dart';
 
 /// Formulario modal para Alta y Edición de Platillo (HU24-RF04)
 /// Permite editar precio, descripción, imagen y disponibilidad sin salir de la lista principal.
@@ -72,6 +75,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
 
   Uint8List? _localImageBytes;
   String? _localImageExt;
+  List<RecetaItem> _receta = const [];
 
   @override
   void initState() {
@@ -87,6 +91,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
       _isDisponible = p.isActivo;
       _permitePersonalizacion = p.permitePersonalizacion;
       _limiteCaracteresObs = p.limiteCaracteresObs;
+      _receta = p.receta;
     } else {
       _nombreController = TextEditingController();
       _precioController = TextEditingController();
@@ -161,6 +166,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         permitePersonalizacion: _permitePersonalizacion,
         placeholderObservacion: _placeholderObsController.text.trim(),
         limiteCaracteresObs: _limiteCaracteresObs,
+        receta: _receta,
         nuevaImagenBytes: _localImageBytes,
         nuevaImagenExt: _localImageExt,
       );
@@ -177,6 +183,7 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         permitePersonalizacion: _permitePersonalizacion,
         placeholderObservacion: _placeholderObsController.text.trim(),
         limiteCaracteresObs: _limiteCaracteresObs,
+        receta: _receta,
         customImageBytes: _localImageBytes,
         customImageExt: _localImageExt,
       );
@@ -207,12 +214,11 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         height: 110,
       );
     } else if (platillo != null && platillo.tieneImagenEnNube) {
-      content = Image.network(
-        platillo.imagenUrl,
-        fit: BoxFit.cover,
+      content = PlatilloImagen(
+        url: platillo.imagenUrl,
         width: 110,
         height: 110,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+        fallback: _buildPlaceholderImage(),
       );
     } else {
       content = _buildPlaceholderImage();
@@ -724,6 +730,15 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
                           ),
                         ],
                       ),
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Receta: insumos que descuenta del inventario al prepararse
+                    RecetaEditor(
+                      restaurantId: widget.viewModel.restaurantId,
+                      inicial: _receta,
+                      enabled: !_isSubmitting,
+                      onChanged: (r) => _receta = r,
                     ),
                     const SizedBox(height: 16),
 

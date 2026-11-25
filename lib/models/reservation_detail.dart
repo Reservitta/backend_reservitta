@@ -1,3 +1,4 @@
+import 'anticipo_reserva.dart';
 import 'reservation_model.dart';
 
 /// Línea del pedido tal como la ve el administrador (HU28-RF01).
@@ -77,6 +78,9 @@ class ReservationDetail {
   final List<DetalleExperiencia> experiencias;
   final double totalExperiencias;
 
+  /// Anticipo pedido para confirmar la reserva (null si el restaurante no lo pide).
+  final AnticipoReserva? anticipo;
+
   const ReservationDetail({
     required this.id,
     required this.restauranteId,
@@ -102,6 +106,7 @@ class ReservationDetail {
     required this.detalleOcasion,
     required this.experiencias,
     required this.totalExperiencias,
+    this.anticipo,
   });
 
   factory ReservationDetail.fromReservation(
@@ -172,6 +177,7 @@ class ReservationDetail {
           ),
       ],
       totalExperiencias: r.totalExperiencias,
+      anticipo: r.anticipo,
     );
   }
 

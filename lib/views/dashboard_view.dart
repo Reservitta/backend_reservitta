@@ -17,6 +17,12 @@ class DashboardView extends StatelessWidget {
   final VoidCallback? onIrAPedidos;
   final void Function(ReservationModel reserva) onAbrirReserva;
 
+  /// Resumen de pedidos a domicilio y para recoger (solo si el restaurante los ofrece).
+  final Widget? pedidosOnline;
+
+  /// Aviso de inventario: insumos bajos o agotados (solo si ya hay insumos registrados).
+  final Widget? inventario;
+
   const DashboardView({
     super.key,
     required this.operaciones,
@@ -24,6 +30,8 @@ class DashboardView extends StatelessWidget {
     required this.onIrAMesas,
     required this.onAbrirReserva,
     this.onIrAPedidos,
+    this.pedidosOnline,
+    this.inventario,
     this.restauranteNombre = '',
   });
 
@@ -89,6 +97,14 @@ class DashboardView extends StatelessWidget {
                       _encabezado(context),
                       const SizedBox(height: 20),
                       _metricas(),
+                      if (pedidosOnline != null) ...[
+                        const SizedBox(height: 16),
+                        pedidosOnline!,
+                      ],
+                      if (inventario != null) ...[
+                        const SizedBox(height: 12),
+                        inventario!,
+                      ],
                       const SizedBox(height: 24),
                       _alertas(),
                       const SizedBox(height: 24),

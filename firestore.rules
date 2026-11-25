@@ -90,6 +90,21 @@ service cloud.firestore {
         // HU01-RF01: Sucursales de restaurantes accesibles públicamente
         allow read: if true;
         allow create, update, delete: if isReservittaAdmin();
+
+        // Inventario de la sucursal: existencias por insumo y bitácora de entradas y
+        // salidas. Solo lo ve y lo escribe el administrador del restaurante.
+        match /existencias/{insumoId} {
+          allow read, write: if isAdminOfRestaurantId(restaurantId);
+        }
+        match /movimientos/{movimientoId} {
+          allow read, create: if isAdminOfRestaurantId(restaurantId);
+          allow update, delete: if false;
+        }
+      }
+
+      // Catálogo de insumos del restaurante (compartido por todas sus sucursales).
+      match /insumos/{insumoId} {
+        allow read, write: if isAdminOfRestaurantId(restaurantId);
       }
 
       match /categorias/{categoriaId} {
@@ -210,6 +225,48 @@ service cloud.firestore {
                                        'historialEstados', 'fechaLocal', 'inicio', 'fin',
                                        'duracionMin', 'personas', 'cantidadPersonas',
                                        'mesaIds', 'mesasNombres', 'ultimaModificacionEn']));
+      allow delete: if false;
+    }
+
+    // Comprobantes de transferencia (anticipos de reservas y pedidos). Los ve su dueño y
+    // el administrador del restaurante; el cliente puede reemplazar el suyo.
+    match /comprobantes/{comprobanteId} {
+      allow read: if hasReservittaProfile()
+                  && (resource.data.usuarioId == request.auth.uid
+                      || isAdminOfReservationRestaurant(resource.data));
+      allow create: if hasReservittaProfile()
+                    && request.resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.tipo in ['reserva', 'pedido']
+                    && request.resource.data.imagen is string
+                    && request.resource.data.imagen.size() <= 900000;
+      allow update: if hasReservittaProfile()
+                    && resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.usuarioId == resource.data.usuarioId
+                    && request.resource.data.restauranteId == resource.data.restauranteId
+                    && request.resource.data.imagen is string
+                    && request.resource.data.imagen.size() <= 900000;
+      allow delete: if false;
+    }
+
+    // Pedidos a domicilio y para recoger. El cliente crea el suyo "recibido" y solo puede
+    // avisar que subió su comprobante; el restaurante gestiona el resto.
+    match /pedidos/{pedidoId} {
+      allow read: if hasReservittaProfile()
+                  && (resource.data.usuarioId == request.auth.uid
+                      || isAdminOfReservationRestaurant(resource.data));
+      allow create: if hasReservittaProfile()
+                    && request.resource.data.usuarioId == request.auth.uid
+                    && request.resource.data.estado == 'recibido'
+                    && request.resource.data.pago.estado == 'pendiente'
+                    && request.resource.data.items is list
+                    && request.resource.data.items.size() > 0;
+      allow update: if isAdminOfReservationRestaurant(resource.data)
+                    || (hasReservittaProfile()
+                        && resource.data.usuarioId == request.auth.uid
+                        && request.resource.data.diff(resource.data).affectedKeys()
+                             .hasOnly(['pago', 'actualizadoEn'])
+                        && request.resource.data.pago.metodo == resource.data.pago.metodo
+                        && request.resource.data.pago.estado == 'comprobante_enviado');
       allow delete: if false;
     }
 

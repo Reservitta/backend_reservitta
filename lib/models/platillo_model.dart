@@ -1,5 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+import 'inventario_models.dart';
+
 class PlatilloModel {
   final String id;
   final String categoriaId;
@@ -13,6 +15,16 @@ class PlatilloModel {
   final bool permitePersonalizacion;
   final String placeholderObservacion;
   final int limiteCaracteresObs;
+
+  /// Insumos que usa una porción (vacía: el platillo no se controla por inventario).
+  final List<RecetaItem> receta;
+
+  /// El sistema lo marcó agotado por falta de insumos (y puede volver a activarlo al
+  /// reponerlos); un agotado puesto a mano por el administrador no lo tiene.
+  final bool agotadoAuto;
+
+  /// Sucursales donde faltan insumos para prepararlo.
+  final List<String> agotadoSucursales;
 
   /// Estados válidos de disponibilidad del platillo (HU06 y HU32-RF01)
   static const String estadoActivo = 'activo';
@@ -40,6 +52,9 @@ class PlatilloModel {
     this.permitePersonalizacion = true,
     this.placeholderObservacion = '',
     this.limiteCaracteresObs = 150,
+    this.receta = const [],
+    this.agotadoAuto = false,
+    this.agotadoSucursales = const [],
   }) : imagenUrl = (imagenUrl != null && imagenUrl.trim().isNotEmpty)
             ? imagenUrl
             : imagenPorDefecto;
@@ -56,13 +71,29 @@ class PlatilloModel {
   /// Indica si el platillo está inactivo/oculto para visitantes (HU06 y HU32-RF01)
   bool get isInactivo => estado == estadoInactivo;
 
-  /// Indica si el platillo cuenta con una imagen subida en la nube (URL http/https)
+  /// Tiene receta: su disponibilidad depende del inventario.
+  bool get tieneReceta => receta.isNotEmpty;
+
+  /// Se puede pedir en esa sucursal: activo y con insumos suficientes allí.
+  /// Sin sucursal (null o vacía) solo cuenta que esté activo.
+  bool disponibleEn(String? sucursalId) {
+    if (!isActivo) return false;
+    if (sucursalId == null || sucursalId.isEmpty) return true;
+    return !agotadoSucursales.contains(sucursalId);
+  }
+
+  /// Indica si el platillo cuenta con una imagen guardada: una URL http/https (Cloud
+  /// Storage) o, como respaldo sin Storage, una imagen `data:image/...` dentro del documento.
   bool get tieneImagenEnNube =>
       imagenUrl.isNotEmpty &&
-      (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://'));
+      (imagenUrl.startsWith('http://') ||
+          imagenUrl.startsWith('https://') ||
+          imagenUrl.startsWith('data:image'));
 
-  factory PlatilloModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) {
-    final data = doc.data() ?? {};
+  factory PlatilloModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) =>
+      PlatilloModel.fromMap(doc.id, doc.data() ?? {});
+
+  factory PlatilloModel.fromMap(String id, Map<String, dynamic> data) {
     final rawPrecio = data['precio'];
     final double precio = (rawPrecio is num) ? rawPrecio.toDouble() : 0.0;
 
@@ -83,7 +114,7 @@ class PlatilloModel {
         estadosValidos.contains(rawEstado) ? rawEstado : estadoActivo;
 
     return PlatilloModel(
-      id: doc.id,
+      id: id,
       categoriaId: parseCategoriaId(data['categoriaId']),
       nombre: data['nombre'] as String? ?? 'Sin nombre',
       descripcion: data['descripcion'] as String? ?? '',
@@ -95,6 +126,12 @@ class PlatilloModel {
       permitePersonalizacion: data['permitePersonalizacion'] as bool? ?? true,
       placeholderObservacion: data['placeholderObservacion'] as String? ?? '',
       limiteCaracteresObs: (data['limiteCaracteresObs'] as num?)?.toInt() ?? 150,
+      receta: [
+        for (final r in (data['receta'] as List?) ?? const [])
+          if (r is Map) RecetaItem.fromMap(Map<String, dynamic>.from(r)),
+      ],
+      agotadoAuto: data['agotadoAuto'] as bool? ?? false,
+      agotadoSucursales: List<String>.from(data['agotadoSucursales'] as List? ?? const []),
     );
   }
 
@@ -111,6 +148,9 @@ class PlatilloModel {
       'permitePersonalizacion': permitePersonalizacion,
       'placeholderObservacion': placeholderObservacion,
       'limiteCaracteresObs': limiteCaracteresObs,
+      'receta': receta.map((r) => r.toMap()).toList(),
+      'agotadoAuto': agotadoAuto,
+      'agotadoSucursales': agotadoSucursales,
     };
   }
 
@@ -162,6 +202,9 @@ class PlatilloModel {
     bool? permitePersonalizacion,
     String? placeholderObservacion,
     int? limiteCaracteresObs,
+    List<RecetaItem>? receta,
+    bool? agotadoAuto,
+    List<String>? agotadoSucursales,
   }) {
     return PlatilloModel(
       id: id ?? this.id,
@@ -178,6 +221,9 @@ class PlatilloModel {
       placeholderObservacion:
           placeholderObservacion ?? this.placeholderObservacion,
       limiteCaracteresObs: limiteCaracteresObs ?? this.limiteCaracteresObs,
+      receta: receta ?? this.receta,
+      agotadoAuto: agotadoAuto ?? this.agotadoAuto,
+      agotadoSucursales: agotadoSucursales ?? this.agotadoSucursales,
     );
   }
 }

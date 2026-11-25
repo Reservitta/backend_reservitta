@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../models/branch_model.dart';
 import '../models/categoria_model.dart';
 import '../models/platillo_model.dart';
 import '../models/restaurant_model.dart';
@@ -10,6 +11,7 @@ import '../services/preorden_cache_service.dart';
 import '../services/restaurant_service.dart';
 import '../viewmodels/auth_modal_viewmodel.dart';
 import 'auth_modal_dialog.dart';
+import 'pedido_online_view.dart';
 import 'reservation_flow_view.dart';
 // import 'widgets/preorden_item_dialog.dart';
 import 'widgets/branch_picker_dialog.dart';
@@ -158,6 +160,79 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
     }
 
     _iniciarFlujoReserva();
+  }
+
+  /// Pedir a domicilio o para recoger: también requiere cuenta (o entrar como invitado).
+  Future<void> _onPedirPressed() async {
+    if (widget.bypassAuthForTesting || _authService.currentUser != null) {
+      _abrirPedido();
+      return;
+    }
+    final res = await AuthModalDialog.show<String>(
+      context,
+      initialMode: AuthMode.login,
+      showGuestOption: true,
+    );
+    if (!mounted) return;
+    if (_authService.currentUser == null && res == 'guest') {
+      try {
+        await _authService.signInAnonymously();
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    if (_authService.currentUser != null) {
+      _abrirPedido();
+    } else if (res == 'guest') {
+      // No se pudo entrar como invitado (por ejemplo, el acceso anónimo está apagado).
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            key: ValueKey('aviso_sin_invitado'),
+            content: Text(
+              'No pudimos continuar sin cuenta. Inicia sesión o crea una cuenta para hacer tu pedido.',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    }
+  }
+
+  /// Con varias sucursales el cliente elige de cuál pide (cada una lleva su inventario);
+  /// con una sola (o ninguna registrada) se pide directo.
+  Future<void> _abrirPedido() async {
+    final servicio = widget.restaurantService ?? RestaurantService();
+    BranchModel? sucursal;
+    try {
+      final sucursales = await servicio.getBranches(widget.restaurant.id);
+      if (sucursales.length == 1) {
+        sucursal = sucursales.first;
+      } else if (sucursales.length > 1) {
+        if (!mounted) return;
+        sucursal = await BranchPickerDialog.show(
+          context,
+          restaurant: widget.restaurant,
+          service: servicio,
+          accion: 'pedir',
+        );
+        if (sucursal == null) return;
+      }
+    } catch (_) {
+      // Sin poder leer las sucursales se pide al restaurante en general.
+    }
+    if (!mounted) return;
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PedidoOnlineView(
+          restaurant: widget.restaurant,
+          sucursal: sucursal,
+          categoriaService: _categoriaService,
+          platilloService: _platilloService,
+          authService: _authService,
+        ),
+      ),
+    );
   }
 
   /// Abre la ventana de sucursales; al continuar entra al flujo de reserva con la
@@ -493,6 +568,23 @@ class _RestaurantDetailViewState extends State<RestaurantDetailView> {
               ),
               onPressed: _onReservarPressed,
             ),
+            if (r.ofreceDelivery) ...[
+              const SizedBox(height: 10),
+              OutlinedButton.icon(
+                key: const ValueKey('boton_pedir_domicilio'),
+                style: OutlinedButton.styleFrom(
+                  minimumSize: const Size.fromHeight(54),
+                  foregroundColor: AppColors.marca,
+                  side: const BorderSide(color: AppColors.marca, width: 1.5),
+                ),
+                icon: const Icon(Icons.delivery_dining_outlined, size: 22),
+                label: const Text(
+                  'Pedir a domicilio o recoger',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                ),
+                onPressed: _onPedirPressed,
+              ),
+            ],
 
             // Contacto
             if (r.telefono.isNotEmpty || r.correo.isNotEmpty) ...[

@@ -695,7 +695,20 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
   }
 
   Widget _buildFilaReserva(ReservationModel reserva) {
-    final badgeStyle = _obtenerEstiloEstado(reserva.estadoOperativo);
+    // Una reserva que espera su anticipo se distingue de las ya confirmadas.
+    final esperaAnticipo =
+        reserva.esperaAnticipo && reserva.isPendienteLlegada && !reserva.isCancelada;
+    final etiquetaEstado = esperaAnticipo
+        ? (reserva.anticipo!.comprobanteEnviado ? 'Revisar anticipo' : 'Falta anticipo')
+        : reserva.etiquetaEstado;
+    final badgeStyle = esperaAnticipo
+        ? (
+            background: const Color(0xFFFFF1D6),
+            border: const Color(0xFFE8B04C),
+            foreground: const Color(0xFF8A5300),
+            icon: Icons.payments_outlined,
+          )
+        : _obtenerEstiloEstado(reserva.estadoOperativo);
     final alerta = widget.operaciones?.alertaDe(reserva.id);
 
     return InkWell(
@@ -847,7 +860,8 @@ class _AdminReservationsViewState extends State<AdminReservationsView> {
                       const SizedBox(width: 5),
                       Flexible(
                         child: Text(
-                          reserva.etiquetaEstado,
+                          etiquetaEstado,
+                          key: ValueKey('estado_fila_${reserva.id}'),
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w700,

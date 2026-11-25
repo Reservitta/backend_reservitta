@@ -692,6 +692,21 @@ class _AuthModalDialogState extends State<AuthModalDialog> {
               errorText: fe['restaurante'],
             ),
           ),
+          const SizedBox(height: 4),
+          // Material propio: el diálogo pinta un fondo y taparía el efecto del toque.
+          Material(
+            type: MaterialType.transparency,
+            child: SwitchListTile(
+              key: const ValueKey('switch_registro_delivery'),
+              contentPadding: EdgeInsets.zero,
+              title: const Text('¿Tu restaurante ofrece pedidos a domicilio?'),
+              subtitle: const Text(
+                'Tus clientes podrán pedir a domicilio o para recoger. Lo puedes cambiar después en Pagos y pedidos.',
+              ),
+              value: _viewModel.ofreceDelivery,
+              onChanged: (v) => _viewModel.ofreceDelivery = v,
+            ),
+          ),
         ],
 
         // Error global (e.g. correo ya registrado en Firebase)

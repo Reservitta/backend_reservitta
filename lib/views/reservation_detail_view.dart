@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
+import '../models/anticipo_reserva.dart';
 import '../models/reservation_detail.dart';
 import '../models/reservation_model.dart';
 import '../repositories/reservation_repository.dart';
+import '../services/auth_service.dart';
 import 'widgets/order_state_control.dart';
+import 'widgets/transferencia_widgets.dart';
 import 'widgets/reservation_state_control.dart';
 import '../theme/app_theme.dart';
 
@@ -26,6 +29,14 @@ class ReservationDetailView extends StatefulWidget {
   /// Si es null no se muestra el control del pedido.
   final Future<String?> Function(String nuevoEstado, {String? motivo})? onChangeOrderState;
 
+  /// Confirma el anticipo de la reserva; devuelve un mensaje de error o null.
+  /// Si es null y el repositorio es [ReservationService], se usa ese servicio.
+  final Future<String?> Function()? onConfirmarAnticipo;
+
+  /// Rechaza el comprobante con un motivo; devuelve un mensaje de error o null.
+  /// Si es null y el repositorio es [ReservationService], se usa ese servicio.
+  final Future<String?> Function(String motivo)? onRechazarAnticipo;
+
   const ReservationDetailView({
     super.key,
     required this.reservationId,
@@ -33,6 +44,8 @@ class ReservationDetailView extends StatefulWidget {
     required this.onChangeState,
     this.cargarCategorias,
     this.onChangeOrderState,
+    this.onConfirmarAnticipo,
+    this.onRechazarAnticipo,
   });
 
   static const Color terracotta = AppColors.marca;
@@ -86,6 +99,39 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
         _cargando = false;
       });
     }
+  }
+
+  /// Acción para confirmar el anticipo: la recibida o, por defecto, el servicio de reservas
+  /// (así funciona igual abra la reserva desde el dashboard o desde la lista).
+  Future<String?> Function()? get _confirmarAnticipo {
+    if (widget.onConfirmarAnticipo != null) return widget.onConfirmarAnticipo;
+    final repo = widget.repository;
+    if (repo is! ReservationService) return null;
+    return () async {
+      try {
+        await repo.confirmarAnticipo(
+          reservationId: widget.reservationId,
+          usuarioId: AuthService().currentUser?.uid ?? '',
+        );
+        return null;
+      } catch (e) {
+        return 'No se pudo confirmar el anticipo: ${e.toString().replaceAll('Bad state: ', '')}';
+      }
+    };
+  }
+
+  Future<String?> Function(String motivo)? get _rechazarAnticipo {
+    if (widget.onRechazarAnticipo != null) return widget.onRechazarAnticipo;
+    final repo = widget.repository;
+    if (repo is! ReservationService) return null;
+    return (motivo) async {
+      try {
+        await repo.rechazarAnticipo(reservationId: widget.reservationId, motivo: motivo);
+        return null;
+      } catch (_) {
+        return 'No se pudo rechazar el comprobante. Intenta de nuevo.';
+      }
+    };
   }
 
   Future<String?> _cambiarEstado(String nuevo) async {
@@ -151,6 +197,10 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
         children: [
           _encabezado(d),
           const SizedBox(height: 14),
+          if (d.anticipo != null) ...[
+            _anticipo(d),
+            const SizedBox(height: 14),
+          ],
           _ocasion(d),
           const SizedBox(height: 14),
           _alergias(d),
@@ -483,6 +533,107 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
     );
   }
 
+  Future<void> _revisarAnticipo(Future<String?> Function() accion, String exito) async {
+    final error = await accion();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(error ?? exito),
+        backgroundColor: error == null ? AppColors.exito : AppColors.error,
+      ),
+    );
+    if (error == null) await _cargar();
+  }
+
+  Future<void> _pedirMotivoRechazo() async {
+    final motivo = await showDialog<String>(
+      context: context,
+      builder: (_) => const _MotivoRechazoDialog(),
+    );
+    if (motivo == null || !mounted) return;
+    await _revisarAnticipo(
+      () => _rechazarAnticipo!(motivo.isEmpty ? 'El comprobante no es válido.' : motivo),
+      'Comprobante rechazado. El cliente puede subir otro.',
+    );
+  }
+
+  Widget _anticipo(ReservationDetail d) {
+    final a = d.anticipo!;
+    final vencido = a.estaVencido(DateTime.now());
+    final puedeRevisar = _confirmarAnticipo != null && !a.confirmado;
+    final consumo = d.subtotalPreorden + d.totalExperiencias;
+    final porPagar = consumo > a.monto ? consumo - a.monto : 0.0;
+    String dos(int n) => n.toString().padLeft(2, '0');
+    return _tarjeta(
+      key: const ValueKey('detalle_anticipo'),
+      color: a.confirmado ? const Color(0xFFE8F3E9) : const Color(0xFFFFF7E6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _titulo('Anticipo', icono: Icons.payments_outlined),
+          _fila(Icons.flag_outlined, 'Estado', a.etiquetaEstado),
+          _fila(Icons.attach_money, 'Monto', formatoDinero(a.monto)),
+          if (a.venceEn != null && !a.confirmado)
+            _fila(
+              Icons.timer_outlined,
+              'Límite',
+              '${dos(a.venceEn!.day)}/${dos(a.venceEn!.month)} ${dos(a.venceEn!.hour)}:${dos(a.venceEn!.minute)}${vencido ? ' · vencido' : ''}',
+            ),
+          _fila(
+            Icons.tag,
+            'Concepto',
+            ConceptoTransferencia.generar(
+              prefijo: 'RES',
+              id: d.id,
+              nombre: d.clienteNombre == ReservationDetail.noIndicado ? '' : d.clienteNombre,
+            ),
+          ),
+          if (a.motivoRechazo.isNotEmpty) _fila(Icons.info_outline, 'Rechazo', a.motivoRechazo),
+          if (a.confirmado)
+            Padding(
+              key: const ValueKey('anticipo_descuento'),
+              padding: const EdgeInsets.only(top: 6),
+              child: Text(
+                consumo > 0
+                    ? 'Se descuenta de la cuenta: consumo ${formatoDinero(consumo)} - anticipo ${formatoDinero(a.monto)} = por cobrar ${formatoDinero(porPagar)}.'
+                    : 'Descuenta este anticipo de la cuenta final al cobrar.',
+                style: const TextStyle(color: ReservationDetailView.darkText),
+              ),
+            ),
+          if (a.comprobanteEnviado || a.confirmado || a.rechazado) ...[
+            const SizedBox(height: 10),
+            ComprobanteVisor(tipo: 'reserva', refId: d.id),
+          ],
+          if (puedeRevisar) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                FilledButton.icon(
+                  key: const ValueKey('btn_confirmar_anticipo'),
+                  onPressed: () => _revisarAnticipo(
+                    _confirmarAnticipo!,
+                    'Anticipo confirmado. La reserva quedó confirmada.',
+                  ),
+                  icon: const Icon(Icons.check),
+                  label: const Text('Confirmar anticipo'),
+                ),
+                if (_rechazarAnticipo != null && a.comprobanteEnviado)
+                  OutlinedButton.icon(
+                    key: const ValueKey('btn_rechazar_anticipo'),
+                    onPressed: _pedirMotivoRechazo,
+                    icon: const Icon(Icons.close),
+                    label: const Text('Rechazar comprobante'),
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _cliente(ReservationDetail d) {
     return _tarjeta(
       key: const ValueKey('detalle_contacto'),
@@ -516,6 +667,49 @@ class _ReservationDetailViewState extends State<ReservationDetailView> {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// Pide el motivo por el que se rechaza el comprobante. Administra su propio
+/// controlador para liberarlo cuando el diálogo ya terminó de cerrarse.
+class _MotivoRechazoDialog extends StatefulWidget {
+  const _MotivoRechazoDialog();
+
+  @override
+  State<_MotivoRechazoDialog> createState() => _MotivoRechazoDialogState();
+}
+
+class _MotivoRechazoDialogState extends State<_MotivoRechazoDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Rechazar comprobante'),
+      content: TextField(
+        key: const ValueKey('campo_motivo_rechazo'),
+        controller: _controller,
+        maxLength: 120,
+        decoration: const InputDecoration(
+          labelText: 'Motivo (el cliente lo verá)',
+          hintText: 'Ej. El monto no coincide',
+        ),
+      ),
+      actions: [
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+        FilledButton(
+          key: const ValueKey('btn_confirmar_rechazo'),
+          onPressed: () => Navigator.pop(context, _controller.text.trim()),
+          child: const Text('Rechazar'),
+        ),
+      ],
     );
   }
 }
