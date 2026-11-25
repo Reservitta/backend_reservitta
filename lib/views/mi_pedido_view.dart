@@ -6,6 +6,7 @@ import '../models/restaurant_model.dart';
 import '../viewmodels/pedido_viewmodel.dart';
 import 'widgets/platillo_detalle_sheet.dart';
 import '../theme/app_theme.dart';
+import 'widgets/platillo_imagen.dart';
 
 /// Pantalla "Mi pedido" (HU16-RF06)
 ///
@@ -344,11 +345,9 @@ class _MiPedidoViewState extends State<MiPedidoView> {
                 child: item.imagenUrl.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(10),
-                        child: Image.network(
-                          item.imagenUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(
+                        child: PlatilloImagen(
+                          url: item.imagenUrl,
+                          fallback: const Icon(
                             Icons.fastfood_outlined,
                             color: MiPedidoView.primaryTerracotta,
                             size: 26,

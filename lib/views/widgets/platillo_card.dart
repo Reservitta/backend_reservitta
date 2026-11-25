@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../theme/app_theme.dart';
+import 'platillo_imagen.dart';
 
 /// Tarjeta para cada platillo en la lista de gestión del menú (HU24-RF04)
 /// Incluye un switch directo para cambiar disponibilidad con un solo toque,
@@ -67,10 +68,9 @@ class PlatilloCard extends StatelessWidget {
                   border: Border.all(color: _cardBorder),
                 ),
                 child: platillo.tieneImagenEnNube
-                    ? Image.network(
-                        platillo.imagenUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => _buildFallbackImage(),
+                    ? PlatilloImagen(
+                        url: platillo.imagenUrl,
+                        fallback: _buildFallbackImage(),
                       )
                     : _buildFallbackImage(),
               ),

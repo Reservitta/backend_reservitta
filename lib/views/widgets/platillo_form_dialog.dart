@@ -8,6 +8,7 @@ import '../../services/categoria_service.dart';
 import '../../utils/validators.dart';
 import '../../viewmodels/platillo_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import 'platillo_imagen.dart';
 
 /// Formulario modal para Alta y Edición de Platillo (HU24-RF04)
 /// Permite editar precio, descripción, imagen y disponibilidad sin salir de la lista principal.
@@ -213,12 +214,11 @@ class _PlatilloFormDialogState extends State<PlatilloFormDialog> {
         height: 110,
       );
     } else if (platillo != null && platillo.tieneImagenEnNube) {
-      content = Image.network(
-        platillo.imagenUrl,
-        fit: BoxFit.cover,
+      content = PlatilloImagen(
+        url: platillo.imagenUrl,
         width: 110,
         height: 110,
-        errorBuilder: (context, error, stackTrace) => _buildPlaceholderImage(),
+        fallback: _buildPlaceholderImage(),
       );
     } else {
       content = _buildPlaceholderImage();

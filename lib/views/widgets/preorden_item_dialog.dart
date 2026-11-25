@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../utils/validators.dart';
 import '../../theme/app_theme.dart';
+import 'platillo_imagen.dart';
 
 /// Diálogo modal para que el cliente agregue y personalice un platillo al preordenar (HU24-RF05).
 /// Cumple con:
@@ -149,10 +150,9 @@ class _PreordenItemDialogState extends State<PreordenItemDialog> {
                             height: 68,
                             color: Colors.white,
                             child: p.tieneImagenEnNube
-                                ? Image.network(
-                                    p.imagenUrl,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => const Icon(
+                                ? PlatilloImagen(
+                                    url: p.imagenUrl,
+                                    fallback: const Icon(
                                       Icons.restaurant,
                                       color: Color(0xFFC4B8AA),
                                     ),

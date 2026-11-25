@@ -82,10 +82,13 @@ class PlatilloModel {
     return !agotadoSucursales.contains(sucursalId);
   }
 
-  /// Indica si el platillo cuenta con una imagen subida en la nube (URL http/https)
+  /// Indica si el platillo cuenta con una imagen guardada: una URL http/https (Cloud
+  /// Storage) o, como respaldo sin Storage, una imagen `data:image/...` dentro del documento.
   bool get tieneImagenEnNube =>
       imagenUrl.isNotEmpty &&
-      (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://'));
+      (imagenUrl.startsWith('http://') ||
+          imagenUrl.startsWith('https://') ||
+          imagenUrl.startsWith('data:image'));
 
   factory PlatilloModel.fromFirestore(DocumentSnapshot<Map<String, dynamic>> doc) =>
       PlatilloModel.fromMap(doc.id, doc.data() ?? {});

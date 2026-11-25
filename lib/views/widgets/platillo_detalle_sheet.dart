@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../models/platillo_model.dart';
 import '../../viewmodels/pedido_viewmodel.dart';
 import '../../theme/app_theme.dart';
+import 'platillo_imagen.dart';
 
 /// Resultado devuelto al cerrar el detalle de platillo (HU16-RF04, HU16-RF05, HU17-RF01).
 class PlatilloDetalleResult {
@@ -263,10 +264,9 @@ class _PlatilloDetalleSheetState extends State<PlatilloDetalleSheet> {
                 width: double.infinity,
                 color: PlatilloDetalleSheet._creamLight,
                 child: p.tieneImagenEnNube
-                    ? Image.network(
-                        p.imagenUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const Center(
+                    ? PlatilloImagen(
+                        url: p.imagenUrl,
+                        fallback: const Center(
                           child: Icon(
                             Icons.restaurant_rounded,
                             size: 52,
