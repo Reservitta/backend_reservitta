@@ -42,10 +42,28 @@ class _InventarioViewState extends State<InventarioView> {
   Stream<List<MovimientoInventario>>? _movimientos;
   bool _verMovimientos = false;
 
+  final TextEditingController _buscar = TextEditingController();
+  String _filtroTexto = '';
+  String? _filtroCategoria;
+
   @override
   void initState() {
     super.initState();
     _cargarSucursales();
+  }
+
+  @override
+  void dispose() {
+    _buscar.dispose();
+    super.dispose();
+  }
+
+  void _limpiarFiltros() {
+    _buscar.clear();
+    setState(() {
+      _filtroTexto = '';
+      _filtroCategoria = null;
+    });
   }
 
   Future<void> _cargarSucursales() async {
@@ -127,6 +145,7 @@ class _InventarioViewState extends State<InventarioView> {
         minimo: r.minimo,
         existenciaInicial: r.existencia,
         por: _uid(),
+        categoria: r.categoria,
       ),
       'Insumo "${r.nombre}" agregado.',
     );
@@ -139,7 +158,8 @@ class _InventarioViewState extends State<InventarioView> {
     );
     if (r == null) return;
     await _ejecutar(
-      () => _service.actualizarInsumo(widget.restaurantId, i.id, nombre: r.nombre, unidad: r.unidad),
+      () => _service.actualizarInsumo(widget.restaurantId, i.id,
+          nombre: r.nombre, unidad: r.unidad, categoria: r.categoria),
       'Insumo actualizado.',
     );
   }
@@ -311,6 +331,7 @@ class _InventarioViewState extends State<InventarioView> {
               for (final i in insumos)
                 if ((existencias[i.id] ?? ExistenciaModel(insumoId: i.id)).requiereAtencion) i,
             ];
+            final visibles = _filtrar(insumos);
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -338,7 +359,28 @@ class _InventarioViewState extends State<InventarioView> {
                       ],
                     ),
                   ),
-                for (final i in insumos)
+                ..._buscadorYFiltros(insumos),
+                if (visibles.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32),
+                    child: Column(
+                      children: [
+                        const Text(
+                          'Ningún insumo coincide con la búsqueda o el filtro.',
+                          key: ValueKey('inventario_sin_resultados'),
+                          textAlign: TextAlign.center,
+                          style: TextStyle(color: AppColors.textoSuave),
+                        ),
+                        const SizedBox(height: 8),
+                        TextButton(
+                          key: const ValueKey('btn_limpiar_filtros'),
+                          onPressed: _limpiarFiltros,
+                          child: const Text('Limpiar filtros'),
+                        ),
+                      ],
+                    ),
+                  ),
+                for (final i in visibles)
                   _TarjetaInsumo(
                     insumo: i,
                     existencia: existencias[i.id] ?? ExistenciaModel(insumoId: i.id),
@@ -353,6 +395,85 @@ class _InventarioViewState extends State<InventarioView> {
         );
       },
     );
+  }
+
+  bool _coincideTexto(InsumoModel i) {
+    final q = CategoriaInsumo.normalizar(_filtroTexto);
+    return q.isEmpty || CategoriaInsumo.normalizar(i.nombre).contains(q);
+  }
+
+  /// Insumos que cumplen la búsqueda por nombre y la categoría elegida.
+  List<InsumoModel> _filtrar(List<InsumoModel> insumos) {
+    final categorias = insumos.map((i) => i.etiquetaCategoria).toSet();
+    final cat = (_filtroCategoria != null && categorias.contains(_filtroCategoria)) ? _filtroCategoria : null;
+    return [
+      for (final i in insumos)
+        if (_coincideTexto(i) && (cat == null || i.etiquetaCategoria == cat)) i,
+    ];
+  }
+
+  /// Barra de búsqueda por nombre y filtros por categoría (con cuántos insumos hay en cada una).
+  List<Widget> _buscadorYFiltros(List<InsumoModel> insumos) {
+    final conTexto = insumos.where(_coincideTexto).toList();
+    final conteo = <String, int>{for (final i in insumos) i.etiquetaCategoria: 0};
+    for (final i in conTexto) {
+      conteo[i.etiquetaCategoria] = conteo[i.etiquetaCategoria]! + 1;
+    }
+    final nombres = conteo.keys.toList()
+      ..sort((a, b) {
+        if (a == CategoriaInsumo.sinCategoria) return 1;
+        if (b == CategoriaInsumo.sinCategoria) return -1;
+        return a.compareTo(b);
+      });
+    final seleccionada = (_filtroCategoria != null && conteo.containsKey(_filtroCategoria)) ? _filtroCategoria : null;
+    return [
+      TextField(
+        key: const ValueKey('buscar_insumo'),
+        controller: _buscar,
+        onChanged: (v) => setState(() => _filtroTexto = v),
+        decoration: InputDecoration(
+          hintText: 'Buscar insumo por nombre...',
+          prefixIcon: const Icon(Icons.search),
+          suffixIcon: _filtroTexto.isEmpty
+              ? null
+              : IconButton(
+                  key: const ValueKey('btn_borrar_busqueda'),
+                  tooltip: 'Borrar búsqueda',
+                  icon: const Icon(Icons.clear),
+                  onPressed: () {
+                    _buscar.clear();
+                    setState(() => _filtroTexto = '');
+                  },
+                ),
+          filled: true,
+          fillColor: Colors.white,
+          isDense: true,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+        ),
+      ),
+      const SizedBox(height: 10),
+      if (nombres.length > 1)
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              key: const ValueKey('filtro_categoria_todas'),
+              label: Text('Todas (${conTexto.length})'),
+              selected: seleccionada == null,
+              onSelected: (_) => setState(() => _filtroCategoria = null),
+            ),
+            for (final n in nombres)
+              ChoiceChip(
+                key: ValueKey('filtro_categoria_$n'),
+                label: Text('$n (${conteo[n]})'),
+                selected: seleccionada == n,
+                onSelected: (_) => setState(() => _filtroCategoria = seleccionada == n ? null : n),
+              ),
+          ],
+        ),
+      const SizedBox(height: 12),
+    ];
   }
 
   Widget _listaMovimientos() {
@@ -558,7 +679,8 @@ class _DatosInsumo {
   final String unidad;
   final double minimo;
   final double existencia;
-  const _DatosInsumo(this.nombre, this.unidad, this.minimo, this.existencia);
+  final String categoria;
+  const _DatosInsumo(this.nombre, this.unidad, this.minimo, this.existencia, [this.categoria = '']);
 }
 
 double? _leerNumero(String texto) {
@@ -580,6 +702,7 @@ class _InsumoDialogState extends State<_InsumoDialog> {
   final TextEditingController _minimo = TextEditingController();
   final TextEditingController _existencia = TextEditingController();
   late String _unidad = widget.insumo?.unidad ?? 'pza';
+  late String _categoria = widget.insumo?.categoria ?? '';
   String? _error;
 
   bool get _nuevo => widget.insumo == null;
@@ -604,7 +727,7 @@ class _InsumoDialogState extends State<_InsumoDialog> {
       setState(() => _error = 'Las cantidades no pueden ser negativas.');
       return;
     }
-    Navigator.pop(context, _DatosInsumo(_nombre.text.trim(), _unidad, minimo, existencia));
+    Navigator.pop(context, _DatosInsumo(_nombre.text.trim(), _unidad, minimo, existencia, _categoria));
   }
 
   @override
@@ -632,6 +755,19 @@ class _InsumoDialogState extends State<_InsumoDialog> {
                   DropdownMenuItem(value: u, child: Text('${UnidadInsumo.etiqueta(u)} ($u)')),
               ],
               onChanged: (v) => setState(() => _unidad = v ?? 'pza'),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              key: const ValueKey('insumo_categoria'),
+              initialValue: _categoria,
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Categoría', border: OutlineInputBorder()),
+              items: [
+                const DropdownMenuItem(value: '', child: Text(CategoriaInsumo.sinCategoria)),
+                for (final c in {...CategoriaInsumo.sugeridas, if (_categoria.isNotEmpty) _categoria})
+                  DropdownMenuItem(value: c, child: Text(c)),
+              ],
+              onChanged: (v) => setState(() => _categoria = v ?? ''),
             ),
             if (_nuevo) ...[
               const SizedBox(height: 12),

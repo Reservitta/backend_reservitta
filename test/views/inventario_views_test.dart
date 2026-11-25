@@ -290,6 +290,125 @@ void main() {
     });
   });
 
+  group('Búsqueda y filtro por categoría', () {
+    Future<Map<String, String>> sembrar() async {
+      final ids = <String, String>{};
+      Future<void> a(String nombre, String unidad, String categoria) async {
+        ids[nombre] = await inv.crearInsumo(rid, nombre: nombre, unidad: unidad, categoria: categoria);
+      }
+
+      await a('Queso cheddar', 'g', 'Lácteos y quesos');
+      await a('Leche', 'l', 'Lácteos y quesos');
+      await a('Tocino', 'g', 'Carnes y proteínas');
+      await a('Azúcar', 'g', 'Abarrotes');
+      await a('Sal', 'g', '');
+      return ids;
+    }
+
+    Finder tarjeta(Map<String, String> ids, String nombre) => find.byKey(ValueKey('insumo_${ids[nombre]}'));
+
+    testWidgets('busca por nombre sin importar acentos ni mayúsculas', (tester) async {
+      final ids = await sembrar();
+      await abrir(tester);
+      expect(tarjeta(ids, 'Azúcar'), findsOneWidget);
+      expect(tarjeta(ids, 'Tocino'), findsOneWidget);
+
+      await _escribir(tester, 'buscar_insumo', 'AZUCAR');
+      await tester.pumpAndSettle();
+      expect(tarjeta(ids, 'Azúcar'), findsOneWidget);
+      expect(tarjeta(ids, 'Tocino'), findsNothing);
+      expect(tarjeta(ids, 'Leche'), findsNothing);
+
+      await _tocar(tester, 'btn_borrar_busqueda');
+      expect(tarjeta(ids, 'Tocino'), findsOneWidget);
+      expect(tarjeta(ids, 'Leche'), findsOneWidget);
+    });
+
+    testWidgets('filtra por categoría y cuenta los insumos de cada una', (tester) async {
+      final ids = await sembrar();
+      await abrir(tester);
+      expect(find.text('Todas (5)'), findsOneWidget);
+      expect(find.text('Lácteos y quesos (2)'), findsOneWidget);
+      expect(find.text('Sin categoría (1)'), findsOneWidget);
+
+      await _tocar(tester, 'filtro_categoria_Lácteos y quesos');
+      expect(tarjeta(ids, 'Queso cheddar'), findsOneWidget);
+      expect(tarjeta(ids, 'Leche'), findsOneWidget);
+      expect(tarjeta(ids, 'Tocino'), findsNothing);
+
+      await _tocar(tester, 'filtro_categoria_Sin categoría');
+      expect(tarjeta(ids, 'Sal'), findsOneWidget);
+      expect(tarjeta(ids, 'Leche'), findsNothing);
+
+      await _tocar(tester, 'filtro_categoria_todas');
+      expect(tarjeta(ids, 'Tocino'), findsOneWidget);
+      expect(tarjeta(ids, 'Sal'), findsOneWidget);
+    });
+
+    testWidgets('la búsqueda y la categoría se combinan', (tester) async {
+      final ids = await sembrar();
+      await abrir(tester);
+      await _tocar(tester, 'filtro_categoria_Lácteos y quesos');
+      await _escribir(tester, 'buscar_insumo', 'lec');
+      await tester.pumpAndSettle();
+      expect(tarjeta(ids, 'Leche'), findsOneWidget);
+      expect(tarjeta(ids, 'Queso cheddar'), findsNothing);
+      // Con el texto, los conteos de cada categoría reflejan solo lo que coincide.
+      expect(find.text('Lácteos y quesos (1)'), findsOneWidget);
+      expect(find.text('Carnes y proteínas (0)'), findsOneWidget);
+    });
+
+    testWidgets('sin coincidencias avisa y "Limpiar filtros" lo restaura', (tester) async {
+      final ids = await sembrar();
+      await abrir(tester);
+      await _escribir(tester, 'buscar_insumo', 'zzz');
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('inventario_sin_resultados')), findsOneWidget);
+      expect(tarjeta(ids, 'Leche'), findsNothing);
+
+      await _tocar(tester, 'btn_limpiar_filtros');
+      expect(find.byKey(const ValueKey('inventario_sin_resultados')), findsNothing);
+      expect(tarjeta(ids, 'Leche'), findsOneWidget);
+    });
+
+    testWidgets('sin categorías distintas no muestra los filtros', (tester) async {
+      await insumo('Harina');
+      await abrir(tester);
+      expect(find.byKey(const ValueKey('filtro_categoria_todas')), findsNothing);
+      expect(find.byKey(const ValueKey('buscar_insumo')), findsOneWidget);
+    });
+
+    testWidgets('al crear un insumo se guarda la categoría elegida', (tester) async {
+      await abrir(tester);
+      await _tocar(tester, 'btn_nuevo_insumo');
+      await _escribir(tester, 'insumo_nombre', 'Mantequilla');
+      await _tocar(tester, 'insumo_categoria');
+      await tester.tap(find.text('Lácteos y quesos').last);
+      await tester.pumpAndSettle();
+      await _tocar(tester, 'btn_guardar_insumo');
+
+      final docs = (await db.collection('restaurants').doc(rid).collection('insumos').get()).docs;
+      expect(docs.single.data()['categoria'], 'Lácteos y quesos');
+    });
+
+    testWidgets('editar un insumo cambia su categoría sin tocar lo demás', (tester) async {
+      final ids = await sembrar();
+      await abrir(tester);
+      await _tocar(tester, 'menu_insumo_${ids['Sal']}');
+      await tester.tap(find.text('Editar nombre y unidad'));
+      await tester.pumpAndSettle();
+      await _tocar(tester, 'insumo_categoria');
+      await tester.tap(find.text('Abarrotes').last);
+      await tester.pumpAndSettle();
+      await _tocar(tester, 'btn_guardar_insumo');
+
+      final d = (await db.collection('restaurants').doc(rid).collection('insumos').doc(ids['Sal']).get()).data()!;
+      expect(d['categoria'], 'Abarrotes');
+      expect(d['nombre'], 'Sal');
+      expect(d['unidad'], 'g');
+    });
+  });
+
   group('Resumen del dashboard', () {
     Future<void> abrirResumen(WidgetTester tester, List<BranchModel> sucursales) async {
       var abierto = false;

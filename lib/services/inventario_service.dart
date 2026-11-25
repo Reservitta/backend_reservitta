@@ -131,6 +131,7 @@ class InventarioService {
     String rid, {
     required String nombre,
     required String unidad,
+    String categoria = '',
   }) async {
     final problema = validarInsumo(nombre: nombre, unidad: unidad);
     if (problema != null) throw InventarioException(problema);
@@ -139,15 +140,18 @@ class InventarioService {
     if (existentes.docs.any((d) => _normalizar((d.data()['nombre'] as String?) ?? '') == nuevo)) {
       throw const InventarioException('Ya existe un insumo con ese nombre.');
     }
-    final ref = await _insumos(rid).add(InsumoModel(id: '', nombre: nombre, unidad: unidad).toMap());
+    final ref = await _insumos(rid)
+        .add(InsumoModel(id: '', nombre: nombre, unidad: unidad, categoria: categoria).toMap());
     return ref.id;
   }
 
+  /// [categoria] en null deja la categoría como está.
   Future<void> actualizarInsumo(
     String rid,
     String insumoId, {
     required String nombre,
     required String unidad,
+    String? categoria,
   }) async {
     final problema = validarInsumo(nombre: nombre, unidad: unidad);
     if (problema != null) throw InventarioException(problema);
@@ -157,7 +161,11 @@ class InventarioService {
       (d) => d.id != insumoId && _normalizar((d.data()['nombre'] as String?) ?? '') == nuevo,
     );
     if (repetido) throw const InventarioException('Ya existe un insumo con ese nombre.');
-    await _insumos(rid).doc(insumoId).update({'nombre': nombre.trim(), 'unidad': unidad});
+    await _insumos(rid).doc(insumoId).update({
+      'nombre': nombre.trim(),
+      'unidad': unidad,
+      if (categoria != null) 'categoria': categoria.trim(),
+    });
   }
 
   /// Mínimo de la sucursal: por debajo (o igual) se avisa de stock bajo.
@@ -248,8 +256,9 @@ class InventarioService {
     double minimo = 0,
     double existenciaInicial = 0,
     String por = '',
+    String categoria = '',
   }) async {
-    final id = await crearInsumo(rid, nombre: nombre, unidad: unidad);
+    final id = await crearInsumo(rid, nombre: nombre, unidad: unidad, categoria: categoria);
     if (minimo > 0) await definirMinimo(rid, sid, id, minimo);
     if (existenciaInicial > 0) {
       await registrarEntrada(

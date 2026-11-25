@@ -42,15 +42,59 @@ class InsumoModel {
   final String nombre;
   final String unidad;
 
-  const InsumoModel({required this.id, required this.nombre, this.unidad = 'pza'});
+  /// Categoría para filtrar el inventario (por ejemplo "Carnes y proteínas").
+  /// Vacía en los insumos creados antes de que existiera.
+  final String categoria;
+
+  const InsumoModel({required this.id, required this.nombre, this.unidad = 'pza', this.categoria = ''});
+
+  /// Nombre con el que se agrupa en los filtros.
+  String get etiquetaCategoria =>
+      categoria.trim().isEmpty ? CategoriaInsumo.sinCategoria : categoria.trim();
 
   factory InsumoModel.fromMap(String id, Map<String, dynamic> data) => InsumoModel(
         id: id,
         nombre: (data['nombre'] as String?) ?? 'Insumo',
         unidad: (data['unidad'] as String?) ?? 'pza',
+        categoria: ((data['categoria'] as String?) ?? '').trim(),
       );
 
-  Map<String, dynamic> toMap() => {'nombre': nombre.trim(), 'unidad': unidad};
+  Map<String, dynamic> toMap() => {
+        'nombre': nombre.trim(),
+        'unidad': unidad,
+        if (categoria.trim().isNotEmpty) 'categoria': categoria.trim(),
+      };
+}
+
+/// Categorías sugeridas para clasificar los insumos.
+class CategoriaInsumo {
+  CategoriaInsumo._();
+
+  static const String sinCategoria = 'Sin categoría';
+
+  static const List<String> sugeridas = [
+    'Carnes y proteínas',
+    'Lácteos y quesos',
+    'Verduras y frutas',
+    'Panadería y tortillas',
+    'Papas y botanas',
+    'Salsas y aderezos',
+    'Bebidas y mezclas',
+    'Abarrotes',
+    'Otros',
+  ];
+
+  /// Texto en minúsculas y sin acentos, para buscar sin importar cómo se escriba.
+  static String normalizar(String texto) {
+    const con = 'áàäâéèëêíìïîóòöôúùüûñ';
+    const sin = 'aaaaeeeeiiiioooouuuun';
+    final b = StringBuffer();
+    for (final c in texto.toLowerCase().trim().split('')) {
+      final i = con.indexOf(c);
+      b.write(i >= 0 ? sin[i] : c);
+    }
+    return b.toString();
+  }
 }
 
 /// Existencias de un insumo en una sucursal.
