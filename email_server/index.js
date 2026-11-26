@@ -2,7 +2,6 @@ require('dotenv').config();
 
 const express = require('express');
 const cors = require('cors');
-const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
 
 const app = express();
@@ -28,7 +27,6 @@ const allowedOrigins = new Set([...defaultAllowedOrigins, ...extraOrigins]);
 app.use(
   cors({
     origin(origin, callback) {
-      // Permitir peticiones sin origin (apps moviles nativas, curl, healthchecks)
       if (!origin) return callback(null, true);
       if (allowedOrigins.has(origin) || /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
         return callback(null, true);
@@ -41,20 +39,6 @@ app.use(
 );
 
 app.use(express.json({ limit: '1mb' }));
-
-function createTransporter() {
-  const user = (process.env.GMAIL_USER || '').trim();
-  const pass = (process.env.GMAIL_APP_PASSWORD || '').replace(/\s+/g, '');
-
-  if (!user || !pass) {
-    throw new Error('Faltan las variables de entorno GMAIL_USER o GMAIL_APP_PASSWORD en el servidor.');
-  }
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  });
-}
 
 async function verifyFirebaseAuth(req, res, next) {
   const requireAuth = (process.env.REQUIRE_FIREBASE_AUTH || 'true').toLowerCase() !== 'false';
@@ -114,27 +98,53 @@ app.post('/api/send-confirmation', verifyFirebaseAuth, async (req, res) => {
       });
     }
 
-    const transporter = createTransporter();
-    const fromName = (process.env.EMAIL_FROM_NAME || 'Reservitta').trim();
-    const fromEmail = process.env.GMAIL_USER.trim();
+    const brevoApiKey = (process.env.BREVO_API_KEY || '').trim();
+    const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.GMAIL_USER || '').trim();
+    const senderName = (process.env.EMAIL_FROM_NAME || 'Reservitta').trim();
 
-    const info = await transporter.sendMail({
-      from: `"${fromName}" <${fromEmail}>`,
-      to: cleanTo,
-      subject: cleanSubject,
-      text: cleanText || undefined,
-      html: cleanHtml || undefined,
+    if (!brevoApiKey || !senderEmail) {
+      return res.status(500).json({
+        ok: false,
+        error: 'Faltan las variables BREVO_API_KEY o BREVO_SENDER_EMAIL en el servidor.',
+      });
+    }
+
+    const brevoResponse = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'content-type': 'application/json',
+        'api-key': brevoApiKey,
+      },
+      body: JSON.stringify({
+        sender: { name: senderName, email: senderEmail },
+        to: [{ email: cleanTo }],
+        subject: cleanSubject,
+        textContent: cleanText || undefined,
+        htmlContent: cleanHtml || undefined,
+      }),
     });
 
+    const data = await brevoResponse.json().catch(() => ({}));
+
+    if (!brevoResponse.ok) {
+      console.error(`[email-server] Error Brevo (${brevoResponse.status}):`, data);
+      return res.status(brevoResponse.status).json({
+        ok: false,
+        error: data.message || `Error al enviar correo con Brevo (Status ${brevoResponse.status})`,
+      });
+    }
+
+    console.log(`[email-server] Correo enviado a ${cleanTo} (messageId: ${data.messageId || 'ok'})`);
     return res.status(200).json({
       ok: true,
-      messageId: info.messageId,
+      messageId: data.messageId || 'sent',
     });
   } catch (error) {
     console.error('[email-server] Error al enviar correo:', error.message);
     return res.status(500).json({
       ok: false,
-      error: `Error al enviar correo SMTP: ${error.message}`,
+      error: `Error interno al enviar correo: ${error.message}`,
     });
   }
 });
@@ -142,4 +152,3 @@ app.post('/api/send-confirmation', verifyFirebaseAuth, async (req, res) => {
 app.listen(PORT, () => {
   console.log(`[email-server] Escuchando en el puerto ${PORT}`);
 });
-
